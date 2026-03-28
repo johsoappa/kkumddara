@@ -313,6 +313,41 @@ export default function HomePage() {
             <span className="text-3xl leading-none flex-shrink-0">✨</span>
           </button>
 
+          {/* ⑤ 고객 지원 메뉴 */}
+          <div className="bg-white rounded-card-lg shadow-card overflow-hidden">
+            <p className="text-xs font-semibold text-base-muted px-4 pt-4 pb-2">
+              고객 지원
+            </p>
+            {[
+              { label: "자주 묻는 질문",    emoji: "🙋", href: "/faq"     },
+              { label: "사용자 가이드",      emoji: "📖", href: "/guide"   },
+              { label: "1:1 문의",          emoji: "💬", href: "/contact" },
+              { label: "이용약관",           emoji: "📄", href: "/terms"   },
+              { label: "개인정보처리방침",   emoji: "🔒", href: "/privacy" },
+              { label: "환불정책",           emoji: "💳", href: "/refund"  },
+              { label: "청소년 보호정책",    emoji: "🛡️", href: "/youth"   },
+            ].map((item, i, arr) => (
+              <button
+                key={item.href}
+                onClick={() => router.push(item.href)}
+                className={`
+                  w-full flex items-center justify-between px-4 py-3 text-left
+                  hover:bg-base-off active:bg-base-off transition-colors
+                  ${i < arr.length - 1 ? "border-b border-base-border" : ""}
+                `}
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-base leading-none">{item.emoji}</span>
+                  <span className="text-sm text-base-text">{item.label}</span>
+                </div>
+                <ChevronRight size={15} className="text-base-muted" />
+              </button>
+            ))}
+          </div>
+
+          {/* 하단 여백 */}
+          <div className="h-2" />
+
         </div>
       </div>
     </AppShell>
