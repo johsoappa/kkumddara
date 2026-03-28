@@ -27,7 +27,7 @@ export default function ContactPage() {
 
         {/* 카카오채널 버튼 */}
         <a
-          href="https://pf.kakao.com/_kkumddara"
+          href="https://pf.kakao.com/_johsoappa"
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-card-lg p-5 shadow-card flex items-center gap-4 active:opacity-80 transition-opacity"
@@ -48,7 +48,7 @@ export default function ContactPage() {
           <div className="flex-1">
             <p className="text-sm font-bold" style={{ color: "#3C1E1E" }}>카카오채널로 문의</p>
             <p className="text-xs mt-0.5" style={{ color: "#5C3D1E" }}>
-              꿈따라 채널 · 가장 빠른 답변
+              좋소아빠 채널 · 가장 빠른 답변
             </p>
           </div>
           <span className="text-lg">→</span>

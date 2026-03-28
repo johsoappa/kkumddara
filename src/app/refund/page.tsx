@@ -109,7 +109,7 @@ export default function RefundPage() {
           <div className="flex flex-col gap-2 text-sm text-base-text">
             <div className="flex gap-2">
               <span className="text-base-muted shrink-0">카카오채널</span>
-              <span className="font-medium">꿈따라</span>
+              <span className="font-medium">좋소아빠</span>
             </div>
             <div className="flex gap-2">
               <span className="text-base-muted shrink-0">이메일</span>
