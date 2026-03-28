@@ -40,7 +40,7 @@ export default function ExplorePage() {
     setLiked((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
-      localStorage.setItem("kkumddara_liked", JSON.stringify([...next]));
+      localStorage.setItem("kkumddara_liked", JSON.stringify(Array.from(next)));
       return next;
     });
   };

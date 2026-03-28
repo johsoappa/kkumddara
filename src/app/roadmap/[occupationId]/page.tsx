@@ -98,7 +98,7 @@ export default function RoadmapPage() {
     wasAdded ? next.add(id) : next.delete(id);
 
     setCompletedMissions(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([...next]));
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
 
     if (wasAdded) {
       const allCurrentDone = currentStage.missions.every((m) => next.has(m.id));
