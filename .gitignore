@@ -31,3 +31,4 @@ Thumbs.db
 # 기타
 *.pem
 .vercel
+tsconfig.tsbuildinfo
