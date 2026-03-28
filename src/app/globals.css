@@ -1,0 +1,146 @@
+/* ====================================================
+   꿈따라 글로벌 스타일
+   CSS 변수로 디자인 토큰을 정의합니다.
+   JavaScript에서도 사용 가능: var(--color-brand-red)
+   ==================================================== */
+
+/* ----------------------------------------------------
+   Pretendard 폰트 로드
+   [확인 포인트] @import는 반드시 @tailwind보다 앞에 와야 합니다
+   ---------------------------------------------------- */
+@import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ----------------------------------------------------
+   CSS 디자인 토큰 (변수)
+   ---------------------------------------------------- */
+:root {
+  /* 火 포인트 컬러 */
+  --color-brand-red: #E84B2E;
+  --color-brand-orange: #FF7043;
+  --color-brand-soft: #FFA270;
+  --color-brand-light: #FFF0EB;
+
+  /* 金 베이스 컬러 */
+  --color-base-white: #FFFFFF;
+  --color-base-off: #F8F8F8;
+  --color-base-card: #F2F2F2;
+  --color-base-border: #E0E0E0;
+  --color-base-muted: #9E9E9E;
+  --color-base-text: #212121;
+
+  /* 상태 컬러 */
+  --color-success: #4CAF50;
+  --color-warning: #FF9800;
+  --color-disabled: #BDBDBD;
+
+  /* 간격 */
+  --spacing-mobile: 430px;
+
+  /* 그림자 */
+  --shadow-card: 0 2px 12px rgba(0, 0, 0, 0.08);
+  --shadow-nav: 0 -1px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ----------------------------------------------------
+   베이스 초기화
+   ---------------------------------------------------- */
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html {
+  overflow-x: clip; /* clip은 overflow-y 스크롤에 영향 없음 */
+}
+
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  overflow-y: auto; /* 수직 스크롤 명시적으로 허용 */
+  background-color: var(--color-base-off);
+  font-family: "Pretendard", "Apple SD Gothic Neo", sans-serif;
+  color: var(--color-base-text);
+  /* 모바일 터치 스크롤 최적화 */
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* ----------------------------------------------------
+   공통 컴포넌트 스타일
+   @layer components로 정의하면 Tailwind와 함께 사용 가능
+   ---------------------------------------------------- */
+@layer components {
+  /* 메인 버튼 (레드오렌지 채우기) */
+  .btn-primary {
+    @apply bg-brand-red text-white font-semibold rounded-button
+           py-4 px-6 w-full text-center
+           active:opacity-80 transition-opacity
+           disabled:bg-status-disabled disabled:cursor-not-allowed;
+  }
+
+  /* 보조 버튼 (흰 배경 + 레드오렌지 보더) */
+  .btn-secondary {
+    @apply bg-white text-brand-red font-semibold rounded-button
+           py-4 px-6 w-full text-center
+           border-2 border-brand-red
+           active:opacity-80 transition-opacity;
+  }
+
+  /* 카드 컴포넌트 */
+  .card {
+    @apply bg-white rounded-card shadow-card p-4;
+  }
+
+  /* 선택 가능한 칩 (기본) */
+  .chip {
+    @apply px-4 py-2 rounded-full border border-base-border
+           text-sm font-medium text-base-text
+           cursor-pointer transition-all;
+  }
+
+  /* 선택된 칩 */
+  .chip-selected {
+    @apply bg-brand-light border-brand-red text-brand-red;
+  }
+
+  /* 진행률 바 */
+  .progress-bar {
+    @apply h-2 rounded-full bg-base-border overflow-hidden;
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full;
+    background: linear-gradient(90deg, var(--color-brand-red), var(--color-brand-orange));
+    transition: width 0.3s ease;
+  }
+}
+
+/* ----------------------------------------------------
+   스크롤바 숨기기 (모바일 느낌)
+   ---------------------------------------------------- */
+::-webkit-scrollbar {
+  display: none;
+}
+* {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* ----------------------------------------------------
+   안전 영역 대응 (iPhone 노치/홈 바)
+   ---------------------------------------------------- */
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ----------------------------------------------------
+   리포트 섹션 fade-in (IntersectionObserver와 연동)
+   ---------------------------------------------------- */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}

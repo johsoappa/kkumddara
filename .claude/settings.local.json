@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//etc/**)",
+      "Bash(echo $PATH)",
+      "mcp__Claude_Preview__preview_start",
+      "Bash(npm run:*)",
+      "Bash(npm install:*)"
+    ]
+  }
+}
