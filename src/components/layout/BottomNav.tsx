@@ -9,32 +9,19 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Map, BarChart2 } from "lucide-react";
+import { Home, Search, Map, BarChart2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
+// CS 페이지 목록 (설정 탭 활성화용)
+const CS_PATHS = ["/settings", "/terms", "/privacy", "/refund", "/youth", "/faq", "/guide", "/contact"];
+
 // 탭 메뉴 정의
-// [확인 포인트] href 경로가 app/ 폴더 구조와 일치해야 합니다
 const navItems = [
-  {
-    href: "/home",
-    label: "홈",
-    icon: Home,
-  },
-  {
-    href: "/explore",
-    label: "탐색",
-    icon: Search,
-  },
-  {
-    href: "/roadmap",
-    label: "로드맵",
-    icon: Map,
-  },
-  {
-    href: "/report",
-    label: "리포트",
-    icon: BarChart2,
-  },
+  { href: "/home",     label: "홈",     icon: Home     },
+  { href: "/explore",  label: "탐색",   icon: Search   },
+  { href: "/roadmap",  label: "로드맵", icon: Map      },
+  { href: "/report",   label: "리포트", icon: BarChart2 },
+  { href: "/settings", label: "설정",   icon: Settings },
 ];
 
 export default function BottomNav() {
@@ -53,8 +40,11 @@ export default function BottomNav() {
     >
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map(({ href, label, icon: Icon }) => {
-          // 현재 경로가 탭의 href와 일치하면 활성 상태
-          const isActive = pathname === href || pathname.startsWith(href + "/");
+          // 설정 탭: CS 페이지 전체에서 활성화
+          const isActive =
+            href === "/settings"
+              ? CS_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
+              : pathname === href || pathname.startsWith(href + "/");
 
           return (
             <Link
