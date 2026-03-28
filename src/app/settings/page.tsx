@@ -12,6 +12,13 @@ import AppShell from "@/components/layout/AppShell";
 
 const CS_MENUS = [
   {
+    group: "구독 & 결제",
+    items: [
+      { emoji: "💎", label: "요금제 안내",       href: "/pricing" },
+      { emoji: "💳", label: "환불정책",          href: "/refund"  },
+    ],
+  },
+  {
     group: "도움말",
     items: [
       { emoji: "❓", label: "자주 묻는 질문",   href: "/faq"     },

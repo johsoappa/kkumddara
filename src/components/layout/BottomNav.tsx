@@ -13,7 +13,7 @@ import { Home, Search, Map, BarChart2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // CS 페이지 목록 (설정 탭 활성화용)
-const CS_PATHS = ["/settings", "/terms", "/privacy", "/refund", "/youth", "/faq", "/guide", "/contact"];
+const CS_PATHS = ["/settings", "/pricing", "/terms", "/privacy", "/refund", "/youth", "/faq", "/guide", "/contact"];
 
 // 탭 메뉴 정의
 const navItems = [

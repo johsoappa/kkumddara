@@ -313,6 +313,29 @@ export default function HomePage() {
             <span className="text-3xl leading-none flex-shrink-0">✨</span>
           </button>
 
+          {/* ④-1 요금제 보기 링크 */}
+          <button
+            onClick={() => router.push("/pricing")}
+            className="
+              w-full flex items-center justify-between
+              bg-white rounded-card px-4 py-3 shadow-card
+              border border-base-border
+              hover:border-brand-red active:border-brand-red transition-colors
+            "
+          >
+            <div className="flex items-center gap-2">
+              <span className="text-base leading-none">💎</span>
+              <span className="text-sm font-semibold text-base-text">요금제 보기</span>
+              <span
+                className="text-[10px] font-bold px-1.5 py-0.5 rounded-full text-white ml-1"
+                style={{ backgroundColor: "#E84B2E" }}
+              >
+                14일 무료
+              </span>
+            </div>
+            <ChevronRight size={15} className="text-base-muted" />
+          </button>
+
           {/* ⑤ 고객 지원 메뉴 */}
           <div className="bg-white rounded-card-lg shadow-card overflow-hidden">
             <p className="text-xs font-semibold text-base-muted px-4 pt-4 pb-2">
