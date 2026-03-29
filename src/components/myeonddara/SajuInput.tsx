@@ -34,19 +34,50 @@ interface SajuInputProps {
 }
 
 export default function SajuInput({ onSubmit, isLoading = false }: SajuInputProps) {
-  const [name, setName]                   = useState("");
-  const [birthDate, setBirthDate]         = useState("");
-  const [birthTime, setBirthTime]         = useState<BirthTime>("unknown");
-  const [gender, setGender]               = useState<Gender | null>(null);
-  const [calendarType, setCalendarType]   = useState<CalendarType>("양력");
+  const [name, setName]                 = useState("");
+  const [birthDateRaw, setBirthDateRaw] = useState(""); // 숫자만 "20150312"
+  const [birthTime, setBirthTime]       = useState<BirthTime>("unknown");
+  const [gender, setGender]             = useState<Gender | null>(null);
+  const [calendarType, setCalendarType] = useState<CalendarType>("양력");
 
-  const canSubmit = name.trim() && birthDate && gender;
+  // ── 표시용 포맷: "2015.03.12"
+  const birthDateDisplay = (() => {
+    const d = birthDateRaw;
+    if (d.length <= 4) return d;
+    if (d.length <= 6) return `${d.slice(0, 4)}.${d.slice(4)}`;
+    return `${d.slice(0, 4)}.${d.slice(4, 6)}.${d.slice(6)}`;
+  })();
+
+  // ── 제출용 ISO 포맷: "2015-03-12"
+  const birthDateISO =
+    birthDateRaw.length === 8
+      ? `${birthDateRaw.slice(0, 4)}-${birthDateRaw.slice(4, 6)}-${birthDateRaw.slice(6, 8)}`
+      : "";
+
+  // ── 간단 유효성 검사
+  const isValidDate = (() => {
+    if (birthDateRaw.length !== 8) return false;
+    const y = parseInt(birthDateRaw.slice(0, 4));
+    const m = parseInt(birthDateRaw.slice(4, 6));
+    const d = parseInt(birthDateRaw.slice(6, 8));
+    return y >= 1900 && y <= new Date().getFullYear() &&
+           m >= 1 && m <= 12 &&
+           d >= 1 && d <= 31;
+  })();
+
+  // ── 숫자만 추출 → raw 저장
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digits = e.target.value.replace(/\D/g, "").slice(0, 8);
+    setBirthDateRaw(digits);
+  };
+
+  const canSubmit = name.trim() && isValidDate && gender;
 
   const handleSubmit = () => {
-    if (!name.trim()) { alert("아이 이름을 입력해주세요."); return; }
-    if (!birthDate)   { alert("생년월일을 입력해주세요."); return; }
-    if (!gender)      { alert("성별을 선택해주세요."); return; }
-    onSubmit({ name: name.trim(), birthDate, birthTime, gender, calendarType });
+    if (!name.trim())  { alert("아이 이름을 입력해주세요."); return; }
+    if (!isValidDate)  { alert("생년월일 8자리를 정확히 입력해주세요.\n예) 2015.03.12"); return; }
+    if (!gender)       { alert("성별을 선택해주세요."); return; }
+    onSubmit({ name: name.trim(), birthDate: birthDateISO, birthTime, gender, calendarType });
   };
 
   return (
@@ -103,17 +134,46 @@ export default function SajuInput({ onSubmit, isLoading = false }: SajuInputProp
               윤달에 태어난 경우 선택해주세요
             </p>
           )}
-          <input
-            type="date"
-            value={birthDate}
-            onChange={(e) => setBirthDate(e.target.value)}
-            max={new Date().toISOString().split("T")[0]}
-            className="
-              w-full px-4 py-3 rounded-card border-2 border-base-border
-              text-sm text-base-text
-              focus:outline-none focus:border-brand-red transition-colors
-            "
-          />
+          {/* 숫자 직접 입력 → 자동 포맷 YYYY.MM.DD */}
+          <div className="relative">
+            <input
+              type="text"
+              inputMode="numeric"
+              value={birthDateDisplay}
+              onChange={handleDateChange}
+              placeholder="예) 2015.03.12"
+              maxLength={10}
+              className={cn(
+                "w-full px-4 py-3 rounded-card border-2 text-sm text-base-text",
+                "placeholder:text-base-muted focus:outline-none transition-colors",
+                birthDateRaw.length === 0
+                  ? "border-base-border"
+                  : isValidDate
+                  ? "border-status-success"   // 완성: 그린
+                  : "border-base-border"
+              )}
+            />
+            {/* 완성 체크 아이콘 */}
+            {isValidDate && (
+              <span
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-sm font-bold"
+                style={{ color: "#4CAF50" }}
+              >
+                ✓
+              </span>
+            )}
+          </div>
+          {/* 입력 힌트 */}
+          <p className="text-xs text-base-muted mt-1">
+            {birthDateRaw.length === 0
+              ? "숫자 8자리를 입력하면 자동으로 포맷됩니다"
+              : birthDateRaw.length < 8
+              ? `${8 - birthDateRaw.length}자리 더 입력해주세요`
+              : isValidDate
+              ? `${birthDateDisplay} ✓`
+              : "올바른 날짜를 확인해주세요"
+            }
+          </p>
         </div>
 
         {/* ③ 태어난 시간 */}
