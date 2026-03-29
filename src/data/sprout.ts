@@ -134,6 +134,8 @@ export const SPROUT_EXPLORE_JOBS: SproutJob[] = [
     desc1: "컴퓨터로 게임이나 앱을 만들어요",
     desc2: "수학이랑 논리적 사고가 필요해요",
     relatedInterests: ["science"],
+    skills: ["논리적 사고", "수학", "꼼꼼함", "문제 해결"],
+    activities: ["스크래치로 게임 만들기", "엔트리 코딩 체험", "앱인벤터 앱 만들기"],
   },
   {
     id: "designer",
@@ -142,6 +144,8 @@ export const SPROUT_EXPLORE_JOBS: SproutJob[] = [
     desc1: "예쁜 그림과 색깔로 무언가를 만들어요",
     desc2: "그림 그리기를 좋아하면 잘 맞아요",
     relatedInterests: ["crafting"],
+    skills: ["색감", "상상력", "섬세함", "표현력"],
+    activities: ["디지털 드로잉 그려보기", "포스터 디자인 해보기", "캐릭터 그리기"],
   },
   {
     id: "doctor",
@@ -150,6 +154,8 @@ export const SPROUT_EXPLORE_JOBS: SproutJob[] = [
     desc1: "아픈 사람들을 고쳐주는 일을 해요",
     desc2: "사람을 돕고 싶은 마음이 필요해요",
     relatedInterests: ["social"],
+    skills: ["집중력", "따뜻한 마음", "과학 지식", "침착함"],
+    activities: ["응급처치 배우기", "과학관 탐방", "의료 체험 캠프 참가"],
   },
   {
     id: "teacher",
@@ -158,6 +164,8 @@ export const SPROUT_EXPLORE_JOBS: SproutJob[] = [
     desc1: "학생들에게 새로운 것을 가르쳐요",
     desc2: "설명하고 함께하는 걸 좋아하면 좋아요",
     relatedInterests: ["reading", "social"],
+    skills: ["설명 잘하기", "인내심", "다양한 지식", "배려심"],
+    activities: ["동생에게 공부 가르쳐보기", "학교 퀴즈 만들기", "독서 후 발표하기"],
   },
   {
     id: "scientist2",
@@ -166,6 +174,8 @@ export const SPROUT_EXPLORE_JOBS: SproutJob[] = [
     desc1: "새로운 것을 발견하고 실험해요",
     desc2: "궁금한 게 많으면 잘 맞아요",
     relatedInterests: ["science"],
+    skills: ["호기심", "관찰력", "기록하기", "끈기"],
+    activities: ["집에서 실험 해보기", "과학관 견학", "자연 관찰 일기 쓰기"],
   },
   {
     id: "musician",
@@ -174,5 +184,7 @@ export const SPROUT_EXPLORE_JOBS: SproutJob[] = [
     desc1: "노래나 악기로 음악을 만들어요",
     desc2: "음악 듣는 걸 좋아하면 시작해봐요",
     relatedInterests: ["music"],
+    skills: ["음감", "리듬감", "표현력", "꾸준한 연습"],
+    activities: ["악기 하나 배워보기", "좋아하는 노래 따라 부르기", "작은 공연 참가"],
   },
 ];

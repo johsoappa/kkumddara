@@ -41,9 +41,11 @@ export interface SproutJob {
   id: string;
   emoji: string;
   name: string;
-  desc1: string;   // 첫 번째 설명줄
-  desc2: string;   // 두 번째 설명줄
+  desc1: string;               // 첫 번째 설명줄 (카드 + 모달)
+  desc2: string;               // 두 번째 설명줄
   relatedInterests: SproutInterest[];
+  skills?: string[];           // 필요 역량 태그
+  activities?: string[];       // 추천 체험 활동
 }
 
 /** 오늘의 탐색 카드 데이터 */
