@@ -40,10 +40,10 @@ function JobModal({
       style={{ backgroundColor: "rgba(0,0,0,0.5)" }}
       onClick={onClose}
     >
-      {/* 바텀시트 컨테이너 — 높이 82vh, flex 세로 레이아웃 */}
+      {/* 바텀시트 컨테이너 — 높이 85vh, flex 세로 레이아웃 */}
       <div
         className="w-full max-w-mobile bg-white rounded-t-2xl shadow-nav flex flex-col"
-        style={{ height: "82vh" }}
+        style={{ height: "85vh", maxHeight: "85dvh" }}
         onClick={(e) => e.stopPropagation()}
       >
 
@@ -76,7 +76,7 @@ function JobModal({
         </div>
 
         {/* ── 중간 스크롤 콘텐츠 ── */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-5">
+        <div className="flex-1 min-h-0 overflow-y-auto px-6 py-4 flex flex-col gap-5">
 
           {/* 📝 어떤 일을 해요? */}
           <section>

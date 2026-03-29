@@ -33,24 +33,48 @@ import {
 import { supabase } from "@/lib/supabase";
 
 // ============================================================
-// 가족 그룹 조회
+// 가족 그룹 조회 / 생성
 // ============================================================
 
 /**
- * 현재 유저의 가족 그룹 조회
- *
- * TODO (Supabase 연동):
- * const { data } = await supabase
- *   .from('family_members')
- *   .select('families(*)')
- *   .eq('user_id', userId)
- *   .eq('status', 'accepted')
- *   .single();
- * return data?.families ?? null;
+ * 현재 유저의 가족 그룹 조회 (더미 — 레거시 호환용)
  */
 export async function getMyFamily(userId: string): Promise<Family | null> {
   console.log("[더미] getMyFamily:", userId);
   return DUMMY_FAMILY;
+}
+
+/**
+ * 유저의 가족 그룹 조회 — 없으면 자동 생성
+ * 온보딩 최초 저장 시 호출
+ */
+export async function getOrCreateFamily(userId: string): Promise<Family | null> {
+  // 1. 기존 가족 조회
+  const { data: existing, error: fetchErr } = await supabase
+    .from("families")
+    .select("*")
+    .eq("main_user_id", userId)
+    .maybeSingle();
+
+  if (fetchErr) {
+    console.error("[getOrCreateFamily] 조회 실패:", fetchErr.message);
+  }
+
+  if (existing) return existing as unknown as Family;
+
+  // 2. 없으면 신규 생성
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: created, error: insertErr } = await (supabase as any)
+    .from("families")
+    .insert({ main_user_id: userId })
+    .select()
+    .single();
+
+  if (insertErr) {
+    console.error("[getOrCreateFamily] 생성 실패:", insertErr.message);
+    return null;
+  }
+  return created as unknown as Family;
 }
 
 // ============================================================
@@ -134,31 +158,38 @@ export async function getChildrenWithFamily(
 }
 
 /**
- * 자녀 프로필 생성 (메인 계정만 가능)
- *
- * TODO (Supabase 연동):
- * 1. getMyRole로 role 확인 → "main"이 아니면 에러
- * 2. const { data } = await supabase
- *      .from('children')
- *      .insert({ family_id, created_by: userId, ...childData })
- *      .select()
- *      .single();
+ * 자녀 프로필 생성 — 실제 Supabase INSERT
+ * 온보딩 최초 저장 시 호출
  */
 export async function createChild(
   familyId: string,
   userId: string,
-  childData: Pick<Child, "name" | "grade" | "interests" | "avatar_emoji">
-): Promise<Child> {
-  console.log("[더미] createChild:", familyId, userId, childData);
-  // 더미: 새 자녀 객체 반환
-  return {
-    id: `child-${Date.now()}`,
-    family_id: familyId,
-    created_by: userId,
-    ...childData,
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString(),
-  };
+  childData: {
+    name: string;
+    grade: Child["grade"];
+    interests?: string[];
+    avatar_emoji?: string;
+  }
+): Promise<Child | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("children")
+    .insert({
+      family_id:    familyId,
+      created_by:   userId,
+      name:         childData.name,
+      grade:        childData.grade,
+      interests:    childData.interests ?? [],
+      avatar_emoji: childData.avatar_emoji ?? "🌱",
+    })
+    .select()
+    .single();
+
+  if (error) {
+    console.error("[createChild] 오류:", error.message);
+    return null;
+  }
+  return data as Child;
 }
 
 /**
@@ -202,6 +233,52 @@ export async function updateChild(
     return null;
   }
   return data as Child;
+}
+
+/**
+ * 자녀 관심분야 조회
+ * children.interests 컬럼(string[])을 읽어 반환
+ *
+ * ※ 현재 스키마에 child_interests 별도 테이블이 없어
+ *    children.interests 배열 컬럼으로 관리합니다.
+ */
+export async function getChildInterests(childId: string): Promise<string[]> {
+  const { data, error } = await supabase
+    .from("children")
+    .select("interests")
+    .eq("id", childId)
+    .single();
+
+  if (error) {
+    console.error("[getChildInterests] 오류:", error.message);
+    return [];
+  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any)?.interests ?? [];
+}
+
+/**
+ * 자녀 관심분야 전체 교체
+ * 기존 값을 덮어쓰고 새 배열로 저장
+ *
+ * ※ child_interests 별도 테이블 대신
+ *    children.interests 배열 컬럼을 UPDATE합니다.
+ */
+export async function updateChildInterests(
+  childId: string,
+  interests: string[]
+): Promise<boolean> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { error } = await (supabase as any)
+    .from("children")
+    .update({ interests, updated_at: new Date().toISOString() })
+    .eq("id", childId);
+
+  if (error) {
+    console.error("[updateChildInterests] 오류:", error.message);
+    return false;
+  }
+  return true;
 }
 
 // ============================================================

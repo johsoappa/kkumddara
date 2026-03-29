@@ -17,7 +17,14 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { updateChild } from "@/lib/db/family";
+import {
+  getOrCreateFamily,
+  createChild,
+  getChild,
+  getChildInterests,
+  updateChild,
+  updateChildInterests,
+} from "@/lib/db/family";
 
 // ----------------------------------------
 // 타입 정의 (Supabase 스키마와 동일하게 유지)
@@ -114,16 +121,49 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     interests: [],
   });
 
-  // 로딩 상태 (카카오 로그인 또는 시작하기 버튼 클릭 시)
+  // 로딩 / 에러 상태
   const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg]   = useState<string | null>(null);
 
-  // 수정 모드: localStorage에서 기존값 프리필
+  // 수정 모드: Supabase → localStorage 순으로 기존값 프리필
   useEffect(() => {
     if (!isEdit) return;
-    const stored = localStorage.getItem("kkumddara_onboarding");
-    if (stored) {
-      setData(JSON.parse(stored) as OnboardingData);
-    }
+
+    const storedChildId = localStorage.getItem("kkumddara_child_id");
+
+    const load = async () => {
+      // ① Supabase에서 현재 학년 + 관심분야 로드 시도
+      if (storedChildId) {
+        try {
+          const { data: authData } = await supabase.auth.getUser();
+          if (authData.user) {
+            const [child, interests] = await Promise.all([
+              getChild(storedChildId),
+              getChildInterests(storedChildId),
+            ]);
+            if (child) {
+              // userType은 children 테이블에 없으므로 localStorage에서 가져옴
+              const stored = localStorage.getItem("kkumddara_onboarding");
+              const storedData = stored ? (JSON.parse(stored) as OnboardingData) : null;
+              setData({
+                userType:  storedData?.userType ?? null,
+                grade:     child.grade as Grade,
+                interests: interests as InterestField[],
+              });
+              return;
+            }
+          }
+        } catch {
+          // 인증 없거나 네트워크 오류 → localStorage fallback
+        }
+      }
+
+      // ② localStorage fallback
+      const stored = localStorage.getItem("kkumddara_onboarding");
+      if (stored) setData(JSON.parse(stored) as OnboardingData);
+    };
+
+    load();
   }, [isEdit]);
 
   // ----------------------------------------
@@ -153,9 +193,9 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     });
   };
 
-  // 시작하기 / 수정 완료 버튼
+  // 시작하기 / 입력 완료 버튼
   const handleStart = async () => {
-    // 필수 항목 검증
+    // ── 필수 항목 검증
     if (!data.userType || !data.grade) {
       alert("사용자 유형과 학년을 선택해주세요.");
       return;
@@ -166,38 +206,61 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     }
 
     setIsLoading(true);
+    setErrorMsg(null);
 
     try {
-      // ① 항상 localStorage 저장 (캐시 / 오프라인 fallback)
+      // ① localStorage 저장 (항상 — 오프라인 캐시)
       localStorage.setItem("kkumddara_onboarding", JSON.stringify(data));
 
-      // ② Supabase 로그인 상태이면 children 테이블도 업데이트
-      if (isEdit) {
-        try {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (user) {
+      // ② Supabase 저장 (로그인 상태일 때만)
+      try {
+        const { data: authData } = await supabase.auth.getUser();
+        const user = authData?.user;
+
+        if (user) {
+          if (isEdit) {
+            // ── 수정 모드: grade + interests 업데이트
             const storedChildId = localStorage.getItem("kkumddara_child_id");
             if (storedChildId) {
-              await updateChild(storedChildId, {
-                grade: data.grade!,
-                interests: data.interests,
+              await updateChild(storedChildId, { grade: data.grade! });
+              await updateChildInterests(storedChildId, data.interests);
+            }
+          } else {
+            // ── 최초 온보딩: 가족 확보 → 자녀 생성 → 관심분야 저장
+            const family = await getOrCreateFamily(user.id);
+            if (family) {
+              const child = await createChild(family.id, user.id, {
+                name:         "친구",
+                grade:        data.grade!,
+                interests:    data.interests,
+                avatar_emoji: "🌱",
               });
+              if (child) {
+                localStorage.setItem("kkumddara_child_id", child.id);
+                await updateChildInterests(child.id, data.interests);
+              }
             }
           }
-        } catch (supaErr) {
-          // 인증 미설정 또는 네트워크 오류 — localStorage 저장은 이미 완료
-          console.warn("[온보딩] Supabase 업데이트 건너뜀:", supaErr);
         }
+      } catch (supaErr) {
+        // 미인증 / 네트워크 오류: localStorage 저장은 완료됐으므로 계속 진행
+        console.warn("[온보딩] Supabase 저장 건너뜀:", supaErr);
       }
 
       // ③ 화면 이동 (캐시 새로고침 포함)
-      const isSprout =
-        data.grade === "elementary3" || data.grade === "elementary4";
       router.refresh();
-      router.push(isSprout ? "/sprout" : "/home");
+
+      if (isEdit) {
+        router.back();
+      } else {
+        const isSprout =
+          data.grade === "elementary3" || data.grade === "elementary4";
+        router.push(isSprout ? "/sprout" : "/home");
+      }
+
     } catch (error) {
-      console.error("온보딩 데이터 저장 실패:", error);
-      alert("문제가 발생했습니다. 다시 시도해주세요.");
+      console.error("온보딩 저장 실패:", error);
+      setErrorMsg("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
     } finally {
       setIsLoading(false);
     }
@@ -413,7 +476,16 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
 
       {/* ---- 버튼 영역 ---- */}
       <div className="flex flex-col gap-3 mt-auto">
-        {/* 시작하기 / 수정 완료 버튼 */}
+
+        {/* 에러 토스트 */}
+        {errorMsg && (
+          <div className="w-full px-4 py-3 rounded-card bg-red-50 border border-red-200 flex items-center gap-2">
+            <span className="text-base">⚠️</span>
+            <p className="text-xs text-red-600 font-medium">{errorMsg}</p>
+          </div>
+        )}
+
+        {/* 시작하기 / 입력 완료 버튼 */}
         <button
           onClick={handleStart}
           disabled={!canStart || isLoading}
