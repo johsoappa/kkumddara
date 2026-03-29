@@ -29,7 +29,10 @@ type Grade =
   | "elementary6"   // 초등 6학년
   | "middle1"       // 중학교 1학년
   | "middle2"       // 중학교 2학년
-  | "middle3";      // 중학교 3학년
+  | "middle3"       // 중학교 3학년
+  | "high1"         // 고등학교 1학년
+  | "high2"         // 고등학교 2학년
+  | "high3";        // 고등학교 3학년
 
 type InterestField =
   | "it"            // IT/기술
@@ -49,14 +52,36 @@ interface OnboardingData {
 // ----------------------------------------
 // 선택지 데이터
 // ----------------------------------------
-const gradeOptions: { value: Grade; label: string }[] = [
-  { value: "elementary3", label: "초3" },
-  { value: "elementary4", label: "초4" },
-  { value: "elementary5", label: "초5" },
-  { value: "elementary6", label: "초6" },
-  { value: "middle1",     label: "중1" },
-  { value: "middle2",     label: "중2" },
-  { value: "middle3",     label: "중3" },
+// 학년 그룹 (초등 / 중학 / 고등)
+const gradeGroups: {
+  label: string;
+  options: { value: Grade; label: string }[];
+}[] = [
+  {
+    label: "초등학생",
+    options: [
+      { value: "elementary3", label: "초3" },
+      { value: "elementary4", label: "초4" },
+      { value: "elementary5", label: "초5" },
+      { value: "elementary6", label: "초6" },
+    ],
+  },
+  {
+    label: "중학생",
+    options: [
+      { value: "middle1", label: "중1" },
+      { value: "middle2", label: "중2" },
+      { value: "middle3", label: "중3" },
+    ],
+  },
+  {
+    label: "고등학생",
+    options: [
+      { value: "high1", label: "고1" },
+      { value: "high2", label: "고2" },
+      { value: "high3", label: "고3" },
+    ],
+  },
 ];
 
 const interestOptions: { value: InterestField; label: string; emoji: string }[] = [
@@ -149,7 +174,7 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     // 지금은 localStorage에 임시 저장
     try {
       localStorage.setItem("kkumddara_onboarding", JSON.stringify(data));
-      // 초3~4: 새싹 모드 / 그 외: 나침반 모드(홈)
+      // 초3~4: 새싹 모드 / 초5 이상(초5~고3): 나침반 모드(홈)
       const isSprout =
         data.grade === "elementary3" || data.grade === "elementary4";
       router.push(isSprout ? "/sprout" : "/home");
@@ -294,26 +319,35 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
         </div>
       </section>
 
-      {/* ---- 섹션 2: 학년 선택 ---- */}
+      {/* ---- 섹션 2: 학년 선택 (초/중/고 구간 분리) ---- */}
       <section className="mb-7">
         <h2 className="text-sm font-bold text-base-muted mb-3 uppercase tracking-wide">
           학년을 선택하세요
         </h2>
-        <div className="flex gap-2 flex-wrap">
-          {gradeOptions.map(({ value, label }) => (
-            <button
-              key={value}
-              onClick={() => handleGradeSelect(value)}
-              className={cn(
-                "px-4 py-2.5 rounded-full text-sm font-semibold transition-all",
-                "border-2 min-w-[52px]",
-                data.grade === value
-                  ? "bg-brand-red border-brand-red text-white"   // 선택됨
-                  : "bg-white border-base-border text-base-text"  // 미선택
-              )}
-            >
-              {label}
-            </button>
+        <div className="flex flex-col gap-3">
+          {gradeGroups.map((group) => (
+            <div key={group.label}>
+              {/* 구간 라벨 */}
+              <p className="text-xs text-base-muted mb-1.5">{group.label}</p>
+              {/* 버튼 가로 나열 */}
+              <div className="flex gap-2 flex-wrap">
+                {group.options.map(({ value, label }) => (
+                  <button
+                    key={value}
+                    onClick={() => handleGradeSelect(value)}
+                    className={cn(
+                      "px-4 py-2.5 rounded-full text-sm font-semibold transition-all",
+                      "border-2 min-w-[52px]",
+                      data.grade === value
+                        ? "bg-brand-red border-brand-red text-white"
+                        : "bg-white border-base-border text-base-text"
+                    )}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            </div>
           ))}
         </div>
       </section>
@@ -368,7 +402,7 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
             <span className="text-sm">잠깐만요...</span>
           ) : (
             <>
-              <span>{isEdit ? "수정 완료" : "꿈따라 시작하기"}</span>
+              <span>{isEdit ? "입력 완료" : "꿈따라 시작하기"}</span>
               <ChevronRight size={18} />
             </>
           )}

@@ -27,6 +27,9 @@ const GRADE_LABEL: Record<string, string> = {
   middle1:     "중1",
   middle2:     "중2",
   middle3:     "중3",
+  high1:       "고1",
+  high2:       "고2",
+  high3:       "고3",
 };
 
 // 새싹 모드 대상 학년

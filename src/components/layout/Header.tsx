@@ -3,17 +3,31 @@
 // ====================================================
 // 상단 헤더 컴포넌트
 // - 흰 배경 + 꿈따라 로고 (레드오렌지)
+// - showBack=true: 왼쪽 뒤로가기 버튼 표시
 // - 알림 버튼 (우측)
 // ====================================================
 
-import { Bell } from "lucide-react";
+import { Bell, ChevronLeft } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 interface HeaderProps {
   title?: string;       // 페이지별 제목 (없으면 로고 표시)
-  showBack?: boolean;   // 뒤로가기 버튼 표시 여부 (추후 사용)
+  showBack?: boolean;   // 뒤로가기 버튼 표시 여부
+  backHref?: string;    // 뒤로가기 목적지 (없으면 router.back())
 }
 
-export default function Header({ title, showBack = false }: HeaderProps) {
+export default function Header({
+  title,
+  showBack = false,
+  backHref,
+}: HeaderProps) {
+  const router = useRouter();
+
+  const handleBack = () => {
+    if (backHref) router.push(backHref);
+    else router.back();
+  };
+
   return (
     <header
       className="
@@ -22,32 +36,50 @@ export default function Header({ title, showBack = false }: HeaderProps) {
         bg-white border-b border-base-border
         z-50
       "
-      // [확인 포인트] z-50이 있어야 스크롤 시 헤더가 위에 유지됩니다
     >
       <div className="flex items-center justify-between px-5 py-4 h-14">
-        {/* 로고 또는 페이지 제목 */}
-        {title ? (
-          <h1 className="text-base font-bold text-base-text">{title}</h1>
-        ) : (
-          <div className="flex items-center gap-1">
-            {/* 꿈따라 로고 텍스트 */}
-            <span className="text-xl font-bold text-brand-red">꿈따라</span>
-            <span
+
+        {/* 왼쪽: 뒤로가기 or 로고/제목 */}
+        <div className="flex items-center gap-2 flex-1 min-w-0">
+          {showBack && (
+            <button
+              onClick={handleBack}
               className="
-                text-xs font-medium text-white
-                bg-brand-red px-1.5 py-0.5 rounded-full
-                ml-1
+                flex items-center justify-center
+                -ml-1.5 mr-1 w-8 h-8 rounded-full
+                text-base-muted hover:bg-base-off
+                active:opacity-60 transition-colors flex-shrink-0
               "
+              aria-label="뒤로가기"
             >
-              BETA
-            </span>
-          </div>
-        )}
+              <ChevronLeft size={22} strokeWidth={2} />
+            </button>
+          )}
+
+          {title ? (
+            <h1 className="text-base font-bold text-base-text truncate">
+              {title}
+            </h1>
+          ) : (
+            <div className="flex items-center gap-1">
+              <span className="text-xl font-bold text-brand-red">꿈따라</span>
+              <span
+                className="
+                  text-xs font-medium text-white
+                  bg-brand-red px-1.5 py-0.5 rounded-full
+                  ml-1
+                "
+              >
+                BETA
+              </span>
+            </div>
+          )}
+        </div>
 
         {/* 우측 알림 버튼 */}
         <button
           className="
-            w-9 h-9 flex items-center justify-center
+            flex-shrink-0 w-9 h-9 flex items-center justify-center
             rounded-full hover:bg-base-off
             transition-colors
           "

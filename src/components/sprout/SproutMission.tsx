@@ -54,7 +54,7 @@ export default function SproutMission() {
   };
 
   return (
-    <AppShell headerTitle="새싹 미션 🌿">
+    <AppShell headerTitle="새싹 미션 🌿" showBack backHref="/sprout">
       {/* 하단 고정 버튼 높이만큼 여백 확보 */}
       <div className="px-5 py-5 pb-36 flex flex-col gap-6">
 
