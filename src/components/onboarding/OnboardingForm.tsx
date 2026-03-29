@@ -123,6 +123,11 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg]   = useState<string | null>(null);
 
+  // 이메일 로그인 (테스트용)
+  const [testEmail,    setTestEmail]    = useState("");
+  const [testPassword, setTestPassword] = useState("");
+  const [authLoading,  setAuthLoading]  = useState(false);
+
   // 수정 모드: Supabase → localStorage 순으로 기존값 프리필
   useEffect(() => {
     if (!isEdit) return;
@@ -208,34 +213,43 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
       // ① localStorage 저장 (항상 — 오프라인 캐시)
       localStorage.setItem("kkumddara_onboarding", JSON.stringify(data));
 
-      // ② Supabase 저장 (로그인 상태일 때만)
+      // ② Supabase 저장 (로그인 상태 여부 확인 후 시도)
       try {
         const { data: authData } = await supabase.auth.getUser();
         const user = authData?.user;
 
-        if (user) {
-          if (isEdit) {
-            // ── 수정 모드: grade + interests 단일 UPDATE
-            const storedChildId = localStorage.getItem("kkumddara_child_id");
-            if (storedChildId) {
-              await updateChild(storedChildId, {
-                grade:     data.grade!,
-                interests: data.interests,
-              });
-            }
+        // 디버그: 항상 로그 출력
+        console.log("[온보딩] 현재 로그인 유저:", user?.id ?? "❌ 미로그인 (localStorage만 저장)");
+
+        if (!user) {
+          // 미로그인: localStorage 저장으로 계속, Supabase 저장 건너뜀
+          console.warn("[온보딩] Supabase 미인증 → localStorage만 저장됩니다.");
+        } else if (isEdit) {
+          // ── 수정 모드: grade + interests 단일 UPDATE
+          const storedChildId = localStorage.getItem("kkumddara_child_id");
+          if (storedChildId) {
+            const updated = await updateChild(storedChildId, {
+              grade:     data.grade!,
+              interests: data.interests,
+            });
+            console.log("[온보딩] updateChild 결과:", updated?.id ?? "❌ 실패");
           } else {
-            // ── 최초 온보딩: 가족 확보 → 자녀 생성 (interests 포함)
-            const family = await getOrCreateFamily(user.id);
-            if (family) {
-              const child = await createChild(family.id, user.id, {
-                name:         "친구",
-                grade:        data.grade!,
-                interests:    data.interests,
-                avatar_emoji: "🌱",
-              });
-              if (child) {
-                localStorage.setItem("kkumddara_child_id", child.id);
-              }
+            console.warn("[온보딩] kkumddara_child_id 없음 → updateChild 건너뜀");
+          }
+        } else {
+          // ── 최초 온보딩: 가족 확보 → 자녀 생성 (interests 포함)
+          const family = await getOrCreateFamily(user.id);
+          console.log("[온보딩] getOrCreateFamily:", family?.id ?? "❌ 실패");
+          if (family) {
+            const child = await createChild(family.id, user.id, {
+              name:         "친구",
+              grade:        data.grade!,
+              interests:    data.interests,
+              avatar_emoji: "🌱",
+            });
+            console.log("[온보딩] createChild:", child?.id ?? "❌ 실패");
+            if (child) {
+              localStorage.setItem("kkumddara_child_id", child.id);
             }
           }
         }
@@ -268,6 +282,50 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     // [Supabase 연동 포인트]
     // await supabase.auth.signInWithOAuth({ provider: 'kakao' });
     alert("카카오 로그인은 준비 중입니다. 😊");
+  };
+
+  // ── 이메일 로그인 (개발/테스트용)
+  const handleEmailLogin = async () => {
+    if (!testEmail || !testPassword) {
+      alert("이메일과 비밀번호를 모두 입력해주세요.");
+      return;
+    }
+    setAuthLoading(true);
+    const { error } = await supabase.auth.signInWithPassword({
+      email:    testEmail,
+      password: testPassword,
+    });
+    setAuthLoading(false);
+    if (error) {
+      alert("로그인 실패: " + error.message);
+    } else {
+      const { data: { user } } = await supabase.auth.getUser();
+      console.log("[테스트 로그인 성공] user.id:", user?.id);
+      alert("✅ 로그인 성공! 이제 학년/관심분야를 선택하고 시작하세요.");
+    }
+  };
+
+  // ── 이메일 회원가입 (개발/테스트용)
+  const handleEmailSignUp = async () => {
+    if (!testEmail || !testPassword) {
+      alert("이메일과 비밀번호를 모두 입력해주세요.");
+      return;
+    }
+    if (testPassword.length < 6) {
+      alert("비밀번호는 6자리 이상이어야 합니다.");
+      return;
+    }
+    setAuthLoading(true);
+    const { error } = await supabase.auth.signUp({
+      email:    testEmail,
+      password: testPassword,
+    });
+    setAuthLoading(false);
+    if (error) {
+      alert("가입 실패: " + error.message);
+    } else {
+      alert("✅ 가입 완료! 이메일 인증 없이 바로 로그인됩니다.\n이제 학년/관심분야를 선택하고 시작하세요.");
+    }
   };
 
   // 버튼 활성화 조건
@@ -532,6 +590,70 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
               </svg>
               카카오로 시작하기
             </button>
+
+            {/* ── 개발/테스트용 이메일 로그인 ── */}
+            <div className="mt-1">
+              {/* 구분선 */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex-1 h-px bg-base-border" />
+                <span className="text-[10px] font-semibold text-base-muted bg-base-off px-2 py-0.5 rounded-full">
+                  개발 테스트용
+                </span>
+                <div className="flex-1 h-px bg-base-border" />
+              </div>
+
+              <div className="flex flex-col gap-2">
+                {/* 이메일 입력 */}
+                <input
+                  type="email"
+                  value={testEmail}
+                  onChange={(e) => setTestEmail(e.target.value)}
+                  placeholder="test@kkumddara.kr"
+                  className="
+                    w-full px-4 py-3 rounded-card border border-base-border
+                    text-sm text-base-text placeholder:text-base-muted
+                    focus:outline-none focus:border-brand-red transition-colors
+                  "
+                />
+                {/* 비밀번호 입력 */}
+                <input
+                  type="password"
+                  value={testPassword}
+                  onChange={(e) => setTestPassword(e.target.value)}
+                  placeholder="비밀번호 (6자리 이상)"
+                  className="
+                    w-full px-4 py-3 rounded-card border border-base-border
+                    text-sm text-base-text placeholder:text-base-muted
+                    focus:outline-none focus:border-brand-red transition-colors
+                  "
+                />
+                {/* 버튼 2개 */}
+                <div className="flex gap-2">
+                  <button
+                    onClick={handleEmailLogin}
+                    disabled={authLoading}
+                    className="
+                      flex-1 py-3 rounded-button border border-base-border
+                      text-sm font-semibold text-base-text bg-white
+                      active:opacity-70 transition-opacity disabled:opacity-40
+                    "
+                  >
+                    {authLoading ? "처리 중..." : "이메일로 시작하기"}
+                  </button>
+                  <button
+                    onClick={handleEmailSignUp}
+                    disabled={authLoading}
+                    className="
+                      flex-1 py-3 rounded-button border border-brand-red
+                      text-sm font-semibold text-brand-red bg-white
+                      active:opacity-70 transition-opacity disabled:opacity-40
+                    "
+                  >
+                    {authLoading ? "처리 중..." : "테스트 계정 만들기"}
+                  </button>
+                </div>
+              </div>
+            </div>
           </>
         )}
       </div>

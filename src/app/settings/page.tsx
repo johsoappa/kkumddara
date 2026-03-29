@@ -7,8 +7,9 @@
 // ====================================================
 
 import { useRouter } from "next/navigation";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, LogOut } from "lucide-react";
 import AppShell from "@/components/layout/AppShell";
+import { supabase } from "@/lib/supabase";
 
 const CS_MENUS = [
   {
@@ -39,6 +40,14 @@ const CS_MENUS = [
 
 export default function SettingsPage() {
   const router = useRouter();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    // localStorage 초기화 (다음 접속 시 온보딩부터 시작)
+    localStorage.removeItem("kkumddara_onboarding");
+    localStorage.removeItem("kkumddara_child_id");
+    router.push("/");
+  };
 
   return (
     <AppShell headerTitle="설정">
@@ -90,6 +99,20 @@ export default function SettingsPage() {
             </div>
           </div>
         ))}
+
+        {/* 로그아웃 버튼 */}
+        <button
+          onClick={handleLogout}
+          className="
+            w-full flex items-center justify-center gap-2
+            py-4 rounded-card-lg border-2 border-red-200
+            text-sm font-semibold text-red-500 bg-white
+            active:opacity-70 transition-opacity
+          "
+        >
+          <LogOut size={16} />
+          로그아웃
+        </button>
 
         {/* 하단 회사 정보 */}
         <div className="text-center pt-2">
