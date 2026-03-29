@@ -20,12 +20,17 @@ import { getRoadmap } from "@/data/roadmaps";
 // 상수 맵핑
 // ----------------------------------------
 const GRADE_LABEL: Record<string, string> = {
+  elementary3: "초3",
+  elementary4: "초4",
   elementary5: "초5",
   elementary6: "초6",
-  middle1: "중1",
-  middle2: "중2",
-  middle3: "중3",
+  middle1:     "중1",
+  middle2:     "중2",
+  middle3:     "중3",
 };
+
+// 새싹 모드 대상 학년
+const SPROUT_GRADES = new Set(["elementary3", "elementary4"]);
 
 const INTEREST_LABEL: Record<string, string> = {
   it: "IT·기술",
@@ -68,6 +73,13 @@ export default function HomePage() {
     }
 
     const data: OnboardingData = JSON.parse(stored);
+
+    // 초3~4 학년이면 새싹 모드로 자동 이동
+    if (data.grade && SPROUT_GRADES.has(data.grade)) {
+      router.replace("/sprout");
+      return;
+    }
+
     setOnboarding(data);
 
     // "이 직업으로 로드맵 만들기"로 명시적 선택한 직업만 표시

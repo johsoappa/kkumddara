@@ -15,6 +15,9 @@ import { cn } from "@/lib/utils";
 // CS 페이지 목록 (설정 탭 활성화용)
 const CS_PATHS = ["/settings", "/pricing", "/terms", "/privacy", "/refund", "/youth", "/faq", "/guide", "/contact"];
 
+// 새싹 모드 경로 (홈 탭 활성화용)
+const SPROUT_PATHS = ["/sprout"];
+
 // 탭 메뉴 정의
 const navItems = [
   { href: "/home",     label: "홈",     icon: Home     },
@@ -40,10 +43,18 @@ export default function BottomNav() {
     >
       <div className="flex items-center justify-around px-2 py-2">
         {navItems.map(({ href, label, icon: Icon }) => {
-          // 설정 탭: CS 페이지 전체에서 활성화
+          // 탭별 활성 판별
           const isActive =
             href === "/settings"
+              // 설정 탭: CS 페이지 전체에서 활성화
               ? CS_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
+              : href === "/home"
+              // 홈 탭: /home + /sprout/* 경로에서 활성화
+              ? pathname === href ||
+                pathname.startsWith(href + "/") ||
+                SPROUT_PATHS.some(
+                  (p) => pathname === p || pathname.startsWith(p + "/")
+                )
               : pathname === href || pathname.startsWith(href + "/");
 
           return (

@@ -23,6 +23,8 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 type UserType = "parent" | "student";
 
 type Grade =
+  | "elementary3"   // 초등 3학년 (새싹 모드)
+  | "elementary4"   // 초등 4학년 (새싹 모드)
   | "elementary5"   // 초등 5학년
   | "elementary6"   // 초등 6학년
   | "middle1"       // 중학교 1학년
@@ -48,11 +50,13 @@ interface OnboardingData {
 // 선택지 데이터
 // ----------------------------------------
 const gradeOptions: { value: Grade; label: string }[] = [
+  { value: "elementary3", label: "초3" },
+  { value: "elementary4", label: "초4" },
   { value: "elementary5", label: "초5" },
   { value: "elementary6", label: "초6" },
-  { value: "middle1", label: "중1" },
-  { value: "middle2", label: "중2" },
-  { value: "middle3", label: "중3" },
+  { value: "middle1",     label: "중1" },
+  { value: "middle2",     label: "중2" },
+  { value: "middle3",     label: "중3" },
 ];
 
 const interestOptions: { value: InterestField; label: string; emoji: string }[] = [
@@ -145,7 +149,10 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     // 지금은 localStorage에 임시 저장
     try {
       localStorage.setItem("kkumddara_onboarding", JSON.stringify(data));
-      router.push("/home");
+      // 초3~4: 새싹 모드 / 그 외: 나침반 모드(홈)
+      const isSprout =
+        data.grade === "elementary3" || data.grade === "elementary4";
+      router.push(isSprout ? "/sprout" : "/home");
     } catch (error) {
       console.error("온보딩 데이터 저장 실패:", error);
       alert("문제가 발생했습니다. 다시 시도해주세요.");
