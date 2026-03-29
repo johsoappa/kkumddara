@@ -74,7 +74,7 @@ export default function SproutReport() {
   ];
 
   return (
-    <AppShell headerTitle="새싹 리포트 🌿" showBack backHref="/sprout">
+    <AppShell headerTitle="새싹 리포트 🌿" showBack backHref="/sprout" backLabel="돌아가기">
       <div className="px-5 py-5 pb-8 flex flex-col gap-5">
 
         {/* ── 이번 주 요약 카드 ── */}

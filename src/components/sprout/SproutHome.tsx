@@ -129,7 +129,7 @@ export default function SproutHome() {
   const weekMissions = stage1.missions.slice(0, 3);
 
   return (
-    <AppShell headerTitle="새싹 모드 🌿" showBack backHref="/home">
+    <AppShell headerTitle="새싹 모드 🌿" showBack backHref="/home" backLabel="홈으로">
       <div className="px-5 py-5 pb-8 flex flex-col gap-6">
 
         {/* 서브타이틀 */}

@@ -14,12 +14,14 @@ interface HeaderProps {
   title?: string;       // 페이지별 제목 (없으면 로고 표시)
   showBack?: boolean;   // 뒤로가기 버튼 표시 여부
   backHref?: string;    // 뒤로가기 목적지 (없으면 router.back())
+  backLabel?: string;   // 뒤로가기 버튼 텍스트 (없으면 아이콘만)
 }
 
 export default function Header({
   title,
   showBack = false,
   backHref,
+  backLabel,
 }: HeaderProps) {
   const router = useRouter();
 
@@ -45,14 +47,16 @@ export default function Header({
             <button
               onClick={handleBack}
               className="
-                flex items-center justify-center
-                -ml-1.5 mr-1 w-8 h-8 rounded-full
-                text-base-muted hover:bg-base-off
-                active:opacity-60 transition-colors flex-shrink-0
+                flex items-center gap-0.5 -ml-1.5 mr-1
+                text-base-muted active:opacity-60
+                transition-opacity flex-shrink-0
               "
               aria-label="뒤로가기"
             >
-              <ChevronLeft size={22} strokeWidth={2} />
+              <ChevronLeft size={20} strokeWidth={2.2} />
+              {backLabel && (
+                <span className="text-sm font-semibold">{backLabel}</span>
+              )}
             </button>
           )}
 

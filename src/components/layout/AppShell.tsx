@@ -15,6 +15,7 @@ interface AppShellProps {
   showNav?: boolean;       // 하단 네비게이션 표시 여부 (기본값: true)
   showBack?: boolean;      // 헤더 뒤로가기 버튼 표시 여부
   backHref?: string;       // 뒤로가기 목적지 (없으면 router.back())
+  backLabel?: string;      // 뒤로가기 버튼 텍스트
 }
 
 export default function AppShell({
@@ -23,6 +24,7 @@ export default function AppShell({
   showNav = true,
   showBack = false,
   backHref,
+  backLabel,
 }: AppShellProps) {
   return (
     // 전체 화면 가운데 정렬 컨테이너
@@ -30,7 +32,7 @@ export default function AppShell({
       {/* 모바일 영역 */}
       <div className="relative w-full max-w-mobile bg-base-off">
         {/* 상단 헤더 */}
-        <Header title={headerTitle} showBack={showBack} backHref={backHref} />
+        <Header title={headerTitle} showBack={showBack} backHref={backHref} backLabel={backLabel} />
 
         {/* 메인 컨텐츠 */}
         {/* [확인 포인트] pt-14: 헤더 높이만큼 상단 패딩, pb-20: 하단 네비 높이 */}

@@ -85,7 +85,7 @@ export default function SproutExplore() {
   const [selectedJob, setSelectedJob] = useState<SproutJob | null>(null);
 
   return (
-    <AppShell headerTitle="직업 첫 탐색 🔍" showBack backHref="/sprout">
+    <AppShell headerTitle="직업 첫 탐색 🔍" showBack backHref="/sprout" backLabel="돌아가기">
       <div className="px-5 py-5 pb-8">
 
         {/* 서브타이틀 */}
