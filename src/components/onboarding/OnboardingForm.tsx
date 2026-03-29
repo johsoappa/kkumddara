@@ -196,6 +196,12 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
   // 버튼 활성화 조건
   const canStart = data.userType && data.grade && data.interests.length > 0;
 
+  // 수정 모드 뒤로가기: 현재 학년에 따라 목적지 결정
+  const backHref =
+    data.grade === "elementary3" || data.grade === "elementary4"
+      ? "/sprout"
+      : "/home";
+
   // ----------------------------------------
   // 렌더링
   // ----------------------------------------
@@ -205,7 +211,7 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
       {/* ---- 수정 모드: 뒤로가기 버튼 ---- */}
       {isEdit && (
         <button
-          onClick={() => router.push("/home")}
+          onClick={() => router.push(backHref)}
           className="
             flex items-center gap-1 mb-6 -ml-1
             text-sm font-semibold text-base-muted

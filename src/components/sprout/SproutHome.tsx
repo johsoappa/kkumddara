@@ -26,6 +26,15 @@ const GREEN       = "#4CAF50";
 const GREEN_LIGHT = "#F1F8E9";
 const GREEN_MID   = "#C8E6C9";
 
+// 온보딩 관심분야 → 표시 레이블 (나침반 모드와 동일)
+const INTEREST_LABEL: Record<string, string> = {
+  it:        "IT·기술",
+  art:       "예술·디자인",
+  medical:   "의료·과학",
+  business:  "비즈니스",
+  education: "교육·사회",
+};
+
 // ----------------------------------------
 // 원형 게이지 (SVG)
 // ----------------------------------------
@@ -69,19 +78,26 @@ export default function SproutHome() {
 
   const [childName, setChildName]             = useState("친구");
   const [gradeLabel, setGradeLabel]           = useState("초3");
+  const [interestTexts, setInterestTexts]     = useState(""); // "IT·기술, 의료·과학"
   const [selectedInterests, setSelectedInterests] = useState<SproutInterest[]>([]);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
 
   useEffect(() => {
-    // 온보딩 데이터 읽기
+    // 온보딩 데이터 읽기 (학년 + 관심분야)
     const stored = localStorage.getItem("kkumddara_onboarding");
     if (stored) {
-      const data = JSON.parse(stored) as { grade?: string };
+      const data = JSON.parse(stored) as { grade?: string; interests?: string[] };
       const gradeMap: Record<string, string> = {
         elementary3: "초3",
         elementary4: "초4",
       };
       setGradeLabel(gradeMap[data.grade ?? ""] ?? "초3");
+
+      // 관심분야 텍스트 (나침반 모드와 동일 형식)
+      const texts = (data.interests ?? [])
+        .map((i) => INTEREST_LABEL[i] ?? i)
+        .join(", ");
+      setInterestTexts(texts);
     }
 
     // 새싹 모드 흥미 데이터
@@ -136,6 +152,31 @@ export default function SproutHome() {
         <p className="text-sm text-center font-medium" style={{ color: GREEN }}>
           나의 재능과 가능성을 찾아봐요 ✨
         </p>
+
+        {/* 학년 + 관심분야 수정 버튼 (나침반 모드와 동일 스타일) */}
+        <button
+          onClick={() => router.push("/onboarding")}
+          className="
+            flex items-center gap-1.5 -mt-3
+            self-start
+            bg-base-card border border-base-border
+            rounded-full px-3 py-1.5
+            text-xs text-base-muted
+            active:opacity-70 transition-opacity
+          "
+        >
+          {gradeLabel && (
+            <span className="font-semibold text-base-text">{gradeLabel}</span>
+          )}
+          {gradeLabel && interestTexts && (
+            <span className="text-base-border">|</span>
+          )}
+          {interestTexts
+            ? <span>{interestTexts}</span>
+            : <span className="text-base-muted">관심분야 선택</span>
+          }
+          <span className="text-brand-red font-semibold ml-0.5">수정 ›</span>
+        </button>
 
         {/* ② 프로필 카드 */}
         <div
