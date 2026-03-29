@@ -127,6 +127,7 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
   const [testEmail,    setTestEmail]    = useState("");
   const [testPassword, setTestPassword] = useState("");
   const [authLoading,  setAuthLoading]  = useState(false);
+  const [authMsg,      setAuthMsg]      = useState<string | null>(null);
 
   // 수정 모드: Supabase → localStorage 순으로 기존값 프리필
   useEffect(() => {
@@ -284,48 +285,82 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     alert("카카오 로그인은 준비 중입니다. 😊");
   };
 
+  // ── 이메일 로그인 성공 후 공통 처리
+  //    기존 children 데이터 있으면 홈으로, 없으면 온보딩 계속
+  const afterAuthSuccess = async (actionLabel: string) => {
+    const { data: { user } } = await supabase.auth.getUser();
+    console.log(`[${actionLabel}] user.id:`, user?.id);
+
+    if (!user) {
+      setAuthMsg("⚠️ 인증은 됐지만 유저 정보를 가져오지 못했습니다. 새로고침 해주세요.");
+      return;
+    }
+
+    // 기존 자녀 데이터 확인 (이미 온보딩을 완료한 계정인지)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: existingChild } = await (supabase as any)
+      .from("children")
+      .select("id, grade")
+      .eq("created_by", user.id)
+      .maybeSingle();
+
+    if (existingChild) {
+      // 데이터 있음 → 바로 홈/새싹 이동
+      localStorage.setItem("kkumddara_child_id", existingChild.id);
+      const isSprout =
+        existingChild.grade === "elementary3" || existingChild.grade === "elementary4";
+      router.push(isSprout ? "/sprout" : "/home");
+    } else {
+      // 데이터 없음 → 온보딩 폼에서 학년/관심분야 선택 계속
+      setAuthMsg("✅ 로그인됐어요! 아래에서 학년과 관심분야를 선택 후 시작하세요.");
+    }
+  };
+
   // ── 이메일 로그인 (개발/테스트용)
   const handleEmailLogin = async () => {
     if (!testEmail || !testPassword) {
-      alert("이메일과 비밀번호를 모두 입력해주세요.");
+      setAuthMsg("⚠️ 이메일과 비밀번호를 모두 입력해주세요.");
       return;
     }
     setAuthLoading(true);
+    setAuthMsg(null);
     const { error } = await supabase.auth.signInWithPassword({
       email:    testEmail,
       password: testPassword,
     });
-    setAuthLoading(false);
     if (error) {
-      alert("로그인 실패: " + error.message);
-    } else {
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log("[테스트 로그인 성공] user.id:", user?.id);
-      alert("✅ 로그인 성공! 이제 학년/관심분야를 선택하고 시작하세요.");
+      setAuthLoading(false);
+      setAuthMsg("❌ 로그인 실패: " + error.message);
+      return;
     }
+    await afterAuthSuccess("이메일 로그인");
+    setAuthLoading(false);
   };
 
   // ── 이메일 회원가입 (개발/테스트용)
   const handleEmailSignUp = async () => {
     if (!testEmail || !testPassword) {
-      alert("이메일과 비밀번호를 모두 입력해주세요.");
+      setAuthMsg("⚠️ 이메일과 비밀번호를 모두 입력해주세요.");
       return;
     }
     if (testPassword.length < 6) {
-      alert("비밀번호는 6자리 이상이어야 합니다.");
+      setAuthMsg("⚠️ 비밀번호는 6자리 이상이어야 합니다.");
       return;
     }
     setAuthLoading(true);
+    setAuthMsg(null);
     const { error } = await supabase.auth.signUp({
       email:    testEmail,
       password: testPassword,
     });
-    setAuthLoading(false);
     if (error) {
-      alert("가입 실패: " + error.message);
-    } else {
-      alert("✅ 가입 완료! 이메일 인증 없이 바로 로그인됩니다.\n이제 학년/관심분야를 선택하고 시작하세요.");
+      setAuthLoading(false);
+      setAuthMsg("❌ 가입 실패: " + error.message);
+      return;
     }
+    // signUp 후 자동 로그인 상태 → 동일한 후처리
+    await afterAuthSuccess("이메일 가입");
+    setAuthLoading(false);
   };
 
   // 버튼 활성화 조건
@@ -603,6 +638,15 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
               </div>
 
               <div className="flex flex-col gap-2">
+                {/* 인증 메시지 (성공/실패 인라인) */}
+                {authMsg && (
+                  <p className={`text-xs font-medium px-1 ${
+                    authMsg.startsWith("✅") ? "text-green-600" : "text-red-500"
+                  }`}>
+                    {authMsg}
+                  </p>
+                )}
+
                 {/* 이메일 입력 */}
                 <input
                   type="email"
