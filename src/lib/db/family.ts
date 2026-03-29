@@ -30,6 +30,8 @@ import {
   findInvitationByCode,
 } from "@/lib/dummy/family";
 
+import { supabase } from "@/lib/supabase";
+
 // ============================================================
 // 가족 그룹 조회
 // ============================================================
@@ -157,6 +159,49 @@ export async function createChild(
     created_at: new Date().toISOString(),
     updated_at: new Date().toISOString(),
   };
+}
+
+/**
+ * 자녀 프로필 단건 조회
+ * isEdit 온보딩 저장 시 호출
+ */
+export async function getChild(childId: string): Promise<Child | null> {
+  const { data, error } = await supabase
+    .from("children")
+    .select("*")
+    .eq("id", childId)
+    .single();
+
+  if (error) {
+    console.error("[getChild] 오류:", error.message);
+    return null;
+  }
+  return data as Child;
+}
+
+/**
+ * 자녀 프로필 업데이트 (grade + interests 포함)
+ *
+ * 사용 예시:
+ * await updateChild(childId, { grade: "elementary4", interests: ["it", "art"] });
+ */
+export async function updateChild(
+  childId: string,
+  updates: Partial<Pick<Child, "name" | "grade" | "interests" | "avatar_emoji">>
+): Promise<Child | null> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data, error } = await (supabase as any)
+    .from("children")
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq("id", childId)
+    .select()
+    .single();
+
+  if (error) {
+    console.error("[updateChild] 오류:", error.message);
+    return null;
+  }
+  return data as Child;
 }
 
 // ============================================================

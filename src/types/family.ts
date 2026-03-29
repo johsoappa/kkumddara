@@ -101,11 +101,16 @@ export interface Invitation {
 // ============================================================
 
 export type Grade =
+  | "elementary3"   // 초등 3학년 (새싹 모드)
+  | "elementary4"   // 초등 4학년 (새싹 모드)
   | "elementary5"   // 초등 5학년
   | "elementary6"   // 초등 6학년
   | "middle1"       // 중1
   | "middle2"       // 중2
-  | "middle3";      // 중3
+  | "middle3"       // 중3
+  | "high1"         // 고1
+  | "high2"         // 고2
+  | "high3";        // 고3
 
 export type InterestField =
   | "it"

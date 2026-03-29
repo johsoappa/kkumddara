@@ -16,6 +16,8 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { updateChild } from "@/lib/db/family";
 
 // ----------------------------------------
 // 타입 정의 (Supabase 스키마와 동일하게 유지)
@@ -165,18 +167,33 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
 
     setIsLoading(true);
 
-    // [Supabase 연동 포인트]
-    // 여기서 Supabase에 onboarding 데이터를 저장하세요:
-    // const { error } = await supabase
-    //   .from('users')
-    //   .insert({ onboarding_data: data, created_at: new Date() });
-    //
-    // 지금은 localStorage에 임시 저장
     try {
+      // ① 항상 localStorage 저장 (캐시 / 오프라인 fallback)
       localStorage.setItem("kkumddara_onboarding", JSON.stringify(data));
-      // 초3~4: 새싹 모드 / 초5 이상(초5~고3): 나침반 모드(홈)
+
+      // ② Supabase 로그인 상태이면 children 테이블도 업데이트
+      if (isEdit) {
+        try {
+          const { data: { user } } = await supabase.auth.getUser();
+          if (user) {
+            const storedChildId = localStorage.getItem("kkumddara_child_id");
+            if (storedChildId) {
+              await updateChild(storedChildId, {
+                grade: data.grade!,
+                interests: data.interests,
+              });
+            }
+          }
+        } catch (supaErr) {
+          // 인증 미설정 또는 네트워크 오류 — localStorage 저장은 이미 완료
+          console.warn("[온보딩] Supabase 업데이트 건너뜀:", supaErr);
+        }
+      }
+
+      // ③ 화면 이동 (캐시 새로고침 포함)
       const isSprout =
         data.grade === "elementary3" || data.grade === "elementary4";
+      router.refresh();
       router.push(isSprout ? "/sprout" : "/home");
     } catch (error) {
       console.error("온보딩 데이터 저장 실패:", error);

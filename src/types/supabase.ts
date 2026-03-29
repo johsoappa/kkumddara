@@ -117,7 +117,7 @@ export interface Database {
           family_id:    string;
           created_by:   string;
           name:         string;
-          grade:        "elementary5" | "elementary6" | "middle1" | "middle2" | "middle3";
+          grade:        "elementary3" | "elementary4" | "elementary5" | "elementary6" | "middle1" | "middle2" | "middle3" | "high1" | "high2" | "high3";
           interests:    string[];    // InterestField[]
           avatar_emoji: string;
           created_at:   string;
@@ -128,7 +128,7 @@ export interface Database {
           family_id:    string;
           created_by:   string;
           name:         string;
-          grade:        "elementary5" | "elementary6" | "middle1" | "middle2" | "middle3";
+          grade:        "elementary3" | "elementary4" | "elementary5" | "elementary6" | "middle1" | "middle2" | "middle3" | "high1" | "high2" | "high3";
           interests?:   string[];
           avatar_emoji?: string;
           created_at?:  string;
@@ -136,7 +136,7 @@ export interface Database {
         };
         Update: {
           name?:        string;
-          grade?:       "elementary5" | "elementary6" | "middle1" | "middle2" | "middle3";
+          grade?:       "elementary3" | "elementary4" | "elementary5" | "elementary6" | "middle1" | "middle2" | "middle3" | "high1" | "high2" | "high3";
           interests?:   string[];
           avatar_emoji?: string;
           updated_at?:  string;
