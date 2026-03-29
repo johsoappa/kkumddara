@@ -21,9 +21,7 @@ import {
   getOrCreateFamily,
   createChild,
   getChild,
-  getChildInterests,
   updateChild,
-  updateChildInterests,
 } from "@/lib/db/family";
 
 // ----------------------------------------
@@ -133,14 +131,12 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
 
     const load = async () => {
       // ① Supabase에서 현재 학년 + 관심분야 로드 시도
+      //    child.interests 배열 컬럼에서 직접 읽으므로 별도 쿼리 불필요
       if (storedChildId) {
         try {
           const { data: authData } = await supabase.auth.getUser();
           if (authData.user) {
-            const [child, interests] = await Promise.all([
-              getChild(storedChildId),
-              getChildInterests(storedChildId),
-            ]);
+            const child = await getChild(storedChildId);
             if (child) {
               // userType은 children 테이블에 없으므로 localStorage에서 가져옴
               const stored = localStorage.getItem("kkumddara_onboarding");
@@ -148,7 +144,7 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
               setData({
                 userType:  storedData?.userType ?? null,
                 grade:     child.grade as Grade,
-                interests: interests as InterestField[],
+                interests: (child.interests ?? []) as InterestField[],
               });
               return;
             }
@@ -219,14 +215,16 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
 
         if (user) {
           if (isEdit) {
-            // ── 수정 모드: grade + interests 업데이트
+            // ── 수정 모드: grade + interests 단일 UPDATE
             const storedChildId = localStorage.getItem("kkumddara_child_id");
             if (storedChildId) {
-              await updateChild(storedChildId, { grade: data.grade! });
-              await updateChildInterests(storedChildId, data.interests);
+              await updateChild(storedChildId, {
+                grade:     data.grade!,
+                interests: data.interests,
+              });
             }
           } else {
-            // ── 최초 온보딩: 가족 확보 → 자녀 생성 → 관심분야 저장
+            // ── 최초 온보딩: 가족 확보 → 자녀 생성 (interests 포함)
             const family = await getOrCreateFamily(user.id);
             if (family) {
               const child = await createChild(family.id, user.id, {
@@ -237,7 +235,6 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
               });
               if (child) {
                 localStorage.setItem("kkumddara_child_id", child.id);
-                await updateChildInterests(child.id, data.interests);
               }
             }
           }
