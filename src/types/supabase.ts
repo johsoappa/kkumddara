@@ -1,146 +1,182 @@
 // ====================================================
 // Supabase 데이터베이스 타입 정의
-// 테이블 스키마와 1:1 대응 (001_init_schema.sql 기준)
+// 002_mvp_refactor.sql 기준
 // ====================================================
+
+export type Grade =
+  | "elementary3" | "elementary4" | "elementary5" | "elementary6"
+  | "middle1" | "middle2" | "middle3"
+  | "high1" | "high2" | "high3";
+
+export type InterestField = "it" | "art" | "medical" | "business" | "education";
+
+export type UserRole = "parent" | "student";
 
 export interface Database {
   public: {
     Tables: {
 
-      // ─── users ──────────────────────────────────────
-      users: {
+      // ─── parent ─────────────────────────────────────
+      parent: {
         Row: {
-          id:                       string;
-          display_name:             string;
-          avatar_url:               string | null;
-          subscription_status:      "free" | "premium" | "trial";
-          subscription_plan:        "free" | "basic" | "pro";
-          subscription_expires_at:  string | null;
-          created_at:               string;
+          id:                string;
+          user_id:           string;
+          display_name:      string | null;
+          phone_number:      string | null;
+          onboarding_status: "pending" | "child_creation" | "completed";
+          created_at:        string;
+          updated_at:        string;
         };
         Insert: {
-          id:                       string;
-          display_name?:            string;
-          avatar_url?:              string | null;
-          subscription_status?:     "free" | "premium" | "trial";
-          subscription_plan?:       "free" | "basic" | "pro";
-          subscription_expires_at?: string | null;
-          created_at?:              string;
+          id?:               string;
+          user_id:           string;
+          display_name?:     string | null;
+          phone_number?:     string | null;
+          onboarding_status?: "pending" | "child_creation" | "completed";
+          created_at?:       string;
+          updated_at?:       string;
         };
         Update: {
-          display_name?:            string;
-          avatar_url?:              string | null;
-          subscription_status?:     "free" | "premium" | "trial";
-          subscription_plan?:       "free" | "basic" | "pro";
-          subscription_expires_at?: string | null;
+          display_name?:     string | null;
+          phone_number?:     string | null;
+          onboarding_status?: "pending" | "child_creation" | "completed";
+          updated_at?:       string;
         };
+        Relationships: [];
       };
 
-      // ─── families ───────────────────────────────────
-      families: {
+      // ─── child ──────────────────────────────────────
+      child: {
         Row: {
-          id:           string;
-          name:         string | null;
-          main_user_id: string;
-          created_at:   string;
+          id:             string;
+          parent_id:      string;
+          name:           string;
+          birth_year:     number | null;
+          school_grade:   Grade | null;
+          interests:      InterestField[];
+          avatar_emoji:   string;
+          profile_status: "active" | "inactive";
+          invite_code:    string | null;
+          created_at:     string;
+          updated_at:     string;
         };
         Insert: {
-          id?:          string;
-          name?:        string | null;
-          main_user_id: string;
-          created_at?:  string;
+          id?:            string;
+          parent_id:      string;
+          name:           string;
+          birth_year?:    number | null;
+          school_grade?:  Grade | null;
+          interests?:     InterestField[];
+          avatar_emoji?:  string;
+          profile_status?: "active" | "inactive";
+          invite_code?:   string | null;
+          created_at?:    string;
+          updated_at?:    string;
         };
         Update: {
-          name?:        string | null;
+          name?:          string;
+          birth_year?:    number | null;
+          school_grade?:  Grade | null;
+          interests?:     InterestField[];
+          avatar_emoji?:  string;
+          profile_status?: "active" | "inactive";
+          updated_at?:    string;
         };
+        Relationships: [];
       };
 
-      // ─── family_members ──────────────────────────────
-      family_members: {
+      // ─── student ─────────────────────────────────────
+      student: {
+        Row: {
+          id:                string;
+          user_id:           string;
+          child_id:          string | null;
+          nickname:          string | null;
+          onboarding_status: "pending" | "child_linking" | "completed";
+          created_at:        string;
+          updated_at:        string;
+        };
+        Insert: {
+          id?:               string;
+          user_id:           string;
+          child_id?:         string | null;
+          nickname?:         string | null;
+          onboarding_status?: "pending" | "child_linking" | "completed";
+          created_at?:       string;
+          updated_at?:       string;
+        };
+        Update: {
+          child_id?:         string | null;
+          nickname?:         string | null;
+          onboarding_status?: "pending" | "child_linking" | "completed";
+          updated_at?:       string;
+        };
+        Relationships: [];
+      };
+
+      // ─── subscription_plan ───────────────────────────
+      subscription_plan: {
         Row: {
           id:          string;
-          family_id:   string;
-          user_id:     string;
-          role:        "main" | "co-parent";
-          invited_by:  string | null;
-          status:      "pending" | "accepted" | "rejected";
+          parent_id:   string;
+          plan_name:   "free" | "basic" | "pro";
+          child_limit: number;
+          status:      "active" | "expired" | "cancelled";
+          expires_at:  string | null;
           created_at:  string;
-          accepted_at: string | null;
+          updated_at:  string;
         };
         Insert: {
           id?:         string;
-          family_id:   string;
-          user_id:     string;
-          role:        "main" | "co-parent";
-          invited_by?: string | null;
-          status?:     "pending" | "accepted" | "rejected";
+          parent_id:   string;
+          plan_name?:  "free" | "basic" | "pro";
+          child_limit?: number;
+          status?:     "active" | "expired" | "cancelled";
+          expires_at?: string | null;
           created_at?: string;
-          accepted_at?: string | null;
+          updated_at?: string;
         };
         Update: {
-          status?:     "pending" | "accepted" | "rejected";
-          accepted_at?: string | null;
+          plan_name?:  "free" | "basic" | "pro";
+          child_limit?: number;
+          status?:     "active" | "expired" | "cancelled";
+          expires_at?: string | null;
+          updated_at?: string;
         };
+        Relationships: [];
       };
 
-      // ─── invitations ────────────────────────────────
-      invitations: {
+      // ─── caregiver_invite ────────────────────────────
+      caregiver_invite: {
         Row: {
           id:             string;
-          family_id:      string;
-          invited_by:     string;
-          invite_code:    string;
-          invited_email:  string;
-          status:         "pending" | "accepted" | "rejected";
-          expires_at:     string;
+          parent_id:      string;
+          child_id:       string;
+          invited_email:  string | null;
+          invited_phone:  string | null;
+          invite_code:    string | null;
+          invite_status:  "pending" | "accepted" | "rejected" | "expired";
+          accepted_by:    string | null;
+          expires_at:     string | null;
           created_at:     string;
         };
         Insert: {
           id?:            string;
-          family_id:      string;
-          invited_by:     string;
-          invite_code?:   string;
-          invited_email:  string;
-          status?:        "pending" | "accepted" | "rejected";
-          expires_at?:    string;
+          parent_id:      string;
+          child_id:       string;
+          invited_email?: string | null;
+          invited_phone?: string | null;
+          invite_code?:   string | null;
+          invite_status?: "pending" | "accepted" | "rejected" | "expired";
+          accepted_by?:   string | null;
+          expires_at?:    string | null;
           created_at?:    string;
         };
         Update: {
-          status?:        "pending" | "accepted" | "rejected";
+          invite_status?: "pending" | "accepted" | "rejected" | "expired";
+          accepted_by?:   string | null;
         };
-      };
-
-      // ─── children ────────────────────────────────────
-      children: {
-        Row: {
-          id:           string;
-          family_id:    string;
-          created_by:   string;
-          name:         string;
-          grade:        "elementary3" | "elementary4" | "elementary5" | "elementary6" | "middle1" | "middle2" | "middle3" | "high1" | "high2" | "high3";
-          interests:    string[];    // InterestField[]
-          avatar_emoji: string;
-          created_at:   string;
-          updated_at:   string;
-        };
-        Insert: {
-          id?:          string;
-          family_id:    string;
-          created_by:   string;
-          name:         string;
-          grade:        "elementary3" | "elementary4" | "elementary5" | "elementary6" | "middle1" | "middle2" | "middle3" | "high1" | "high2" | "high3";
-          interests?:   string[];
-          avatar_emoji?: string;
-          created_at?:  string;
-          updated_at?:  string;
-        };
-        Update: {
-          name?:        string;
-          grade?:       "elementary3" | "elementary4" | "elementary5" | "elementary6" | "middle1" | "middle2" | "middle3" | "high1" | "high2" | "high3";
-          interests?:   string[];
-          avatar_emoji?: string;
-          updated_at?:  string;
-        };
+        Relationships: [];
       };
 
       // ─── roadmap_progress ────────────────────────────
@@ -171,6 +207,7 @@ export interface Database {
           last_visited_at?: string;
           updated_at?:      string;
         };
+        Relationships: [];
       };
 
       // ─── liked_occupations ───────────────────────────
@@ -188,16 +225,17 @@ export interface Database {
           liked_at?:     string;
         };
         Update: never;
+        Relationships: [];
       };
 
       // ─── myeonddara_sessions ─────────────────────────
       myeonddara_sessions: {
         Row: {
           id:              string;
+          parent_id:       string;
           child_id:        string | null;
-          user_id:         string;
           child_name:      string;
-          birth_date:      string;    // "YYYY-MM-DD"
+          birth_date:      string;
           birth_time:      string;
           calendar_type:   "양력" | "음력" | "윤달";
           gender:          "male" | "female";
@@ -206,8 +244,8 @@ export interface Database {
         };
         Insert: {
           id?:             string;
+          parent_id:       string;
           child_id?:       string | null;
-          user_id:         string;
           child_name:      string;
           birth_date:      string;
           birth_time:      string;
@@ -219,11 +257,17 @@ export interface Database {
         Update: {
           result_snapshot?: Record<string, unknown> | null;
         };
+        Relationships: [];
       };
     };
 
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      verify_child_invite_code: {
+        Args: { p_code: string };
+        Returns: Array<{ child_id: string; child_name: string; school_grade: string }>;
+      };
+    };
     Enums: Record<string, never>;
   };
 }

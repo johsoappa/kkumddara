@@ -155,7 +155,7 @@ export default function SproutHome() {
 
         {/* 학년 + 관심분야 수정 버튼 (나침반 모드와 동일 스타일) */}
         <button
-          onClick={() => router.push("/onboarding")}
+          onClick={() => router.push("/student/edit")}
           className="
             flex items-center gap-1.5 -mt-3
             self-start

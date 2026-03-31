@@ -266,6 +266,22 @@ export default function ReportPage() {
           </div>
         </FadeInSection>
 
+        {/* ⑪ 의견 보내기 */}
+        <FadeInSection delay={0}>
+          <button
+            onClick={() => router.push("/feedback")}
+            className="
+              w-full py-3 rounded-button text-sm font-semibold
+              flex items-center justify-center gap-1.5
+              border border-base-border text-base-muted
+              hover:border-brand-red hover:text-brand-red
+              active:opacity-70 transition-colors
+            "
+          >
+            💬 의견 보내기
+          </button>
+        </FadeInSection>
+
       </div>
     </AppShell>
   );

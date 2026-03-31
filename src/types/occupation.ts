@@ -7,8 +7,11 @@ export type CategoryFilter =
   | "IT·기술"
   | "의료·과학"
   | "예술·디자인"
-  | "비즈니스"
-  | "교육·사회";
+  | "교육·사회"
+  | "비즈니스·경영"
+  | "콘텐츠·미디어"
+  | "공공·안전"
+  | "환경·미래산업";
 
 export type OccupationCategory = Exclude<CategoryFilter, "전체">;
 

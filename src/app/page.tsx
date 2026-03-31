@@ -1,41 +1,406 @@
 "use client";
 
 // ====================================================
-// 온보딩 페이지 (루트 경로: /)
-// - 온보딩 완료 데이터가 있으면 /home으로 리다이렉트
-// - 없으면 온보딩 폼 표시
+// 역할 선택 랜딩 (/)
+// Step 1: 학부모 / 학생 카드 선택
+// Step 2: 이메일 인증 (회원가입 | 로그인)
 // ====================================================
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import OnboardingForm from "@/components/onboarding/OnboardingForm";
+import { Users, BookOpen, Eye, EyeOff, ArrowLeft, ChevronRight } from "lucide-react";
+import { signUpParent, signUpStudent, signIn } from "@/lib/auth";
 
-export default function OnboardingPage() {
+type Role = "parent" | "student";
+type Step = "role" | "auth";
+type AuthMode = "signup" | "signin";
+
+export default function LandingPage() {
   const router = useRouter();
-  const [checked, setChecked] = useState(false);
 
-  useEffect(() => {
-    const stored = localStorage.getItem("kkumddara_onboarding");
-    if (stored) {
-      router.replace("/home");
-    } else {
-      setChecked(true);
+  const [step, setStep]             = useState<Step>("role");
+  const [selectedRole, setRole]     = useState<Role | null>(null);
+  const [authMode, setAuthMode]     = useState<AuthMode>("signup");
+  const [showPassword, setShowPw]   = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState<string | null>(null);
+
+  // 폼 상태
+  const [email, setEmail]           = useState("");
+  const [password, setPassword]     = useState("");
+  const [displayName, setDisplayName] = useState("");
+
+  // ── Step 1: 역할 선택 후 Step 2 이동 ────────────────
+  const handleRoleSelect = (role: Role) => {
+    setRole(role);
+    setStep("auth");
+    setError(null);
+  };
+
+  // ── Step 2: 인증 ────────────────────────────────────
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedRole) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      if (authMode === "signup") {
+        const { error: err } =
+          selectedRole === "parent"
+            ? await signUpParent(email, password, displayName)
+            : await signUpStudent(email, password, displayName);
+
+        if (err) throw err;
+        // 회원가입 성공 → 온보딩으로 (미들웨어가 role 기반 분기)
+        router.replace("/onboarding");
+      } else {
+        const { error: err } = await signIn(email, password);
+        if (err) throw err;
+        // 로그인 성공 → 미들웨어가 role + onboarding 상태 기반 redirect
+        router.replace("/home");
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "오류가 발생했습니다.";
+      if (msg.includes("already registered") || msg.includes("already been registered")) {
+        setError("이미 가입된 이메일입니다. 로그인을 시도해 보세요.");
+      } else if (msg.includes("Invalid login credentials")) {
+        setError("이메일 또는 비밀번호가 올바르지 않습니다.");
+      } else if (msg.includes("Password should be")) {
+        setError("비밀번호는 6자 이상이어야 합니다.");
+      } else {
+        setError(msg);
+      }
+    } finally {
+      setLoading(false);
     }
-  }, [router]);
+  };
 
-  if (!checked) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-base-off">
-        <p className="text-sm text-base-muted">불러오는 중...</p>
-      </div>
-    );
-  }
-
+  // ─────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-base-off flex justify-center">
-      <div className="w-full max-w-mobile bg-white shadow-card">
-        <OnboardingForm />
+      <div className="w-full max-w-mobile bg-white min-h-screen flex flex-col">
+
+        {/* ── 상단 로고 영역 ─────────────────────────── */}
+        <div className="px-6 pt-12 pb-2 flex items-center gap-2">
+          {step === "auth" && (
+            <button
+              onClick={() => { setStep("role"); setError(null); }}
+              className="p-1.5 -ml-1.5 rounded-full hover:bg-base-card transition-colors"
+              aria-label="뒤로"
+            >
+              <ArrowLeft size={20} className="text-base-text" />
+            </button>
+          )}
+          <span
+            className="text-lg font-bold tracking-tight"
+            style={{ color: "#E84B2E" }}
+          >
+            꿈따라
+          </span>
+        </div>
+
+        {/* ── Step 1: 역할 선택 ──────────────────────── */}
+        {step === "role" && (
+          <div className="flex-1 px-6 pt-8 pb-10 flex flex-col">
+            <h1 className="text-2xl font-bold text-base-text leading-tight">
+              어떻게 시작할까요?
+            </h1>
+            <p className="mt-2 text-sm text-base-muted leading-relaxed">
+              꿈따라는 학부모와 학생에게 맞는 화면을 따로 제공합니다.
+              <br />내 역할에 맞는 방식으로 시작해 주세요.
+            </p>
+
+            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+
+              {/* 학부모 카드 */}
+              <RoleCard
+                role="parent"
+                icon={<Users size={26} strokeWidth={1.8} />}
+                title="학부모로 시작하기"
+                description="아이의 관심 변화와 진로 방향을 함께 살펴볼 수 있어요."
+                buttonLabel="학부모로 계속"
+                onSelect={handleRoleSelect}
+              />
+
+              {/* 학생 카드 */}
+              <RoleCard
+                role="student"
+                icon={<BookOpen size={26} strokeWidth={1.8} />}
+                title="학생으로 시작하기"
+                description="오늘의 미션과 탐색을 통해 내 꿈을 하나씩 찾아갈 수 있어요."
+                buttonLabel="학생으로 계속"
+                onSelect={handleRoleSelect}
+              />
+            </div>
+
+            {/* ── 게스트 체험 섹션 ─────────────────── */}
+            <div className="mt-8 rounded-card-lg border border-base-border bg-base-off p-4">
+              <p className="text-xs font-bold text-base-text mb-0.5">
+                먼저 가볍게 둘러보세요.
+              </p>
+              <p className="text-xs text-base-muted leading-relaxed mb-3">
+                로그인 없이도 꿈따라의 주요 화면을 체험할 수 있어요.
+                <br />
+                저장과 맞춤 리포트는 로그인 후 이용할 수 있습니다.
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => router.push("/demo/parent")}
+                  className="
+                    flex-1 py-2.5 rounded-button text-xs font-semibold
+                    border border-base-border bg-white text-base-text
+                    active:opacity-70 transition-opacity
+                  "
+                >
+                  학부모 화면 체험
+                </button>
+                <button
+                  onClick={() => router.push("/demo/student")}
+                  className="
+                    flex-1 py-2.5 rounded-button text-xs font-semibold
+                    border border-base-border bg-white text-base-text
+                    active:opacity-70 transition-opacity
+                  "
+                >
+                  학생 화면 체험
+                </button>
+              </div>
+            </div>
+
+            <p className="mt-6 text-xs text-center text-base-muted">
+              이미 계정이 있다면{" "}
+              <button
+                className="font-semibold underline"
+                style={{ color: "#E84B2E" }}
+                onClick={() => {
+                  setRole("parent"); // 로그인은 role 상관없이 먼저 진행
+                  setAuthMode("signin");
+                  setStep("auth");
+                }}
+              >
+                로그인
+              </button>
+            </p>
+          </div>
+        )}
+
+        {/* ── Step 2: 인증 폼 ───────────────────────── */}
+        {step === "auth" && selectedRole && (
+          <div className="flex-1 px-6 pt-6 pb-10 flex flex-col">
+            <div className="mb-6">
+              <div
+                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-3"
+                style={{ background: "#FFF0EB", color: "#E84B2E" }}
+              >
+                {selectedRole === "parent" ? (
+                  <><Users size={12} /> 학부모</>
+                ) : (
+                  <><BookOpen size={12} /> 학생</>
+                )}
+              </div>
+              <h2 className="text-xl font-bold text-base-text">
+                {authMode === "signup" ? "계정을 만들어요" : "다시 오셨군요!"}
+              </h2>
+              <p className="text-sm text-base-muted mt-1">
+                {authMode === "signup"
+                  ? "이메일로 간편하게 가입할 수 있어요."
+                  : "이메일과 비밀번호를 입력해 주세요."}
+              </p>
+            </div>
+
+            <form onSubmit={handleAuth} className="flex flex-col gap-4">
+
+              {/* 이름/닉네임 (회원가입만) */}
+              {authMode === "signup" && (
+                <div>
+                  <label className="block text-sm font-medium text-base-text mb-1.5">
+                    {selectedRole === "parent" ? "이름" : "닉네임"}
+                  </label>
+                  <input
+                    type="text"
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    placeholder={selectedRole === "parent" ? "홍길동" : "꿈꾸는 학생"}
+                    className="
+                      w-full px-4 py-3 rounded-button border border-base-border
+                      text-sm text-base-text bg-white
+                      focus:outline-none focus:border-brand-red transition-colors
+                      placeholder:text-base-muted
+                    "
+                  />
+                </div>
+              )}
+
+              {/* 이메일 */}
+              <div>
+                <label className="block text-sm font-medium text-base-text mb-1.5">
+                  이메일
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="example@email.com"
+                  required
+                  autoComplete="email"
+                  className="
+                    w-full px-4 py-3 rounded-button border border-base-border
+                    text-sm text-base-text bg-white
+                    focus:outline-none focus:border-brand-red transition-colors
+                    placeholder:text-base-muted
+                  "
+                />
+              </div>
+
+              {/* 비밀번호 */}
+              <div>
+                <label className="block text-sm font-medium text-base-text mb-1.5">
+                  비밀번호
+                </label>
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="6자 이상"
+                    required
+                    minLength={6}
+                    autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+                    className="
+                      w-full px-4 py-3 pr-11 rounded-button border border-base-border
+                      text-sm text-base-text bg-white
+                      focus:outline-none focus:border-brand-red transition-colors
+                      placeholder:text-base-muted
+                    "
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((v) => !v)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-base-muted"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {/* 에러 */}
+              {error && (
+                <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-button">
+                  {error}
+                </p>
+              )}
+
+              {/* 제출 버튼 */}
+              <button
+                type="submit"
+                disabled={loading}
+                className="
+                  w-full py-3.5 rounded-button text-sm font-bold text-white
+                  flex items-center justify-center gap-1.5
+                  disabled:opacity-60 transition-opacity
+                "
+                style={{ background: loading ? undefined : "#E84B2E", backgroundColor: loading ? "#E84B2E" : undefined }}
+              >
+                {loading ? (
+                  "처리 중..."
+                ) : authMode === "signup" ? (
+                  <>시작하기 <ChevronRight size={16} /></>
+                ) : (
+                  <>로그인 <ChevronRight size={16} /></>
+                )}
+              </button>
+            </form>
+
+            {/* 모드 전환 */}
+            <p className="mt-6 text-sm text-center text-base-muted">
+              {authMode === "signup" ? (
+                <>
+                  이미 계정이 있어요.{" "}
+                  <button
+                    className="font-semibold underline"
+                    style={{ color: "#E84B2E" }}
+                    onClick={() => { setAuthMode("signin"); setError(null); }}
+                  >
+                    로그인
+                  </button>
+                </>
+              ) : (
+                <>
+                  계정이 없어요.{" "}
+                  <button
+                    className="font-semibold underline"
+                    style={{ color: "#E84B2E" }}
+                    onClick={() => { setAuthMode("signup"); setError(null); }}
+                  >
+                    회원가입
+                  </button>
+                </>
+              )}
+            </p>
+          </div>
+        )}
+
       </div>
     </div>
+  );
+}
+
+// ── 역할 카드 컴포넌트 ──────────────────────────────────────
+function RoleCard({
+  role,
+  icon,
+  title,
+  description,
+  buttonLabel,
+  onSelect,
+}: {
+  role: Role;
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  buttonLabel: string;
+  onSelect: (role: Role) => void;
+}) {
+  return (
+    <button
+      onClick={() => onSelect(role)}
+      className="
+        flex-1 text-left
+        bg-white border-2 border-base-border rounded-card-lg p-5
+        hover:border-brand-red hover:shadow-card-hover
+        active:border-brand-red active:scale-[0.99]
+        transition-all duration-150
+        flex flex-col gap-4
+      "
+    >
+      {/* 아이콘 */}
+      <div
+        className="w-11 h-11 rounded-card flex items-center justify-center"
+        style={{ background: "#FFF0EB", color: "#E84B2E" }}
+      >
+        {icon}
+      </div>
+
+      {/* 텍스트 */}
+      <div className="flex-1">
+        <p className="text-base font-bold text-base-text">{title}</p>
+        <p className="mt-1.5 text-sm text-base-muted leading-relaxed">
+          {description}
+        </p>
+      </div>
+
+      {/* CTA */}
+      <div
+        className="flex items-center gap-1 text-sm font-semibold"
+        style={{ color: "#E84B2E" }}
+      >
+        {buttonLabel}
+        <ChevronRight size={16} />
+      </div>
+    </button>
   );
 }

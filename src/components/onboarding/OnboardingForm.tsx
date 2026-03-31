@@ -3,13 +3,14 @@
 // ====================================================
 // 온보딩 폼 컴포넌트
 // - 사용자 유형 선택 (학부모/학생)
-// - 학년 선택 (초5~중3)
+// - 학년 선택 (초3~고3)
 // - 관심 분야 선택 (복수 선택)
-// - isEdit=true: 기존값 프리필 + 뒤로가기 + "수정 완료" 버튼
+// - isEdit=true: 기존값 프리필 + 뒤로가기 + "입력 완료" 버튼
 //
-// [Supabase 연동 준비]
-// 이 컴포넌트의 onboardingData를 추후 Supabase users 테이블에 저장할 예정
-// 데이터 구조는 아래 OnboardingData 타입을 그대로 사용하세요.
+// [확장 가이드]
+// 학년/관심분야/사용자타입 옵션은 파일 상단 상수(GRADE_GROUPS, INTEREST_OPTIONS,
+// USER_TYPE_OPTIONS)만 수정하면 렌더링이 자동으로 반영됩니다.
+// Supabase 스키마(grade, interests 컬럼)와 Grade/InterestField 타입을 함께 갱신하세요.
 // ====================================================
 
 import { useState, useEffect } from "react";
@@ -17,51 +18,75 @@ import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import {
-  getOrCreateFamily,
-  createChild,
-  getChild,
-  updateChild,
-} from "@/lib/db/family";
 
-// ----------------------------------------
-// 타입 정의 (Supabase 스키마와 동일하게 유지)
-// ----------------------------------------
-type UserType = "parent" | "student";
+// ============================================================
+// 1. 타입 정의
+//    Supabase children 테이블의 grade / interests 컬럼과 동기화
+// ============================================================
 
-type Grade =
-  | "elementary3"   // 초등 3학년 (새싹 모드)
-  | "elementary4"   // 초등 4학년 (새싹 모드)
-  | "elementary5"   // 초등 5학년
-  | "elementary6"   // 초등 6학년
-  | "middle1"       // 중학교 1학년
-  | "middle2"       // 중학교 2학년
-  | "middle3"       // 중학교 3학년
-  | "high1"         // 고등학교 1학년
-  | "high2"         // 고등학교 2학년
-  | "high3";        // 고등학교 3학년
+/** 사용자 역할. 현재는 UI 분기용이며 DB 저장은 추후 확장 가능. */
+export type UserType = "parent" | "student";
 
-type InterestField =
+/**
+ * 학년 식별자.
+ * DB children.grade 컬럼 허용값과 반드시 일치해야 합니다.
+ * 새 학년 추가 시 → 이 타입 + GRADE_GROUPS 배열 + Supabase 스키마를 함께 수정하세요.
+ */
+export type Grade =
+  | "elementary3"   // 초3 (새싹 모드)
+  | "elementary4"   // 초4 (새싹 모드)
+  | "elementary5"   // 초5
+  | "elementary6"   // 초6
+  | "middle1"       // 중1
+  | "middle2"       // 중2
+  | "middle3"       // 중3
+  | "high1"         // 고1
+  | "high2"         // 고2
+  | "high3";        // 고3
+
+/**
+ * 관심 분야 식별자.
+ * DB children.interests[] 컬럼 값과 반드시 일치해야 합니다.
+ * 새 분야 추가 시 → 이 타입 + INTEREST_OPTIONS 배열 + Supabase 스키마를 함께 수정하세요.
+ */
+export type InterestField =
   | "it"            // IT/기술
   | "art"           // 예술/디자인
   | "medical"       // 의료/과학
   | "business"      // 비즈니스
   | "education";    // 교육/사회
 
-// 온보딩 데이터 전체 구조
-// [Supabase 연동 시] users 테이블의 onboarding_data 컬럼에 JSON으로 저장
-interface OnboardingData {
-  userType: UserType | null;
-  grade: Grade | null;
+/** 온보딩 폼 전체 상태. localStorage 및 Supabase 저장 구조와 동일. */
+export interface OnboardingData {
+  userType:  UserType | null;
+  grade:     Grade | null;
   interests: InterestField[];
 }
 
-// ----------------------------------------
-// 선택지 데이터
-// ----------------------------------------
-// 학년 그룹 (초등 / 중학 / 고등)
-const gradeGroups: {
-  label: string;
+// ============================================================
+// 2. 옵션 상수
+//    렌더링 배열 + 타입 안전성 모두 확보.
+//    확장 시 이 상수만 수정하면 UI가 자동 반영됩니다.
+// ============================================================
+
+/** 사용자 타입 카드 옵션 */
+const USER_TYPE_OPTIONS: {
+  value:    UserType;
+  emoji:    string;
+  label:    string;
+  subLabel: string;
+}[] = [
+  { value: "parent",  emoji: "👨‍👩‍👧", label: "학부모", subLabel: "자녀 진로 설계" },
+  { value: "student", emoji: "🧑‍🎓", label: "학생",   subLabel: "내 꿈 찾기"    },
+];
+
+/**
+ * 학년 그룹 정의.
+ * 각 그룹은 { label: 표시명, options: { value: Grade, label: 짧은명 }[] } 구조.
+ * 초등/중등/고등 외 그룹 추가 시 이 배열에 항목 추가만 하면 됩니다.
+ */
+const GRADE_GROUPS: {
+  label:   string;
   options: { value: Grade; label: string }[];
 }[] = [
   {
@@ -91,65 +116,101 @@ const gradeGroups: {
   },
 ];
 
-const interestOptions: { value: InterestField; label: string; emoji: string }[] = [
-  { value: "it", label: "IT/기술", emoji: "💻" },
-  { value: "art", label: "예술/디자인", emoji: "🎨" },
-  { value: "medical", label: "의료/과학", emoji: "🔬" },
-  { value: "business", label: "비즈니스", emoji: "💼" },
-  { value: "education", label: "교육/사회", emoji: "📚" },
+/**
+ * 관심 분야 옵션.
+ * 새 분야 추가 시 여기에 항목 추가 + InterestField 타입 확장.
+ * emoji는 향후 아이콘 컴포넌트로 교체 가능.
+ */
+const INTEREST_OPTIONS: {
+  value: InterestField;
+  label: string;
+  emoji: string;
+}[] = [
+  { value: "it",        label: "IT/기술",    emoji: "💻" },
+  { value: "art",       label: "예술/디자인", emoji: "🎨" },
+  { value: "medical",   label: "의료/과학",   emoji: "🔬" },
+  { value: "business",  label: "비즈니스",    emoji: "💼" },
+  { value: "education", label: "교육/사회",   emoji: "📚" },
 ];
 
-// ----------------------------------------
-// Props
-// ----------------------------------------
+// ============================================================
+// 3. 새싹 모드 학년 집합 (초3~4)
+//    저장 후 라우팅 분기에 사용.
+// ============================================================
+const SPROUT_GRADES = new Set<Grade>(["elementary3", "elementary4"]);
+
+// ============================================================
+// 4. 공통 선택 상태 className
+//    카드형(사용자타입·관심분야)과 pill형(학년) 두 가지 패턴.
+//    브랜드 컬러 변경 시 이 상수만 수정하면 전체 반영됩니다.
+// ============================================================
+/** 카드형 버튼 — 선택됨 */
+const CARD_SELECTED   = "border-[#E84B2E] bg-red-50" as const;
+/** 카드형 버튼 — 미선택 */
+const CARD_IDLE       = "border-base-border bg-white" as const;
+/** pill형 버튼 — 선택됨 (배경 채움) */
+const PILL_SELECTED   = "bg-[#E84B2E] border-[#E84B2E] text-white" as const;
+/** pill형 버튼 — 미선택 */
+const PILL_IDLE       = "bg-white border-base-border text-base-text" as const;
+/** 선택 시 텍스트 컬러 */
+const TEXT_SELECTED   = "text-[#E84B2E]" as const;
+/** 미선택 텍스트 컬러 */
+const TEXT_IDLE       = "text-base-text" as const;
+
+// ============================================================
+// 4. Props
+// ============================================================
 interface OnboardingFormProps {
-  isEdit?: boolean; // true: 수정 모드 (기존값 프리필 + 뒤로가기)
+  /** true: 수정 모드 — 기존값 프리필, 뒤로가기, "입력 완료" 버튼 */
+  isEdit?: boolean;
 }
 
-// ----------------------------------------
-// 메인 컴포넌트
-// ----------------------------------------
+// ============================================================
+// 5. 메인 컴포넌트
+// ============================================================
 export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) {
   const router = useRouter();
 
-  // 폼 상태
+  // ── 폼 상태
   const [data, setData] = useState<OnboardingData>({
-    userType: null,
-    grade: null,
+    userType:  null,
+    grade:     null,
     interests: [],
   });
 
-  // 로딩 / 에러 상태
+  // ── 로딩 / 에러
   const [isLoading, setIsLoading] = useState(false);
-  const [errorMsg, setErrorMsg]   = useState<string | null>(null);
+  const [errorMsg,  setErrorMsg]  = useState<string | null>(null);
 
-  // 이메일 로그인 (테스트용)
+  // ── 이메일 로그인 (개발/테스트용)
   const [testEmail,    setTestEmail]    = useState("");
   const [testPassword, setTestPassword] = useState("");
   const [authLoading,  setAuthLoading]  = useState(false);
   const [authMsg,      setAuthMsg]      = useState<string | null>(null);
 
-  // 수정 모드: Supabase → localStorage 순으로 기존값 프리필
+  // ── 수정 모드 프리필: Supabase → localStorage 순서로 기존값 로드
   useEffect(() => {
     if (!isEdit) return;
 
     const storedChildId = localStorage.getItem("kkumddara_child_id");
 
     const load = async () => {
-      // ① Supabase에서 현재 학년 + 관심분야 로드 시도
-      //    child.interests 배열 컬럼에서 직접 읽으므로 별도 쿼리 불필요
       if (storedChildId) {
         try {
           const { data: authData } = await supabase.auth.getUser();
           if (authData.user) {
-            const child = await getChild(storedChildId);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: child } = await (supabase as any)
+              .from("child")
+              .select("school_grade, interests")
+              .eq("id", storedChildId)
+              .maybeSingle();
             if (child) {
-              // userType은 children 테이블에 없으므로 localStorage에서 가져옴
-              const stored = localStorage.getItem("kkumddara_onboarding");
-              const storedData = stored ? (JSON.parse(stored) as OnboardingData) : null;
+              const stored    = localStorage.getItem("kkumddara_onboarding");
+              const storedObj = stored ? (JSON.parse(stored) as OnboardingData) : null;
               setData({
-                userType:  storedData?.userType ?? null,
-                grade:     child.grade as Grade,
+                userType:  storedObj?.userType ?? null,
+                grade:     child.school_grade as Grade,
                 interests: (child.interests ?? []) as InterestField[],
               });
               return;
@@ -159,8 +220,6 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
           // 인증 없거나 네트워크 오류 → localStorage fallback
         }
       }
-
-      // ② localStorage fallback
       const stored = localStorage.getItem("kkumddara_onboarding");
       if (stored) setData(JSON.parse(stored) as OnboardingData);
     };
@@ -168,155 +227,163 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     load();
   }, [isEdit]);
 
-  // ----------------------------------------
-  // 핸들러 함수들
-  // ----------------------------------------
+  // ──────────────────────────────────────────────
+  // 핸들러
+  // ──────────────────────────────────────────────
 
-  // 사용자 유형 선택
-  const handleUserTypeSelect = (type: UserType) => {
+  const handleUserTypeSelect = (type: UserType) =>
     setData((prev) => ({ ...prev, userType: type }));
-  };
 
-  // 학년 선택
-  const handleGradeSelect = (grade: Grade) => {
+  const handleGradeSelect = (grade: Grade) =>
     setData((prev) => ({ ...prev, grade }));
-  };
 
-  // 관심 분야 토글 (복수 선택)
-  const handleInterestToggle = (field: InterestField) => {
-    setData((prev) => {
-      const exists = prev.interests.includes(field);
-      return {
-        ...prev,
-        interests: exists
-          ? prev.interests.filter((i) => i !== field)  // 이미 선택됨 → 제거
-          : [...prev.interests, field],                 // 미선택 → 추가
-      };
-    });
-  };
+  const handleInterestToggle = (field: InterestField) =>
+    setData((prev) => ({
+      ...prev,
+      interests: prev.interests.includes(field)
+        ? prev.interests.filter((i) => i !== field)
+        : [...prev.interests, field],
+    }));
 
-  // 시작하기 / 입력 완료 버튼
+  // ── 시작하기 / 입력 완료
   const handleStart = async () => {
-    // ── 필수 항목 검증
-    if (!data.userType || !data.grade) {
-      alert("사용자 유형과 학년을 선택해주세요.");
+    console.log("[온보딩] 시작하기 클릭, isEdit:", isEdit);
+
+    if (!data.grade) {
+      setErrorMsg("학년을 선택해주세요.");
       return;
     }
     if (data.interests.length === 0) {
-      alert("관심 분야를 하나 이상 선택해주세요.");
+      setErrorMsg("관심 분야를 하나 이상 선택해주세요.");
       return;
     }
-
-    setIsLoading(true);
     setErrorMsg(null);
+    setIsLoading(true);
 
     try {
-      // ① localStorage 저장 (항상 — 오프라인 캐시)
+      const { data: authData } = await supabase.auth.getUser();
+      const user = authData?.user;
+      console.log("[온보딩] 유저:", user?.id ?? "❌ 미로그인");
+
+      // localStorage 항상 저장 (오프라인 캐시)
       localStorage.setItem("kkumddara_onboarding", JSON.stringify(data));
 
-      // ② Supabase 저장 (로그인 상태 여부 확인 후 시도)
-      try {
-        const { data: authData } = await supabase.auth.getUser();
-        const user = authData?.user;
+      if (!user) {
+        console.warn("[온보딩] 미인증 → localStorage만 저장");
+      } else {
+        const childId = localStorage.getItem("kkumddara_child_id");
 
-        // 디버그: 항상 로그 출력
-        console.log("[온보딩] 현재 로그인 유저:", user?.id ?? "❌ 미로그인 (localStorage만 저장)");
+        if (isEdit && childId) {
+          // ── 수정 모드: UPDATE
+          console.log("[온보딩] 수정 모드 → UPDATE, child_id:", childId);
+          const { error } = await supabase
+            .from("child")
+            .update({ school_grade: data.grade, interests: data.interests })
+            .eq("id", childId);
+          if (error) console.error("[온보딩] UPDATE 에러:", error);
+          else        console.log("[온보딩] UPDATE 성공");
 
-        if (!user) {
-          // 미로그인: localStorage 저장으로 계속, Supabase 저장 건너뜀
-          console.warn("[온보딩] Supabase 미인증 → localStorage만 저장됩니다.");
-        } else if (isEdit) {
-          // ── 수정 모드: grade + interests 단일 UPDATE
-          const storedChildId = localStorage.getItem("kkumddara_child_id");
-          if (storedChildId) {
-            const updated = await updateChild(storedChildId, {
-              grade:     data.grade!,
-              interests: data.interests,
-            });
-            console.log("[온보딩] updateChild 결과:", updated?.id ?? "❌ 실패");
-          } else {
-            console.warn("[온보딩] kkumddara_child_id 없음 → updateChild 건너뜀");
-          }
         } else {
-          // ── 최초 온보딩: 가족 확보 → 자녀 생성 (interests 포함)
-          const family = await getOrCreateFamily(user.id);
-          console.log("[온보딩] getOrCreateFamily:", family?.id ?? "❌ 실패");
-          if (family) {
-            const child = await createChild(family.id, user.id, {
-              name:         "친구",
-              grade:        data.grade!,
-              interests:    data.interests,
-              avatar_emoji: "🌱",
-            });
-            console.log("[온보딩] createChild:", child?.id ?? "❌ 실패");
-            if (child) {
-              localStorage.setItem("kkumddara_child_id", child.id);
-            }
+          // ── 최초 온보딩: INSERT
+          console.log("[온보딩] 최초 온보딩 → INSERT");
+
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const { data: existingFamily } = await (supabase as any)
+            .from("families")
+            .select("id")
+            .eq("main_user_id", user.id)
+            .maybeSingle();
+
+          let familyId: string | null = existingFamily?.id ?? null;
+
+          if (!familyId) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: newFamily, error: familyError } = await (supabase as any)
+              .from("families")
+              .insert({ main_user_id: user.id })
+              .select("id")
+              .single();
+            console.log("[온보딩] family INSERT:", newFamily?.id ?? "❌", familyError?.message ?? "");
+            familyId = newFamily?.id ?? null;
+          } else {
+            console.log("[온보딩] 기존 family 사용:", familyId);
+          }
+
+          if (!familyId) {
+            console.error("[온보딩] family 확보 실패 → localStorage만 저장");
+          } else {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const { data: child, error: childError } = await (supabase as any)
+              .from("children")
+              .insert({
+                family_id:  familyId,
+                created_by: user.id,
+                name:       "친구",
+                grade:      data.grade,
+                interests:  data.interests,
+              })
+              .select()
+              .single();
+            console.log("[온보딩] children INSERT:", child?.id ?? "❌", childError?.message ?? "");
+            if (child) localStorage.setItem("kkumddara_child_id", child.id);
           }
         }
-      } catch (supaErr) {
-        // 미인증 / 네트워크 오류: localStorage 저장은 완료됐으므로 계속 진행
-        console.warn("[온보딩] Supabase 저장 건너뜀:", supaErr);
       }
 
-      // ③ 화면 이동 (캐시 새로고침 포함)
+      // 화면 이동
+      // router.refresh() → Next.js 라우터 캐시 무효화 → 홈 컴포넌트 리마운트 보장
       router.refresh();
-
-      if (isEdit) {
-        router.back();
-      } else {
-        const isSprout =
-          data.grade === "elementary3" || data.grade === "elementary4";
-        router.push(isSprout ? "/sprout" : "/home");
-      }
+      const dest = SPROUT_GRADES.has(data.grade!) ? "/sprout" : "/student/home";
+      router.replace(dest);
 
     } catch (error) {
-      console.error("온보딩 저장 실패:", error);
+      console.error("[온보딩] 전체 에러:", error);
       setErrorMsg("저장 중 오류가 발생했습니다. 다시 시도해주세요.");
+      router.push("/home");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // 카카오 로그인 (더미)
+  // ── 카카오 로그인 (더미)
   const handleKakaoLogin = () => {
-    // [Supabase 연동 포인트]
-    // await supabase.auth.signInWithOAuth({ provider: 'kakao' });
     alert("카카오 로그인은 준비 중입니다. 😊");
   };
 
-  // ── 이메일 로그인 성공 후 공통 처리
-  //    기존 children 데이터 있으면 홈으로, 없으면 온보딩 계속
-  const afterAuthSuccess = async (actionLabel: string) => {
+  // ── 이메일 로그인/가입 공통 후처리
+  const afterAuthSuccess = async (label: string) => {
     const { data: { user } } = await supabase.auth.getUser();
-    console.log(`[${actionLabel}] user.id:`, user?.id);
+    console.log(`[${label}] user.id:`, user?.id);
 
     if (!user) {
       setAuthMsg("⚠️ 인증은 됐지만 유저 정보를 가져오지 못했습니다. 새로고침 해주세요.");
       return;
     }
 
-    // 기존 자녀 데이터 확인 (이미 온보딩을 완료한 계정인지)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { data: existingChild } = await (supabase as any)
       .from("children")
-      .select("id, grade")
+      .select("id, grade, interests")
       .eq("created_by", user.id)
       .maybeSingle();
 
     if (existingChild) {
-      // 데이터 있음 → 바로 홈/새싹 이동
       localStorage.setItem("kkumddara_child_id", existingChild.id);
-      const isSprout =
-        existingChild.grade === "elementary3" || existingChild.grade === "elementary4";
+      if (!localStorage.getItem("kkumddara_onboarding")) {
+        localStorage.setItem("kkumddara_onboarding", JSON.stringify({
+          userType:  null,
+          grade:     existingChild.grade,
+          interests: existingChild.interests ?? [],
+        }));
+      }
+      const isSprout = SPROUT_GRADES.has(existingChild.grade as Grade);
       router.push(isSprout ? "/sprout" : "/home");
     } else {
-      // 데이터 없음 → 온보딩 폼에서 학년/관심분야 선택 계속
       setAuthMsg("✅ 로그인됐어요! 아래에서 학년과 관심분야를 선택 후 시작하세요.");
     }
   };
 
-  // ── 이메일 로그인 (개발/테스트용)
+  // ── 이메일 로그인
   const handleEmailLogin = async () => {
     if (!testEmail || !testPassword) {
       setAuthMsg("⚠️ 이메일과 비밀번호를 모두 입력해주세요.");
@@ -325,8 +392,7 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     setAuthLoading(true);
     setAuthMsg(null);
     const { error } = await supabase.auth.signInWithPassword({
-      email:    testEmail,
-      password: testPassword,
+      email: testEmail, password: testPassword,
     });
     if (error) {
       setAuthLoading(false);
@@ -337,7 +403,7 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     setAuthLoading(false);
   };
 
-  // ── 이메일 회원가입 (개발/테스트용)
+  // ── 이메일 회원가입
   const handleEmailSignUp = async () => {
     if (!testEmail || !testPassword) {
       setAuthMsg("⚠️ 이메일과 비밀번호를 모두 입력해주세요.");
@@ -350,35 +416,29 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
     setAuthLoading(true);
     setAuthMsg(null);
     const { error } = await supabase.auth.signUp({
-      email:    testEmail,
-      password: testPassword,
+      email: testEmail, password: testPassword,
     });
     if (error) {
       setAuthLoading(false);
       setAuthMsg("❌ 가입 실패: " + error.message);
       return;
     }
-    // signUp 후 자동 로그인 상태 → 동일한 후처리
     await afterAuthSuccess("이메일 가입");
     setAuthLoading(false);
   };
 
-  // 버튼 활성화 조건
-  const canStart = data.userType && data.grade && data.interests.length > 0;
+  // ── 파생 상태
+  const canStart = !!(data.grade && data.interests.length > 0);
 
-  // 수정 모드 뒤로가기: 현재 학년에 따라 목적지 결정
-  const backHref =
-    data.grade === "elementary3" || data.grade === "elementary4"
-      ? "/sprout"
-      : "/home";
+  const backHref = SPROUT_GRADES.has(data.grade as Grade) ? "/sprout" : "/home";
 
-  // ----------------------------------------
+  // ============================================================
   // 렌더링
-  // ----------------------------------------
+  // ============================================================
   return (
     <div className="flex flex-col min-h-screen bg-white px-5 pt-10 pb-8">
 
-      {/* ---- 수정 모드: 뒤로가기 버튼 ---- */}
+      {/* ── 수정 모드: 뒤로가기 */}
       {isEdit && (
         <button
           onClick={() => router.push(backHref)}
@@ -393,22 +453,24 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
         </button>
       )}
 
-      {/* 로고 영역 */}
+      {/* ── 브랜딩 영역 (최초 온보딩) */}
       {!isEdit && (
         <div className="flex flex-col items-center mb-10">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-4xl font-bold text-brand-red">꿈따라</span>
-          </div>
+          <span
+            className="text-4xl font-bold mb-3"
+            style={{ color: "#E84B2E" }}
+          >
+            꿈따라
+          </span>
           <p className="text-sm text-base-muted text-center leading-relaxed">
-            막연한 꿈이 아닌,{"\n"}
-            <span className="font-semibold text-base-text">
-              실행 가능한 내일을
-            </span>
+            막연한 꿈이 아닌,
+            <br />
+            <span className="font-semibold text-base-text">실행 가능한 내일을</span>
           </p>
         </div>
       )}
 
-      {/* 수정 모드 타이틀 */}
+      {/* ── 수정 모드 타이틀 */}
       {isEdit && (
         <div className="mb-8">
           <h1 className="text-xl font-bold text-base-text">내 정보 수정</h1>
@@ -416,146 +478,107 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
         </div>
       )}
 
-      {/* ---- 섹션 1: 사용자 유형 선택 ---- */}
+      {/* ══════════════════════════════════════
+          섹션 1: 사용자 유형
+          USER_TYPE_OPTIONS 상수 기반 렌더링
+      ══════════════════════════════════════ */}
       <section className="mb-7">
         <h2 className="text-sm font-bold text-base-muted mb-3 uppercase tracking-wide">
           누가 사용하시나요?
         </h2>
         <div className="grid grid-cols-2 gap-3">
-          {/* 학부모 카드 */}
-          <button
-            onClick={() => handleUserTypeSelect("parent")}
-            className={cn(
-              "relative py-5 px-4 rounded-card-lg border-2 transition-all",
-              "flex flex-col items-center gap-2",
-              data.userType === "parent"
-                ? "border-brand-red bg-brand-light"    // 선택됨
-                : "border-base-border bg-white"         // 미선택
-            )}
-          >
-            <span className="text-3xl">👨‍👩‍👧</span>
-            <span
-              className={cn(
-                "text-sm font-bold",
-                data.userType === "parent" ? "text-brand-red" : "text-base-text"
-              )}
-            >
-              학부모
-            </span>
-            <span
-              className={cn(
-                "text-xs",
-                data.userType === "parent" ? "text-brand-orange" : "text-base-muted"
-              )}
-            >
-              자녀 진로 설계
-            </span>
-            {/* 선택 체크 뱃지 */}
-            {data.userType === "parent" && (
-              <span className="absolute top-2 right-2 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center">
-                <span className="text-white text-xs">✓</span>
-              </span>
-            )}
-          </button>
-
-          {/* 학생 카드 */}
-          <button
-            onClick={() => handleUserTypeSelect("student")}
-            className={cn(
-              "relative py-5 px-4 rounded-card-lg border-2 transition-all",
-              "flex flex-col items-center gap-2",
-              data.userType === "student"
-                ? "border-brand-red bg-brand-light"
-                : "border-base-border bg-white"
-            )}
-          >
-            <span className="text-3xl">🧑‍🎓</span>
-            <span
-              className={cn(
-                "text-sm font-bold",
-                data.userType === "student" ? "text-brand-red" : "text-base-text"
-              )}
-            >
-              학생
-            </span>
-            <span
-              className={cn(
-                "text-xs",
-                data.userType === "student" ? "text-brand-orange" : "text-base-muted"
-              )}
-            >
-              내 꿈 찾기
-            </span>
-            {data.userType === "student" && (
-              <span className="absolute top-2 right-2 w-5 h-5 bg-brand-red rounded-full flex items-center justify-center">
-                <span className="text-white text-xs">✓</span>
-              </span>
-            )}
-          </button>
+          {USER_TYPE_OPTIONS.map(({ value, emoji, label, subLabel }) => {
+            const isSelected = data.userType === value;
+            return (
+              <button
+                key={value}
+                onClick={() => handleUserTypeSelect(value)}
+                aria-pressed={isSelected}
+                className={cn(
+                  "relative py-5 px-4 rounded-card-lg border-2 transition-all",
+                  "flex flex-col items-center gap-2",
+                  isSelected ? CARD_SELECTED : CARD_IDLE
+                )}
+              >
+                <span className="text-3xl">{emoji}</span>
+                <span className={cn("text-sm font-bold", isSelected ? TEXT_SELECTED : TEXT_IDLE)}>
+                  {label}
+                </span>
+                <span className={cn("text-xs", isSelected ? "text-[#E84B2E]/70" : "text-base-muted")}>
+                  {subLabel}
+                </span>
+                {isSelected && (
+                  <span className="absolute top-2 right-2 w-5 h-5 bg-[#E84B2E] rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs leading-none">✓</span>
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
       </section>
 
-      {/* ---- 섹션 2: 학년 선택 (초/중/고 구간 분리) ---- */}
+      {/* ══════════════════════════════════════
+          섹션 2: 학년 선택
+          GRADE_GROUPS 상수 기반 렌더링
+      ══════════════════════════════════════ */}
       <section className="mb-7">
         <h2 className="text-sm font-bold text-base-muted mb-3 uppercase tracking-wide">
           학년을 선택하세요
         </h2>
         <div className="flex flex-col gap-3">
-          {gradeGroups.map((group) => (
+          {GRADE_GROUPS.map((group) => (
             <div key={group.label}>
-              {/* 구간 라벨 */}
               <p className="text-xs text-base-muted mb-1.5">{group.label}</p>
-              {/* 버튼 가로 나열 */}
               <div className="flex gap-2 flex-wrap">
-                {group.options.map(({ value, label }) => (
-                  <button
-                    key={value}
-                    onClick={() => handleGradeSelect(value)}
-                    className={cn(
-                      "px-4 py-2.5 rounded-full text-sm font-semibold transition-all",
-                      "border-2 min-w-[52px]",
-                      data.grade === value
-                        ? "bg-brand-red border-brand-red text-white"
-                        : "bg-white border-base-border text-base-text"
-                    )}
-                  >
-                    {label}
-                  </button>
-                ))}
+                {group.options.map(({ value, label }) => {
+                  const isSelected = data.grade === value;
+                  return (
+                    <button
+                      key={value}
+                      onClick={() => handleGradeSelect(value)}
+                      aria-pressed={isSelected}
+                      className={cn(
+                        "px-4 py-2.5 rounded-full text-sm font-semibold transition-all",
+                        "border-2 min-w-[52px]",
+                        isSelected ? PILL_SELECTED : PILL_IDLE
+                      )}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* ---- 섹션 3: 관심 분야 선택 ---- */}
+      {/* ══════════════════════════════════════
+          섹션 3: 관심 분야
+          INTEREST_OPTIONS 상수 기반 렌더링
+      ══════════════════════════════════════ */}
       <section className="mb-8">
         <h2 className="text-sm font-bold text-base-muted mb-1 uppercase tracking-wide">
           관심 분야를 선택하세요
         </h2>
         <p className="text-xs text-base-muted mb-3">복수 선택 가능</p>
         <div className="grid grid-cols-2 gap-2">
-          {interestOptions.map(({ value, label, emoji }) => {
+          {INTEREST_OPTIONS.map(({ value, label, emoji }) => {
             const isSelected = data.interests.includes(value);
             return (
               <button
                 key={value}
                 onClick={() => handleInterestToggle(value)}
+                aria-pressed={isSelected}
                 className={cn(
                   "flex items-center gap-3 py-3 px-4 rounded-card",
                   "border-2 transition-all text-left",
-                  isSelected
-                    ? "bg-brand-light border-brand-red"    // 선택됨
-                    : "bg-white border-base-border"         // 미선택
+                  isSelected ? CARD_SELECTED : CARD_IDLE
                 )}
               >
                 <span className="text-xl">{emoji}</span>
-                <span
-                  className={cn(
-                    "text-sm font-medium",
-                    isSelected ? "text-brand-red" : "text-base-text"
-                  )}
-                >
+                <span className={cn("text-sm font-medium", isSelected ? TEXT_SELECTED : TEXT_IDLE)}>
                   {label}
                 </span>
               </button>
@@ -564,10 +587,12 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
         </div>
       </section>
 
-      {/* ---- 버튼 영역 ---- */}
+      {/* ══════════════════════════════════════
+          액션 버튼 영역
+      ══════════════════════════════════════ */}
       <div className="flex flex-col gap-3 mt-auto">
 
-        {/* 에러 토스트 */}
+        {/* 에러 메시지 */}
         {errorMsg && (
           <div className="w-full px-4 py-3 rounded-card bg-red-50 border border-red-200 flex items-center gap-2">
             <span className="text-base">⚠️</span>
@@ -579,12 +604,19 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
         <button
           onClick={handleStart}
           disabled={!canStart || isLoading}
+          aria-disabled={!canStart || isLoading}
+          aria-busy={isLoading}
           className={cn(
-            "btn-primary flex items-center justify-center gap-2",
+            "w-full py-4 rounded-button font-semibold text-sm",
+            "flex items-center justify-center gap-2 transition-colors",
+            "disabled:cursor-not-allowed",
+            canStart && !isLoading
+              ? "bg-[#E84B2E] text-white active:opacity-80"
+              : "bg-gray-200 text-gray-400"
           )}
         >
           {isLoading ? (
-            <span className="text-sm">잠깐만요...</span>
+            <span>잠깐만요...</span>
           ) : (
             <>
               <span>{isEdit ? "입력 완료" : "꿈따라 시작하기"}</span>
@@ -593,7 +625,7 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
           )}
         </button>
 
-        {/* 카카오 로그인 (신규 진입 시에만 표시) */}
+        {/* 카카오 / 이메일 영역 (최초 온보딩에서만 표시) */}
         {!isEdit && (
           <>
             {/* 구분선 */}
@@ -603,7 +635,7 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
               <div className="flex-1 h-px bg-base-border" />
             </div>
 
-            {/* 카카오 로그인 버튼 */}
+            {/* 카카오 버튼 (더미) */}
             <button
               onClick={handleKakaoLogin}
               className="
@@ -614,11 +646,9 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
                 active:opacity-80 transition-opacity
               "
             >
-              {/* 카카오 아이콘 (SVG) */}
               <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
                 <path
-                  fillRule="evenodd"
-                  clipRule="evenodd"
+                  fillRule="evenodd" clipRule="evenodd"
                   d="M9 0.5C4.029 0.5 0 3.643 0 7.5C0 10.003 1.548 12.205 3.9 13.5L3 17.5L7.2 14.877C7.789 14.959 8.39 15 9 15C13.971 15 18 11.866 18 8C18 4.134 13.971 0.5 9 0.5Z"
                   fill="#3C1E1E"
                 />
@@ -628,7 +658,6 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
 
             {/* ── 개발/테스트용 이메일 로그인 ── */}
             <div className="mt-1">
-              {/* 구분선 */}
               <div className="flex items-center gap-2 mb-3">
                 <div className="flex-1 h-px bg-base-border" />
                 <span className="text-[10px] font-semibold text-base-muted bg-base-off px-2 py-0.5 rounded-full">
@@ -638,16 +667,14 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
               </div>
 
               <div className="flex flex-col gap-2">
-                {/* 인증 메시지 (성공/실패 인라인) */}
                 {authMsg && (
-                  <p className={`text-xs font-medium px-1 ${
+                  <p className={cn(
+                    "text-xs font-medium px-1",
                     authMsg.startsWith("✅") ? "text-green-600" : "text-red-500"
-                  }`}>
+                  )}>
                     {authMsg}
                   </p>
                 )}
-
-                {/* 이메일 입력 */}
                 <input
                   type="email"
                   value={testEmail}
@@ -656,10 +683,9 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
                   className="
                     w-full px-4 py-3 rounded-card border border-base-border
                     text-sm text-base-text placeholder:text-base-muted
-                    focus:outline-none focus:border-brand-red transition-colors
+                    focus:outline-none focus:border-[#E84B2E] transition-colors
                   "
                 />
-                {/* 비밀번호 입력 */}
                 <input
                   type="password"
                   value={testPassword}
@@ -668,10 +694,9 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
                   className="
                     w-full px-4 py-3 rounded-card border border-base-border
                     text-sm text-base-text placeholder:text-base-muted
-                    focus:outline-none focus:border-brand-red transition-colors
+                    focus:outline-none focus:border-[#E84B2E] transition-colors
                   "
                 />
-                {/* 버튼 2개 */}
                 <div className="flex gap-2">
                   <button
                     onClick={handleEmailLogin}
@@ -688,8 +713,8 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
                     onClick={handleEmailSignUp}
                     disabled={authLoading}
                     className="
-                      flex-1 py-3 rounded-button border border-brand-red
-                      text-sm font-semibold text-brand-red bg-white
+                      flex-1 py-3 rounded-button border border-[#E84B2E]
+                      text-sm font-semibold text-[#E84B2E] bg-white
                       active:opacity-70 transition-opacity disabled:opacity-40
                     "
                   >
