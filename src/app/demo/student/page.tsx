@@ -84,6 +84,14 @@ export default function DemoStudentPage() {
             <span className="font-normal" style={{ color: "#E84B2E", opacity: 0.8 }}>샘플 데이터로 UI를 체험 중이에요</span>
           </div>
 
+          {/* ── 체험 모드 제한 안내 ───────────────── */}
+          <div className="mx-5 mt-3 rounded-card-lg border border-base-border bg-white px-4 py-3">
+            <p className="text-xs text-base-muted leading-relaxed">
+              체험 모드에서는 일부 기능이 제한됩니다.<br />
+              <span className="text-base-text font-medium">학년 수정, 정보 저장, 개인화 기능</span>은 로그인 후 사용할 수 있습니다.
+            </p>
+          </div>
+
           <div className="px-5 py-6 flex flex-col gap-5">
 
             {/* ── 인사말 ────────────────────────────── */}

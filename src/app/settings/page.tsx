@@ -123,6 +123,9 @@ export default function SettingsPage() {
             johsoappa@gmail.com<br />
             © 2026 꿈따라. All rights reserved.
           </p>
+          <p className="text-[10px] text-base-muted opacity-50 mt-1">
+            Build: {process.env.NEXT_PUBLIC_COMMIT_SHA ?? "—"}
+          </p>
         </div>
 
       </div>
