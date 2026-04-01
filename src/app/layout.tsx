@@ -7,9 +7,22 @@ import "./globals.css";
 // ====================================================
 
 export const metadata: Metadata = {
-  title: "꿈따라 - 자녀 진로 설계 앱",
-  description: "막연한 꿈이 아닌, 실행 가능한 내일을. 초등~중학생 진로 설계 플랫폼",
-  // [Supabase 연동 후] Open Graph 이미지 추가 예정
+  title: "꿈따라 - 꿈을 찾고, 길을 만든다",
+  description: "부모와 아이가 함께 만드는 진로 설계 앱",
+  icons: {
+    icon: [
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+    ],
+    apple: "/icon-192x192.png",
+  },
+  openGraph: {
+    title: "꿈따라 - 꿈을 찾고, 길을 만든다",
+    description: "부모와 아이가 함께 만드는 진로 설계 앱",
+    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
+    locale: "ko_KR",
+    type: "website",
+  },
 };
 
 // 모바일 뷰포트 최적화
