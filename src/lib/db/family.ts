@@ -13,13 +13,49 @@
 //
 // [향후 확장 포인트]
 //   - multi-child 전환: getChildrenByParentId() 활용
-//   - active child 선택: selected_child_id 컬럼 추가 예정
-//   - plan entitlement: PLAN_MAX_CHILDREN 상수 → DB child_limit으로 override
+//   - active child 선택: localStorage → parent.selected_child_id 컬럼으로 마이그레이션 예정
+//   - plan entitlement: PLAN_ENTITLEMENTS → DB child_limit override
 // ====================================================
 
 import { supabase } from "@/lib/supabase";
 import type { Child } from "@/types/family";
 import { PLAN_ENTITLEMENTS } from "@/types/family";
+
+// ──────────────────────────────────────────────────────────────
+// Active Child — localStorage 유틸
+//
+// [현재 MVP]
+//   자녀 1명 기준이므로 사실상 항상 첫 번째 child를 반환.
+//   값이 없으면 getFirstActiveChild() fallback으로 동작.
+//
+// [family / family_plus 플랜 오픈 시]
+//   parent/home의 자녀 카드 클릭 → setActiveChildId() 호출
+//   report / roadmap / myeonddara 에서 getActiveChildId() 읽어서 child 기준 전환
+//
+// [로그아웃 시]
+//   clearActiveChildId() 반드시 호출 — settings/page.tsx handleLogout 참고
+// ──────────────────────────────────────────────────────────────
+
+/** localStorage 저장 키 — 변경 시 이 상수 한 곳만 수정 */
+export const ACTIVE_CHILD_STORAGE_KEY = "kkumddara_active_child_id";
+
+/** 현재 선택된 active child ID를 반환. 없으면 null. */
+export function getActiveChildId(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(ACTIVE_CHILD_STORAGE_KEY);
+}
+
+/** active child ID를 저장. parent/home 자녀 카드 선택 시 호출. */
+export function setActiveChildId(childId: string): void {
+  if (typeof window === "undefined") return;
+  localStorage.setItem(ACTIVE_CHILD_STORAGE_KEY, childId);
+}
+
+/** active child ID 삭제. 로그아웃 시 반드시 호출. */
+export function clearActiveChildId(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(ACTIVE_CHILD_STORAGE_KEY);
+}
 
 // ──────────────────────────────────────────────────────────────
 // Plan entitlement 기준

@@ -10,6 +10,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRight, LogOut } from "lucide-react";
 import AppShell from "@/components/layout/AppShell";
 import { supabase } from "@/lib/supabase";
+import { clearActiveChildId } from "@/lib/db/family";
 
 const CS_MENUS = [
   {
@@ -46,6 +47,7 @@ export default function SettingsPage() {
     // localStorage 초기화 (다음 접속 시 온보딩부터 시작)
     localStorage.removeItem("kkumddara_onboarding");
     localStorage.removeItem("kkumddara_child_id");
+    clearActiveChildId();
     router.push("/");
   };
 
