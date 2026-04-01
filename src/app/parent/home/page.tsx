@@ -90,7 +90,7 @@ export default function ParentHomePage() {
           .from("subscription_plan")
           .select("*")
           .eq("parent_id", parentData.id)
-          .single(),
+          .maybeSingle(), // plan이 없을 경우 null 반환 (single()은 예외 발생)
       ]);
 
       if (childrenRes.data) setChildren(childrenRes.data as Child[]);

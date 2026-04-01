@@ -48,11 +48,12 @@ export default function StudentHomePage() {
       if (!user) return;
 
       // student → child 로드
+      // maybeSingle(): student/child 레코드가 없어도 예외 없이 null 반환
       const { data: studentData } = await supabase
         .from("student")
         .select("child_id")
         .eq("user_id", user.id)
-        .single();
+        .maybeSingle();
 
       if (!studentData?.child_id) {
         setLoading(false);
@@ -63,7 +64,7 @@ export default function StudentHomePage() {
         .from("child")
         .select("*")
         .eq("id", studentData.child_id)
-        .single();
+        .maybeSingle(); // child가 삭제됐을 경우 null 반환
 
       if (childData) setChild(childData as Child);
 

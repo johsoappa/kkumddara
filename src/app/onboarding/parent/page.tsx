@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { completeParentOnboarding } from "@/lib/auth";
+import { getFirstActiveChild, canAddChild } from "@/lib/db/family";
 import type { Grade, InterestField } from "@/types/family";
 import { INTEREST_LABEL } from "@/types/family";
 
@@ -69,14 +70,41 @@ export default function OnboardingParentPage() {
     setError(null);
 
     try {
-      // 1. child 레코드 생성
-      const { error: childErr } = await supabase.from("child").insert({
-        parent_id:    parentId,
-        name:         childName.trim(),
-        school_grade: grade,
-        interests:    interests,
-      });
-      if (childErr) throw childErr;
+      // ── 1. 기존 child 존재 여부 확인 (중복 INSERT 방지) ────────
+      // 재제출·페이지 새로고침 등으로 이미 child가 생성된 경우를 처리.
+      // 향후 multi-child 지원 시: 단건 upsert가 아니라 명시적 INSERT만 허용으로 변경.
+      const existingChild = await getFirstActiveChild(parentId);
+
+      if (existingChild) {
+        // 이미 child가 있으면 폼 데이터로 UPDATE (온보딩 재진입 방어)
+        const { error: updateErr } = await supabase
+          .from("child")
+          .update({
+            name:         childName.trim(),
+            school_grade: grade,
+            interests:    interests,
+          })
+          .eq("id", existingChild.id)
+          .eq("parent_id", parentId); // 소유권 검증
+        if (updateErr) throw updateErr;
+      } else {
+        // ── 신규 child 생성 전 plan 한도 확인 ──────────────────
+        // child_limit은 subscription_plan 테이블이 source of truth.
+        // 향후 plan tier별(family/family_plus) 복수 자녀 허용 시 이 분기가 그대로 활용됨.
+        const { allowed, limit } = await canAddChild(parentId);
+        if (!allowed) {
+          setError(`현재 플랜에서는 자녀를 최대 ${limit}명까지 등록할 수 있어요.`);
+          return;
+        }
+
+        const { error: childErr } = await supabase.from("child").insert({
+          parent_id:    parentId,
+          name:         childName.trim(),
+          school_grade: grade,
+          interests:    interests,
+        });
+        if (childErr) throw childErr;
+      }
 
       // 2. onboarding_status 완료 처리
       await completeParentOnboarding(parentId);

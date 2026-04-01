@@ -70,14 +70,14 @@ export default function StudentEditPage() {
           .from("student")
           .select("child_id")
           .eq("user_id", user.id)
-          .single();
+          .maybeSingle(); // student 레코드 없을 때 예외 방지
 
         if (studentData?.child_id) {
           const { data: childData } = await supabase
             .from("child")
             .select("id, school_grade, interests")
             .eq("id", studentData.child_id)
-            .single();
+            .maybeSingle(); // child가 삭제됐을 경우 null 반환
 
           if (childData) {
             setChildId(childData.id);
