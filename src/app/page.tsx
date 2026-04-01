@@ -37,6 +37,12 @@ export default function LandingPage() {
     setError(null);
   };
 
+  // 버튼 활성화 조건
+  const isValid =
+    authMode === "signup"
+      ? displayName.trim().length > 0 && email.trim().length > 0 && password.length >= 6
+      : email.trim().length > 0 && password.length >= 6;
+
   // ── Step 2: 인증 ────────────────────────────────────
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -189,41 +195,66 @@ export default function LandingPage() {
 
         {/* ── Step 2: 인증 폼 ───────────────────────── */}
         {step === "auth" && selectedRole && (
-          <div className="flex-1 px-6 pt-6 pb-10 flex flex-col">
-            <div className="mb-6">
-              <div
-                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-3"
-                style={{ background: "#FFF0EB", color: "#E84B2E" }}
-              >
-                {selectedRole === "parent" ? (
-                  <><Users size={12} /> 학부모</>
-                ) : (
-                  <><BookOpen size={12} /> 학생</>
-                )}
+          <div className="flex-1 flex flex-col min-h-0">
+
+            {/* 스크롤 영역 — 입력 필드 */}
+            <div className="flex-1 overflow-y-auto min-h-0 px-6 pt-6 pb-4">
+              <div className="mb-6">
+                <div
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold mb-3"
+                  style={{ background: "#FFF0EB", color: "#E84B2E" }}
+                >
+                  {selectedRole === "parent" ? (
+                    <><Users size={12} /> 학부모</>
+                  ) : (
+                    <><BookOpen size={12} /> 학생</>
+                  )}
+                </div>
+                <h2 className="text-xl font-bold text-base-text">
+                  {authMode === "signup" ? "계정을 만들어요" : "다시 오셨군요!"}
+                </h2>
+                <p className="text-sm text-base-muted mt-1">
+                  {authMode === "signup"
+                    ? "이메일로 간편하게 가입할 수 있어요."
+                    : "이메일과 비밀번호를 입력해 주세요."}
+                </p>
               </div>
-              <h2 className="text-xl font-bold text-base-text">
-                {authMode === "signup" ? "계정을 만들어요" : "다시 오셨군요!"}
-              </h2>
-              <p className="text-sm text-base-muted mt-1">
-                {authMode === "signup"
-                  ? "이메일로 간편하게 가입할 수 있어요."
-                  : "이메일과 비밀번호를 입력해 주세요."}
-              </p>
-            </div>
 
-            <form onSubmit={handleAuth} className="flex flex-col gap-4">
+              <form id="auth-form" onSubmit={handleAuth} className="flex flex-col gap-4">
 
-              {/* 이름/닉네임 (회원가입만) */}
-              {authMode === "signup" && (
+                {/* 이름/닉네임 (회원가입만) */}
+                {authMode === "signup" && (
+                  <div>
+                    <label className="block text-sm font-medium text-base-text mb-1.5">
+                      {selectedRole === "parent" ? "이름" : "닉네임"}
+                    </label>
+                    <input
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder={selectedRole === "parent" ? "홍길동" : "꿈꾸는 학생"}
+                      className="
+                        w-full px-4 py-3 rounded-button border border-base-border
+                        text-sm text-base-text bg-white
+                        focus:outline-none focus:border-brand-red transition-colors
+                        placeholder:text-base-muted
+                      "
+                    />
+                  </div>
+                )}
+
+                {/* 이메일 */}
                 <div>
                   <label className="block text-sm font-medium text-base-text mb-1.5">
-                    {selectedRole === "parent" ? "이름" : "닉네임"}
+                    이메일
                   </label>
                   <input
-                    type="text"
-                    value={displayName}
-                    onChange={(e) => setDisplayName(e.target.value)}
-                    placeholder={selectedRole === "parent" ? "홍길동" : "꿈꾸는 학생"}
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="example@email.com"
+                    required
+                    autoComplete="email"
                     className="
                       w-full px-4 py-3 rounded-button border border-base-border
                       text-sm text-base-text bg-white
@@ -232,78 +263,87 @@ export default function LandingPage() {
                     "
                   />
                 </div>
-              )}
 
-              {/* 이메일 */}
-              <div>
-                <label className="block text-sm font-medium text-base-text mb-1.5">
-                  이메일
-                </label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="example@email.com"
-                  required
-                  autoComplete="email"
-                  className="
-                    w-full px-4 py-3 rounded-button border border-base-border
-                    text-sm text-base-text bg-white
-                    focus:outline-none focus:border-brand-red transition-colors
-                    placeholder:text-base-muted
-                  "
-                />
-              </div>
-
-              {/* 비밀번호 */}
-              <div>
-                <label className="block text-sm font-medium text-base-text mb-1.5">
-                  비밀번호
-                </label>
-                <div className="relative">
-                  <input
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="6자 이상"
-                    required
-                    minLength={6}
-                    autoComplete={authMode === "signup" ? "new-password" : "current-password"}
-                    className="
-                      w-full px-4 py-3 pr-11 rounded-button border border-base-border
-                      text-sm text-base-text bg-white
-                      focus:outline-none focus:border-brand-red transition-colors
-                      placeholder:text-base-muted
-                    "
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPw((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-base-muted"
-                    tabIndex={-1}
-                  >
-                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                  </button>
+                {/* 비밀번호 */}
+                <div>
+                  <label className="block text-sm font-medium text-base-text mb-1.5">
+                    비밀번호
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="6자 이상"
+                      required
+                      minLength={6}
+                      autoComplete={authMode === "signup" ? "new-password" : "current-password"}
+                      className="
+                        w-full px-4 py-3 pr-11 rounded-button border border-base-border
+                        text-sm text-base-text bg-white
+                        focus:outline-none focus:border-brand-red transition-colors
+                        placeholder:text-base-muted
+                      "
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPw((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-base-muted"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
                 </div>
-              </div>
 
-              {/* 에러 */}
-              {error && (
-                <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-button">
-                  {error}
-                </p>
-              )}
+                {/* 에러 */}
+                {error && (
+                  <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-button">
+                    {error}
+                  </p>
+                )}
+              </form>
 
-              {/* 제출 버튼 */}
+              {/* 모드 전환 */}
+              <p className="mt-6 text-sm text-center text-base-muted">
+                {authMode === "signup" ? (
+                  <>
+                    이미 계정이 있어요.{" "}
+                    <button
+                      className="font-semibold underline"
+                      style={{ color: "#E84B2E" }}
+                      onClick={() => { setAuthMode("signin"); setError(null); }}
+                    >
+                      로그인
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    계정이 없어요.{" "}
+                    <button
+                      className="font-semibold underline"
+                      style={{ color: "#E84B2E" }}
+                      onClick={() => { setAuthMode("signup"); setError(null); }}
+                    >
+                      회원가입
+                    </button>
+                  </>
+                )}
+              </p>
+            </div>
+
+            {/* ── 항상 보이는 CTA ─────────────────────── */}
+            <div className="shrink-0 px-6 pt-3 pb-10 bg-white border-t border-base-border">
               <button
+                form="auth-form"
                 type="submit"
-                disabled={loading}
+                disabled={loading || !isValid}
                 className="
                   w-full py-3.5 rounded-button text-sm font-bold text-white
                   flex items-center justify-center gap-1.5
-                  disabled:opacity-60 transition-opacity
+                  transition-opacity
                 "
-                style={{ background: loading ? undefined : "#E84B2E", backgroundColor: loading ? "#E84B2E" : undefined }}
+                style={{ backgroundColor: "#E84B2E", opacity: loading || !isValid ? 0.45 : 1 }}
               >
                 {loading ? (
                   "처리 중..."
@@ -313,34 +353,7 @@ export default function LandingPage() {
                   <>로그인 <ChevronRight size={16} /></>
                 )}
               </button>
-            </form>
-
-            {/* 모드 전환 */}
-            <p className="mt-6 text-sm text-center text-base-muted">
-              {authMode === "signup" ? (
-                <>
-                  이미 계정이 있어요.{" "}
-                  <button
-                    className="font-semibold underline"
-                    style={{ color: "#E84B2E" }}
-                    onClick={() => { setAuthMode("signin"); setError(null); }}
-                  >
-                    로그인
-                  </button>
-                </>
-              ) : (
-                <>
-                  계정이 없어요.{" "}
-                  <button
-                    className="font-semibold underline"
-                    style={{ color: "#E84B2E" }}
-                    onClick={() => { setAuthMode("signup"); setError(null); }}
-                  >
-                    회원가입
-                  </button>
-                </>
-              )}
-            </p>
+            </div>
           </div>
         )}
 
