@@ -119,7 +119,7 @@ export interface Database {
         Row: {
           id:          string;
           parent_id:   string;
-          plan_name:   "free" | "basic" | "pro";
+          plan_name:   "basic" | "premium" | "family" | "family_plus";
           child_limit: number;
           status:      "active" | "expired" | "cancelled";
           expires_at:  string | null;

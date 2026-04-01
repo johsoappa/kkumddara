@@ -19,29 +19,17 @@
 
 import { supabase } from "@/lib/supabase";
 import type { Child } from "@/types/family";
+import { PLAN_ENTITLEMENTS } from "@/types/family";
 
 // ──────────────────────────────────────────────────────────────
-// Plan entitlement 상수
+// Plan entitlement 기준
 // DB의 subscription_plan.child_limit이 최종 source of truth.
-// 이 상수는 클라이언트 측 조기 검증 및 UI 표시용 fallback.
-//
-// [요금제별 자녀 한도 — 향후 plan_name 확장 시 함께 수정]
-//   free:         1명 (무료 체험)
-//   basic:        1명 (베이직)
-//   pro:          1명 (프리미엄 — MVP 한시적)
-// ── 아래는 향후 플랜 추가 시 DB 스키마와 함께 확장 ──────────
-//   premium:      1명
-//   family:       2명
-//   family_plus:  3명+
+// PLAN_ENTITLEMENTS는 클라이언트 측 조기 검증 및 UI 잠금용 fallback.
+// → 요금제 정책 변경 시 src/types/family.ts의 PLAN_ENTITLEMENTS만 수정.
 // ──────────────────────────────────────────────────────────────
-export const PLAN_MAX_CHILDREN: Record<string, number> = {
-  free:  1,
-  basic: 1,
-  pro:   1,
-} as const;
 
-/** DB에 plan이 없을 경우 적용할 안전 기본값 */
-const DEFAULT_CHILD_LIMIT = 1;
+/** DB에 plan이 없을 경우 적용할 안전 기본값 (베이직 기준) */
+const DEFAULT_CHILD_LIMIT = PLAN_ENTITLEMENTS.basic.maxChildren;
 
 // ──────────────────────────────────────────────────────────────
 // 1. parent 기준 active children 전체 조회
@@ -80,8 +68,9 @@ export async function getFirstActiveChild(parentId: string): Promise<Child | nul
 //    INSERT 전 반드시 호출해 중복/초과 방지
 //
 //    [확장 포인트]
-//    - plan_name이 "family" / "family_plus" 등으로 늘어나면
-//      PLAN_MAX_CHILDREN 상수와 DB child_limit 둘 다 갱신
+//    - plan_name이 "family" / "family_plus"로 업그레이드되면
+//      DB의 child_limit 컬럼이 자동으로 반영됨 (별도 코드 수정 불필요)
+//    - 클라이언트 fallback은 PLAN_ENTITLEMENTS.basic.maxChildren (=1)
 //    - 서버 측 RLS / DB function으로 이중 검증 추가 권장
 // ──────────────────────────────────────────────────────────────
 export async function canAddChild(parentId: string): Promise<{

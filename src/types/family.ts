@@ -11,7 +11,7 @@ export type InterestField = "it" | "art" | "medical" | "business" | "education";
 
 export type UserRole = "parent" | "student";
 
-export type PlanName = "free" | "basic" | "pro";
+export type PlanName = "basic" | "premium" | "family" | "family_plus";
 
 // ────────────────────────────────────────────────────────────
 // Parent — 학부모 프로필
@@ -69,6 +69,65 @@ export interface SubscriptionPlan {
   created_at:  string;
   updated_at:  string;
 }
+
+// ────────────────────────────────────────────────────────────
+// PlanEntitlement — 플랜별 기능 허용 범위 (중앙화된 단일 기준)
+//
+// [설계 원칙]
+//   - DB subscription_plan.child_limit 이 최종 source of truth
+//   - 이 상수는 클라이언트 조기 검증 / UI 잠금 / 에러 메시지용
+//   - 플랜 정책 변경 시 이 파일 한 곳만 수정
+// ────────────────────────────────────────────────────────────
+export interface PlanEntitlement {
+  maxChildren:       number;  // 등록 가능한 최대 자녀 수
+  maxCoParents:      number;  // 공동 양육자 초대 한도
+  hasMyeonddara:     boolean; // 명따라 AI 사주 분석
+  hasAiConsulting:   boolean; // AI 진로 상담
+  hasAdvancedReport: boolean; // 심층 주간 리포트
+}
+
+export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
+  // 베이직: 입문 플랜 — 핵심 기능만 제공
+  basic: {
+    maxChildren:       1,
+    maxCoParents:      0,
+    hasMyeonddara:     false,
+    hasAiConsulting:   false,
+    hasAdvancedReport: false,
+  },
+  // 프리미엄: 단일 자녀 + 심층 기능 전체 제공
+  premium: {
+    maxChildren:       1,
+    maxCoParents:      1,
+    hasMyeonddara:     true,
+    hasAiConsulting:   true,
+    hasAdvancedReport: true,
+  },
+  // 패밀리: 자녀 2명 + 공동 양육자 지원
+  family: {
+    maxChildren:       2,
+    maxCoParents:      2,
+    hasMyeonddara:     true,
+    hasAiConsulting:   true,
+    hasAdvancedReport: true,
+  },
+  // 패밀리+: 자녀 3명 이상 (DB child_limit이 실제 상한 결정)
+  family_plus: {
+    maxChildren:       5,
+    maxCoParents:      4,
+    hasMyeonddara:     true,
+    hasAiConsulting:   true,
+    hasAdvancedReport: true,
+  },
+};
+
+/** UI 표시용 한글 플랜 라벨 */
+export const PLAN_LABEL: Record<PlanName, string> = {
+  basic:       "베이직",
+  premium:     "프리미엄",
+  family:      "패밀리",
+  family_plus: "패밀리+",
+};
 
 // ────────────────────────────────────────────────────────────
 // 편의 상수

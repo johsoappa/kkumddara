@@ -21,7 +21,7 @@ import {
 import { supabase } from "@/lib/supabase";
 import { signOut } from "@/lib/auth";
 import type { Child, SubscriptionPlan } from "@/types/family";
-import { GRADE_LABEL, INTEREST_LABEL } from "@/types/family";
+import { GRADE_LABEL, INTEREST_LABEL, PLAN_LABEL } from "@/types/family";
 import type { Grade, InterestField } from "@/types/family";
 
 type ParentFeature = {
@@ -161,8 +161,8 @@ export default function ParentHomePage() {
               {plan && (
                 <span className="text-xs text-base-muted">
                   플랜:{" "}
-                  <span className="font-semibold text-base-text uppercase">
-                    {plan.plan_name}
+                  <span className="font-semibold text-base-text">
+                    {PLAN_LABEL[plan.plan_name] ?? plan.plan_name}
                   </span>
                 </span>
               )}
