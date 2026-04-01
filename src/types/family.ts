@@ -103,18 +103,18 @@ export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
     hasAiConsulting:   true,
     hasAdvancedReport: true,
   },
-  // 패밀리: 자녀 2명 + 공동 양육자 지원
+  // 패밀리: 자녀 2명 + 공동 양육자 1명
   family: {
     maxChildren:       2,
-    maxCoParents:      2,
+    maxCoParents:      1,
     hasMyeonddara:     true,
     hasAiConsulting:   true,
     hasAdvancedReport: true,
   },
-  // 패밀리+: 자녀 3명 이상 (DB child_limit이 실제 상한 결정)
+  // 패밀리+: 자녀 3명 이상 (DB child_limit이 실제 상한 결정) + 공동 양육자 1명
   family_plus: {
     maxChildren:       5,
-    maxCoParents:      4,
+    maxCoParents:      1,
     hasMyeonddara:     true,
     hasAiConsulting:   true,
     hasAdvancedReport: true,
