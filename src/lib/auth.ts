@@ -83,6 +83,33 @@ export async function signIn(email: string, password: string) {
 }
 
 // ────────────────────────────────────────────────────────────
+// 카카오 OAuth 로그인
+//
+// [흐름]
+//   1. signInWithOAuth → 카카오 인증 페이지 redirect
+//   2. 인증 완료 → /auth/callback?code=...&role=<role> 으로 복귀
+//   3. /auth/callback 핸들러가 세션 교환 + parent/student 레코드 생성
+//   4. /home → 미들웨어가 최종 분기
+//
+// [redirectTo]
+//   배포 환경에 따라 NEXT_PUBLIC_SITE_URL 환경변수로 override 가능.
+//   미설정 시 window.location.origin fallback (localhost/preview 대응).
+// ────────────────────────────────────────────────────────────
+export async function signInWithKakao(role: "parent" | "student") {
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (typeof window !== "undefined" ? window.location.origin : "");
+
+  return supabase.auth.signInWithOAuth({
+    provider: "kakao",
+    options: {
+      redirectTo: `${origin}/auth/callback?role=${role}`,
+      // scopes 기본값 (profile_nickname, account_email) — 카카오 앱 동의 항목과 일치시킬 것
+    },
+  });
+}
+
+// ────────────────────────────────────────────────────────────
 // 로그아웃
 // ────────────────────────────────────────────────────────────
 export async function signOut() {

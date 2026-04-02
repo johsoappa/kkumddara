@@ -9,7 +9,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, BookOpen, Eye, EyeOff, ArrowLeft, ChevronRight } from "lucide-react";
-import { signUpParent, signUpStudent, signIn } from "@/lib/auth";
+import { signUpParent, signUpStudent, signIn, signInWithKakao } from "@/lib/auth";
 
 type Role = "parent" | "student";
 type Step = "role" | "auth";
@@ -333,7 +333,9 @@ export default function LandingPage() {
             </div>
 
             {/* ── 항상 보이는 CTA ─────────────────────── */}
-            <div className="shrink-0 px-6 pt-3 pb-10 bg-white border-t border-base-border">
+            <div className="shrink-0 px-6 pt-3 pb-8 bg-white border-t border-base-border flex flex-col gap-3">
+
+              {/* 이메일 CTA */}
               <button
                 form="auth-form"
                 type="submit"
@@ -352,6 +354,35 @@ export default function LandingPage() {
                 ) : (
                   <>로그인 <ChevronRight size={16} /></>
                 )}
+              </button>
+
+              {/* 구분선 */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-base-border" />
+                <span className="text-xs text-base-muted">또는</span>
+                <div className="flex-1 h-px bg-base-border" />
+              </div>
+
+              {/* 카카오 로그인 */}
+              <button
+                type="button"
+                disabled={loading}
+                onClick={() => selectedRole && signInWithKakao(selectedRole)}
+                className="
+                  w-full py-3.5 rounded-button text-sm font-bold
+                  flex items-center justify-center gap-2
+                  transition-opacity active:opacity-80
+                "
+                style={{ backgroundColor: "#FEE500", color: "#3C1E1E", opacity: loading ? 0.5 : 1 }}
+              >
+                {/* 카카오 로고 */}
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                  <path
+                    d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.12 1.29 3.98 3.23 5.08L4 14.5l2.73-1.45c.73.19 1.48.29 2.27.29 4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z"
+                    fill="#3C1E1E"
+                  />
+                </svg>
+                카카오로 {authMode === "signup" ? "시작하기" : "로그인"}
               </button>
             </div>
           </div>
