@@ -68,34 +68,39 @@ export default function ParentHomePage() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return; // 비로그인 → 미들웨어가 /로 redirect하므로 여기선 안전하게 return
 
-      const { data: parentData } = await supabase
-        .from("parent")
-        .select("id")
-        .eq("user_id", user.id)
-        .single();
+        const { data: parentData } = await supabase
+          .from("parent")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle(); // single() 대신 — parent 레코드 없을 때 throw 방지
 
-      if (!parentData) return;
+        if (!parentData) return; // 트리거 미실행 등 예외 상황 → 빈 화면으로 fallback
 
-      const [childrenRes, planRes] = await Promise.all([
-        supabase
-          .from("child")
-          .select("*")
-          .eq("parent_id", parentData.id)
-          .eq("profile_status", "active")
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("subscription_plan")
-          .select("*")
-          .eq("parent_id", parentData.id)
-          .maybeSingle(), // plan이 없을 경우 null 반환 (single()은 예외 발생)
-      ]);
+        const [childrenRes, planRes] = await Promise.all([
+          supabase
+            .from("child")
+            .select("*")
+            .eq("parent_id", parentData.id)
+            .eq("profile_status", "active")
+            .order("created_at", { ascending: true }),
+          supabase
+            .from("subscription_plan")
+            .select("*")
+            .eq("parent_id", parentData.id)
+            .maybeSingle(),
+        ]);
 
-      if (childrenRes.data) setChildren(childrenRes.data as Child[]);
-      if (planRes.data) setPlan(planRes.data as SubscriptionPlan);
-      setLoading(false);
+        if (childrenRes.data) setChildren(childrenRes.data as Child[]);
+        if (planRes.data) setPlan(planRes.data as SubscriptionPlan);
+      } catch (err) {
+        console.error("[parent/home] loadData 오류:", err);
+      } finally {
+        setLoading(false); // 성공/실패/예외 모두 로딩 종료 보장
+      }
     }
 
     loadData();

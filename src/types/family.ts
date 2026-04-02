@@ -154,3 +154,10 @@ export const INTEREST_LABEL: Record<InterestField, string> = {
 };
 
 export const SPROUT_GRADES = new Set<Grade>(["elementary3", "elementary4"]);
+
+/** DB INSERT/UPDATE 전 런타임 grade 검증용 허용 목록 */
+export const VALID_GRADES: readonly Grade[] = [
+  "elementary3", "elementary4", "elementary5", "elementary6",
+  "middle1", "middle2", "middle3",
+  "high1", "high2", "high3",
+] as const;

@@ -13,7 +13,7 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import type { Grade, InterestField } from "@/types/family";
-import { SPROUT_GRADES } from "@/types/family";
+import { SPROUT_GRADES, VALID_GRADES } from "@/types/family";
 
 const GRADE_GROUPS: { label: string; options: { value: Grade; label: string }[] }[] = [
   {
@@ -110,6 +110,11 @@ export default function StudentEditPage() {
   // ── 저장 ─────────────────────────────────────────────────
   const handleSave = async () => {
     if (!grade) { setError("학년을 선택해주세요."); return; }
+    if (!(VALID_GRADES as readonly string[]).includes(grade)) {
+      console.error("[student/edit] 유효하지 않은 grade 값:", grade);
+      setError("올바르지 않은 학년 값입니다.");
+      return;
+    }
     if (interests.length === 0) { setError("관심 분야를 하나 이상 선택해주세요."); return; }
     setError(null);
     setSaving(true);

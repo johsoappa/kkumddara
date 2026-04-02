@@ -44,52 +44,52 @@ export default function StudentHomePage() {
 
   useEffect(() => {
     async function loadData() {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
 
-      // student → child 로드
-      // maybeSingle(): student/child 레코드가 없어도 예외 없이 null 반환
-      const { data: studentData } = await supabase
-        .from("student")
-        .select("child_id")
-        .eq("user_id", user.id)
-        .maybeSingle();
-
-      if (!studentData?.child_id) {
-        setLoading(false);
-        return;
-      }
-
-      const { data: childData } = await supabase
-        .from("child")
-        .select("*")
-        .eq("id", studentData.child_id)
-        .maybeSingle(); // child가 삭제됐을 경우 null 반환
-
-      if (childData) setChild(childData as Child);
-
-      // 선택된 로드맵 & 완료 미션 (localStorage 캐시 우선, DB 폴백)
-      const localChosen = localStorage.getItem("kkumddara_chosen_roadmap");
-      if (localChosen) {
-        setChosen(localChosen);
-        const localProgress = localStorage.getItem(`kkumddara_roadmap_${localChosen}`);
-        if (localProgress) setCompleted(JSON.parse(localProgress));
-      } else if (childData) {
-        const { data: roadmapData } = await supabase
-          .from("roadmap_progress")
-          .select("occupation_id, checked_missions")
-          .eq("child_id", childData.id)
-          .eq("chosen", true)
+        // student → child 로드
+        const { data: studentData } = await supabase
+          .from("student")
+          .select("child_id")
+          .eq("user_id", user.id)
           .maybeSingle();
 
-        if (roadmapData) {
-          setChosen(roadmapData.occupation_id);
-          const missions = roadmapData.checked_missions as Record<string, boolean>;
-          setCompleted(Object.keys(missions).filter((k) => missions[k]));
-        }
-      }
+        if (!studentData?.child_id) return;
 
-      setLoading(false);
+        const { data: childData } = await supabase
+          .from("child")
+          .select("*")
+          .eq("id", studentData.child_id)
+          .maybeSingle();
+
+        if (childData) setChild(childData as Child);
+
+        // 선택된 로드맵 & 완료 미션 (localStorage 캐시 우선, DB 폴백)
+        const localChosen = localStorage.getItem("kkumddara_chosen_roadmap");
+        if (localChosen) {
+          setChosen(localChosen);
+          const localProgress = localStorage.getItem(`kkumddara_roadmap_${localChosen}`);
+          if (localProgress) setCompleted(JSON.parse(localProgress));
+        } else if (childData) {
+          const { data: roadmapData } = await supabase
+            .from("roadmap_progress")
+            .select("occupation_id, checked_missions")
+            .eq("child_id", childData.id)
+            .eq("chosen", true)
+            .maybeSingle();
+
+          if (roadmapData) {
+            setChosen(roadmapData.occupation_id);
+            const missions = roadmapData.checked_missions as Record<string, boolean>;
+            setCompleted(Object.keys(missions).filter((k) => missions[k]));
+          }
+        }
+      } catch (err) {
+        console.error("[student/home] loadData 오류:", err);
+      } finally {
+        setLoading(false); // 성공/실패/예외 모두 로딩 종료 보장
+      }
     }
 
     loadData();

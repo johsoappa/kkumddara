@@ -8,44 +8,71 @@ import type { UserRole } from "@/types/family";
 
 // ────────────────────────────────────────────────────────────
 // 학부모 회원가입
-// → DB 트리거가 parent + subscription_plan(free) 자동 생성
+// → DB 트리거가 parent + subscription_plan(basic) 자동 생성
+//
+// [주의] display_name을 user_metadata에 넣으면 @supabase/ssr가
+//   세션을 쿠키에 raw JSON으로 저장할 때 한글이 포함되어
+//   다음 fetch의 Cookie 헤더에서 ISO-8859-1 오류가 발생한다.
+//   → role(ASCII)만 metadata에 넣고, display_name은 signup 후 DB 직접 저장.
 // ────────────────────────────────────────────────────────────
 export async function signUpParent(
   email: string,
   password: string,
   displayName?: string
 ) {
-  return supabase.auth.signUp({
+  const result = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         role: "parent" as UserRole,
-        display_name: displayName ?? "",
+        // display_name은 metadata에서 제외 — ISO-8859-1 Cookie 오류 방지
       },
     },
   });
+
+  // 가입 성공 + display_name이 있으면 parent 테이블에 별도 저장
+  // (DB 트리거가 parent 레코드를 동기 생성하므로 즉시 update 가능)
+  if (!result.error && result.data.user && displayName?.trim()) {
+    await supabase
+      .from("parent")
+      .update({ display_name: displayName.trim() })
+      .eq("user_id", result.data.user.id);
+  }
+
+  return result;
 }
 
 // ────────────────────────────────────────────────────────────
 // 학생 회원가입
 // → DB 트리거가 student 자동 생성 (child_id는 onboarding에서 연결)
+// display_name 처리 방식은 signUpParent와 동일 (ISO-8859-1 방지)
 // ────────────────────────────────────────────────────────────
 export async function signUpStudent(
   email: string,
   password: string,
   nickname?: string
 ) {
-  return supabase.auth.signUp({
+  const result = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: {
         role: "student" as UserRole,
-        nickname: nickname ?? "",
+        // nickname은 metadata에서 제외 — ISO-8859-1 Cookie 오류 방지
       },
     },
   });
+
+  // 가입 성공 + nickname이 있으면 student 테이블에 별도 저장
+  if (!result.error && result.data.user && nickname?.trim()) {
+    await supabase
+      .from("student")
+      .update({ nickname: nickname.trim() })
+      .eq("user_id", result.data.user.id);
+  }
+
+  return result;
 }
 
 // ────────────────────────────────────────────────────────────

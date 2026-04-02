@@ -14,7 +14,7 @@ import { supabase } from "@/lib/supabase";
 import { completeParentOnboarding } from "@/lib/auth";
 import { getFirstActiveChild, canAddChild } from "@/lib/db/family";
 import type { Grade, InterestField } from "@/types/family";
-import { INTEREST_LABEL } from "@/types/family";
+import { INTEREST_LABEL, VALID_GRADES } from "@/types/family";
 
 const GRADES: { value: Grade; label: string; group: string }[] = [
   { value: "elementary3", label: "초3", group: "초등" },
@@ -65,6 +65,13 @@ export default function OnboardingParentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!parentId || !grade || !childName.trim()) return;
+
+    // ── grade 런타임 검증 (TypeScript 외 extra defense) ──────────
+    if (!(VALID_GRADES as readonly string[]).includes(grade)) {
+      console.error("[onboarding/parent] 유효하지 않은 grade 값:", grade);
+      setError("올바르지 않은 학년 값입니다.");
+      return;
+    }
 
     setLoading(true);
     setError(null);
