@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { completeParentOnboarding } from "@/lib/auth";
+import { completeParentOnboarding, flushPendingProfile } from "@/lib/auth";
 import { getFirstActiveChild, canAddChild } from "@/lib/db/family";
 import type { Grade, InterestField } from "@/types/family";
 import { INTEREST_LABEL, VALID_GRADES } from "@/types/family";
@@ -115,6 +115,10 @@ export default function OnboardingParentPage() {
 
       // 2. onboarding_status 완료 처리
       await completeParentOnboarding(parentId);
+
+      // 3. 회원가입 시 localStorage에 임시 저장해 둔 display_name을 DB에 flush.
+      //    (한글 이름을 signup 직후 PATCH하지 않고 여기서 처리 — ISO-8859-1 오류 방지)
+      await flushPendingProfile("parent", parentId);
 
       router.replace("/parent/home");
     } catch (err: unknown) {

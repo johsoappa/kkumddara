@@ -42,11 +42,24 @@ export async function middleware(request: NextRequest) {
   // getUser()는 매 요청마다 서버에서 토큰 검증 (getSession보다 안전)
   const {
     data: { user },
+    error: getUserError,
   } = await supabase.auth.getUser();
 
   const role = user?.user_metadata?.role as "parent" | "student" | undefined;
   const onboardingCompleted = user?.user_metadata?.onboarding_completed === true;
   const { pathname } = request.nextUrl;
+
+  // ── [DEBUG] 라우팅 판단 근거 로그 (원인 파악 후 삭제) ─────────
+  if (pathname === "/home" || pathname === "/" || pathname.startsWith("/student") || pathname.startsWith("/parent")) {
+    console.error(
+      `[MW] ${pathname}`,
+      `| uid=${user?.id?.slice(0, 8) ?? "none"}`,
+      `| role=${role ?? "undefined"}`,
+      `| onboarding=${onboardingCompleted}`,
+      `| getUser_err=${getUserError?.message ?? "none"}`
+    );
+  }
+  // ── [DEBUG END] ──────────────────────────────────────────────
 
   const redirectTo = (path: string) =>
     NextResponse.redirect(new URL(path, request.url));
@@ -78,8 +91,10 @@ export async function middleware(request: NextRequest) {
   // ── /onboarding/parent ────────────────────────────
   if (pathname.startsWith("/onboarding/parent")) {
     if (!user || role !== "parent") return redirectTo("/");
-    // 온보딩 이미 완료 → parent home으로
-    if (onboardingCompleted) return redirectTo("/parent/home");
+    // 온보딩 완료 여부는 미들웨어에서 redirect하지 않음.
+    // parent/home에서 "자녀 추가" 버튼이 이 경로로 진입하므로
+    // onboarding_completed=true여도 폼을 다시 보여줘야 한다.
+    // 폼 제출 후 parent/home으로 이동하는 것은 컴포넌트가 직접 처리.
     return response;
   }
 

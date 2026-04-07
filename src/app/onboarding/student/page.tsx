@@ -11,7 +11,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Link2, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { verifyInviteCode, completeStudentOnboarding } from "@/lib/auth";
+import { verifyInviteCode, completeStudentOnboarding, flushPendingProfile } from "@/lib/auth";
 import { GRADE_LABEL } from "@/types/family";
 import type { Grade } from "@/types/family";
 
@@ -71,12 +71,22 @@ export default function OnboardingStudentPage() {
     setLinkLoading(true);
     setLinkError(null);
 
-    const { dbResult } = await completeStudentOnboarding(studentId, verified.child_id);
+    const { dbResult, metaResult } = await completeStudentOnboarding(studentId, verified.child_id);
     if (dbResult.error) {
       setLinkError(dbResult.error.message);
       setLinkLoading(false);
       return;
     }
+    if (metaResult.error) {
+      console.error("[handleLink] auth.updateUser 실패:", metaResult.error.message);
+      setLinkError("연결은 됐으나 세션 갱신에 실패했습니다. 로그아웃 후 다시 로그인해 주세요.");
+      setLinkLoading(false);
+      return;
+    }
+
+    // 회원가입 시 localStorage에 임시 저장해 둔 nickname을 DB에 flush.
+    // (한글 닉네임을 signup 직후 PATCH하지 않고 여기서 처리 — ISO-8859-1 오류 방지)
+    await flushPendingProfile("student", studentId);
 
     router.replace("/student/home");
   };

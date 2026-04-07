@@ -10,10 +10,12 @@ import type { UserRole } from "@/types/family";
 // 학부모 회원가입
 // → DB 트리거가 parent + subscription_plan(basic) 자동 생성
 //
-// [주의] display_name을 user_metadata에 넣으면 @supabase/ssr가
-//   세션을 쿠키에 raw JSON으로 저장할 때 한글이 포함되어
-//   다음 fetch의 Cookie 헤더에서 ISO-8859-1 오류가 발생한다.
-//   → role(ASCII)만 metadata에 넣고, display_name은 signup 후 DB 직접 저장.
+// [ISO-8859-1 오류 방지 전략]
+//   1. user_metadata에는 ASCII 값(role)만 포함 — 한글 불포함
+//   2. signup 직후 display_name을 DB에 PATCH 하지 않음
+//      (PATCH body는 안전하지만 Cookie 헤더 경로의 모든 한글을 제거하는 것이 목적)
+//   3. display_name은 localStorage("kkumddara_pending_profile")에 임시 저장
+//   4. 온보딩 완료 시 parent 테이블에 flush → 한글이 오직 JSON body에만 존재
 // ────────────────────────────────────────────────────────────
 export async function signUpParent(
   email: string,
@@ -26,18 +28,23 @@ export async function signUpParent(
     options: {
       data: {
         role: "parent" as UserRole,
-        // display_name은 metadata에서 제외 — ISO-8859-1 Cookie 오류 방지
+        // display_name: 제외 — metadata에 한글 포함 시 Cookie 헤더 오류 유발
       },
     },
   });
 
-  // 가입 성공 + display_name이 있으면 parent 테이블에 별도 저장
-  // (DB 트리거가 parent 레코드를 동기 생성하므로 즉시 update 가능)
-  if (!result.error && result.data.user && displayName?.trim()) {
-    await supabase
-      .from("parent")
-      .update({ display_name: displayName.trim() })
-      .eq("user_id", result.data.user.id);
+  // 가입 성공 + display_name이 있으면 localStorage에 임시 저장 (네트워크 요청 없음)
+  // 온보딩 완료 시 flushPendingProfile()로 DB에 반영한다.
+  if (!result.error && displayName?.trim()) {
+    if (typeof window !== "undefined") {
+      const pending = JSON.parse(
+        localStorage.getItem("kkumddara_pending_profile") ?? "{}"
+      );
+      localStorage.setItem(
+        "kkumddara_pending_profile",
+        JSON.stringify({ ...pending, display_name: displayName.trim() })
+      );
+    }
   }
 
   return result;
@@ -46,7 +53,8 @@ export async function signUpParent(
 // ────────────────────────────────────────────────────────────
 // 학생 회원가입
 // → DB 트리거가 student 자동 생성 (child_id는 onboarding에서 연결)
-// display_name 처리 방식은 signUpParent와 동일 (ISO-8859-1 방지)
+// ISO-8859-1 방지 전략은 signUpParent와 동일:
+//   nickname을 localStorage에 임시 저장 → 온보딩 완료 시 DB flush
 // ────────────────────────────────────────────────────────────
 export async function signUpStudent(
   email: string,
@@ -59,20 +67,65 @@ export async function signUpStudent(
     options: {
       data: {
         role: "student" as UserRole,
-        // nickname은 metadata에서 제외 — ISO-8859-1 Cookie 오류 방지
+        // nickname: 제외 — metadata에 한글 포함 시 Cookie 헤더 오류 유발
       },
     },
   });
 
-  // 가입 성공 + nickname이 있으면 student 테이블에 별도 저장
-  if (!result.error && result.data.user && nickname?.trim()) {
-    await supabase
-      .from("student")
-      .update({ nickname: nickname.trim() })
-      .eq("user_id", result.data.user.id);
+  // 가입 성공 + nickname이 있으면 localStorage에 임시 저장 (네트워크 요청 없음)
+  if (!result.error && nickname?.trim()) {
+    if (typeof window !== "undefined") {
+      const pending = JSON.parse(
+        localStorage.getItem("kkumddara_pending_profile") ?? "{}"
+      );
+      localStorage.setItem(
+        "kkumddara_pending_profile",
+        JSON.stringify({ ...pending, nickname: nickname.trim() })
+      );
+    }
   }
 
   return result;
+}
+
+// ────────────────────────────────────────────────────────────
+// localStorage 임시 프로필 → DB flush
+//
+// 회원가입 시 한글 이름/닉네임을 localStorage에 임시 저장해 두고,
+// 온보딩 완료 시점에 이 함수로 DB에 반영 + localStorage 클리어.
+//
+// role = "parent" → parent.display_name 업데이트
+// role = "student" → student.nickname 업데이트
+// ────────────────────────────────────────────────────────────
+export async function flushPendingProfile(
+  role: "parent" | "student",
+  recordId: string   // parent.id 또는 student.id (user_id 아님)
+) {
+  if (typeof window === "undefined") return;
+  const raw = localStorage.getItem("kkumddara_pending_profile");
+  if (!raw) return;
+
+  let pending: Record<string, string>;
+  try {
+    pending = JSON.parse(raw);
+  } catch {
+    localStorage.removeItem("kkumddara_pending_profile");
+    return;
+  }
+
+  if (role === "parent" && pending.display_name) {
+    await supabase
+      .from("parent")
+      .update({ display_name: pending.display_name })
+      .eq("id", recordId);
+  } else if (role === "student" && pending.nickname) {
+    await supabase
+      .from("student")
+      .update({ nickname: pending.nickname })
+      .eq("id", recordId);
+  }
+
+  localStorage.removeItem("kkumddara_pending_profile");
 }
 
 // ────────────────────────────────────────────────────────────
@@ -104,7 +157,10 @@ export async function signInWithKakao(role: "parent" | "student") {
     provider: "kakao",
     options: {
       redirectTo: `${origin}/auth/callback?role=${role}`,
-      // scopes 기본값 (profile_nickname, account_email) — 카카오 앱 동의 항목과 일치시킬 것
+      // account_email 권한 없음(KOE205) → scopes 명시로 Supabase 기본값 덮어씀
+      // Supabase Kakao 기본 scope: "profile_nickname account_email" → account_email 제거
+      // Supabase Dashboard: Authentication → Providers → Kakao → Allow users without email ON 필요
+      scopes: "profile_nickname profile_image",
     },
   });
 }
@@ -138,8 +194,9 @@ export async function completeParentOnboarding(parentId: string) {
       .from("parent")
       .update({ onboarding_status: "completed" as const })
       .eq("id", parentId),
+    // role을 명시적으로 재설정 — 세션 오염 방어
     supabase.auth.updateUser({
-      data: { onboarding_completed: true },
+      data: { role: "parent" as UserRole, onboarding_completed: true },
     }),
   ]);
   return { dbResult, metaResult };
@@ -159,22 +216,28 @@ export async function completeStudentOnboarding(
       .from("student")
       .update({ child_id: childId, onboarding_status: "completed" as const })
       .eq("id", studentId),
+    // role을 명시적으로 재설정 — 세션 오염 방어
     supabase.auth.updateUser({
-      data: { onboarding_completed: true },
+      data: { role: "student" as UserRole, onboarding_completed: true },
     }),
   ]);
   return { dbResult, metaResult };
 }
 
 // ────────────────────────────────────────────────────────────
-// 초대 코드로 child 조회 (RPC — 비인증 가능)
+// 초대 코드로 child 조회 (RPC — authenticated 필요)
 // ────────────────────────────────────────────────────────────
 export async function verifyInviteCode(code: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (supabase as any).rpc(
+  const { data, error } = await supabase.rpc(
     "verify_child_invite_code",
     { p_code: code.trim().toUpperCase() }
   );
-  if (error || !data || (data as unknown[]).length === 0) return null;
-  return (data as { child_id: string; child_name: string; school_grade: string }[])[0];
+
+  if (error) {
+    // 권한 오류(42501)와 코드 불일치를 구분해 로깅
+    console.error("[verifyInviteCode] RPC error:", error.code, error.message);
+    return null;
+  }
+  if (!data || data.length === 0) return null;
+  return data[0];
 }
