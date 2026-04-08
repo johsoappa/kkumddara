@@ -42,24 +42,11 @@ export async function middleware(request: NextRequest) {
   // getUser()는 매 요청마다 서버에서 토큰 검증 (getSession보다 안전)
   const {
     data: { user },
-    error: getUserError,
   } = await supabase.auth.getUser();
 
   const role = user?.user_metadata?.role as "parent" | "student" | undefined;
   const onboardingCompleted = user?.user_metadata?.onboarding_completed === true;
   const { pathname } = request.nextUrl;
-
-  // ── [DEBUG] 라우팅 판단 근거 로그 (원인 파악 후 삭제) ─────────
-  if (pathname === "/home" || pathname === "/" || pathname.startsWith("/student") || pathname.startsWith("/parent")) {
-    console.error(
-      `[MW] ${pathname}`,
-      `| uid=${user?.id?.slice(0, 8) ?? "none"}`,
-      `| role=${role ?? "undefined"}`,
-      `| onboarding=${onboardingCompleted}`,
-      `| getUser_err=${getUserError?.message ?? "none"}`
-    );
-  }
-  // ── [DEBUG END] ──────────────────────────────────────────────
 
   const redirectTo = (path: string) =>
     NextResponse.redirect(new URL(path, request.url));
