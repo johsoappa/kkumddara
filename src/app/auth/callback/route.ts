@@ -9,9 +9,8 @@
 //   4. role=student → student 레코드 생성 (없을 때만)
 //   5. /home redirect → 미들웨어가 role/onboarding 기반 최종 분기
 //
-// [주의] parent/student INSERT는 DB RLS INSERT 정책이 필요:
-//   "parent: 본인 생성" / "student: 본인 생성" / "subscription: parent 생성"
-//   → Supabase Dashboard SQL Editor에서 별도 실행 필요 (README 참고)
+// [수정] response 객체를 먼저 생성 후 setAll에서 response.cookies에도 세팅
+//        → 세션 쿠키가 redirect 응답에 포함되어 미들웨어 정상 인식
 // ====================================================
 
 import { createServerClient } from "@supabase/ssr";
@@ -25,11 +24,13 @@ export async function GET(request: NextRequest) {
   const role = (requestUrl.searchParams.get("role") ?? "") as "parent" | "student" | "";
 
   if (!code) {
-    // code 없이 진입한 경우 → 랜딩으로 fallback
     return NextResponse.redirect(new URL("/", requestUrl.origin));
   }
 
   const cookieStore = cookies();
+
+  // ✅ 수정: redirect 응답을 먼저 생성
+  const response = NextResponse.redirect(new URL("/home", requestUrl.origin));
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -40,14 +41,10 @@ export async function GET(request: NextRequest) {
           return cookieStore.getAll();
         },
         setAll(cookiesToSet) {
-          try {
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          } catch {
-            // Route Handler에서는 setAll 정상 동작.
-            // Server Component에서 호출 시 이 catch 블록에 진입하나 무해함.
-          }
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookieStore.set(name, value, options);
+            response.cookies.set(name, value, options); // ✅ 수정: 응답에도 동시 세팅
+          });
         },
       },
     }
@@ -65,13 +62,12 @@ export async function GET(request: NextRequest) {
   const existingRole = session.user.user_metadata?.role as "parent" | "student" | undefined;
   const finalRole = existingRole || (role as "parent" | "student") || undefined;
 
-  // 2. 신규 OAuth 사용자 — role 설정 (이메일 가입과 달리 trigger가 role을 모름)
+  // 2. 신규 OAuth 사용자 — role 설정
   if (!existingRole && finalRole) {
     await supabase.auth.updateUser({ data: { role: finalRole } });
   }
 
   // 3. parent 레코드 + subscription_plan 생성
-  //    (handle_new_user 트리거는 INSERT 시점에만 실행되므로 OAuth 신규 유저는 직접 생성)
   if (finalRole === "parent") {
     const { data: existingParent } = await supabase
       .from("parent")
@@ -130,6 +126,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // 5. /home → 미들웨어가 role + onboarding 기반 최종 분기
-  return NextResponse.redirect(new URL("/home", requestUrl.origin));
+  // 5. ✅ 수정: 쿠키가 실린 response 반환
+  return response;
 }
