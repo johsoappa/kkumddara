@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, BookOpen, Eye, EyeOff, ArrowLeft, ChevronRight } from "lucide-react";
 import { signUpParent, signUpStudent, signIn, signInWithKakao } from "@/lib/auth";
+import PasswordConditions, { isPasswordValid } from "@/components/PasswordConditions";
 
 type Role = "parent" | "student";
 type Step = "role" | "auth";
@@ -22,6 +23,7 @@ export default function LandingPage() {
   const [selectedRole, setRole]     = useState<Role | null>(null);
   const [authMode, setAuthMode]     = useState<AuthMode>("signup");
   const [showPassword, setShowPw]   = useState(false);
+  const [showConditions, setShowConditions] = useState(false);
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState<string | null>(null);
 
@@ -38,9 +40,11 @@ export default function LandingPage() {
   };
 
   // 버튼 활성화 조건
+  // 회원가입: 이름 + 이메일 + 비밀번호 4개 조건 모두 충족
+  // 로그인: 이메일 + 비밀번호 6자 이상
   const isValid =
     authMode === "signup"
-      ? displayName.trim().length > 0 && email.trim().length > 0 && password.length >= 6
+      ? displayName.trim().length > 0 && email.trim().length > 0 && isPasswordValid(password)
       : email.trim().length > 0 && password.length >= 6;
 
   // ── Step 2: 인증 ────────────────────────────────────
@@ -273,7 +277,10 @@ export default function LandingPage() {
                     <input
                       type={showPassword ? "text" : "password"}
                       value={password}
-                      onChange={(e) => setPassword(e.target.value)}
+                      onChange={(e) => {
+                        setPassword(e.target.value);
+                        if (authMode === "signup") setShowConditions(true);
+                      }}
                       placeholder="6자 이상"
                       required
                       minLength={6}
@@ -294,6 +301,10 @@ export default function LandingPage() {
                       {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                     </button>
                   </div>
+                  {/* 회원가입 시 실시간 조건 체크 */}
+                  {authMode === "signup" && (
+                    <PasswordConditions password={password} show={showConditions} />
+                  )}
                 </div>
 
                 {/* 에러 */}
