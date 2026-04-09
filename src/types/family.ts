@@ -18,7 +18,8 @@ export type InterestField = "it" | "art" | "medical" | "business" | "education";
 
 export type UserRole = "parent" | "student";
 
-export type PlanName = "basic" | "premium" | "family" | "family_plus";
+/** 006: free 추가, family_plus 제거 → 4종 확정 */
+export type PlanName = "free" | "basic" | "family" | "premium";
 
 // ────────────────────────────────────────────────────────────
 // Parent — 학부모 프로필
@@ -65,76 +66,90 @@ export interface Student {
 }
 
 // ────────────────────────────────────────────────────────────
-// SubscriptionPlan — parent 단위 구독 플랜
+// SubscriptionPlan — parent 단위 구독 플랜 (006 업데이트)
 // ────────────────────────────────────────────────────────────
 export interface SubscriptionPlan {
-  id:          string;
-  parent_id:   string;
-  plan_name:   PlanName;
-  child_limit: number;
-  status:      "active" | "expired" | "cancelled";
-  expires_at:  string | null;
-  created_at:  string;
-  updated_at:  string;
+  id:                       string;
+  parent_id:                string;
+  plan_name:                PlanName;
+  child_limit:              number;   // 최대 자녀 수 (기존 유지, max_children 별도 생성 안 함)
+  ai_consult_monthly_limit: number;   // 006 신규: 월 AI 상담 횟수 한도
+  myeonddara_yearly_limit:  number;   // 006 신규: 연 명따라 분석 횟수 한도
+  max_guardians:            number;   // 006 신규: 공동양육자 최대 수
+  roadmap_full_access:      boolean;  // 006 신규: 로드맵 전체 공개 여부
+  status:                   "active" | "expired" | "cancelled";
+  expires_at:               string | null;
+  created_at:               string;
+  updated_at:               string;
 }
 
 // ────────────────────────────────────────────────────────────
 // PlanEntitlement — 플랜별 기능 허용 범위 (중앙화된 단일 기준)
 //
 // [설계 원칙]
-//   - DB subscription_plan.child_limit 이 최종 source of truth
+//   - DB subscription_plan 컬럼이 최종 source of truth
 //   - 이 상수는 클라이언트 조기 검증 / UI 잠금 / 에러 메시지용
-//   - 플랜 정책 변경 시 이 파일 한 곳만 수정
+//   - 플랜 정책 변경 시 이 파일 + 006 마이그레이션 UPDATE 값 함께 수정
+//
+// [006 변경]
+//   - PlanName: free 추가, family_plus 제거 → 4종 확정
+//   - aiConsultMonthlyLimit / meyonddara YearlyLimit 필드 추가
+//   - DB source of truth 컬럼과 1:1 대응
 // ────────────────────────────────────────────────────────────
 export interface PlanEntitlement {
-  maxChildren:       number;  // 등록 가능한 최대 자녀 수
-  maxCoParents:      number;  // 공동 양육자 초대 한도
-  hasMyeonddara:     boolean; // 명따라 AI 사주 분석
-  hasAiConsulting:   boolean; // AI 진로 상담
-  hasAdvancedReport: boolean; // 심층 주간 리포트
+  maxChildren:              number;  // 등록 가능한 최대 자녀 수 (= DB child_limit)
+  maxGuardians:             number;  // 공동 양육자 초대 한도 (= DB max_guardians)
+  aiConsultMonthlyLimit:    number;  // 월 AI 상담 횟수 (= DB ai_consult_monthly_limit)
+  myeonddraYearlyLimit:     number;  // 연 명따라 분석 횟수 (= DB myeonddara_yearly_limit)
+  roadmapFullAccess:        boolean; // 로드맵 전 단계 열람 (= DB roadmap_full_access)
+  hasAdvancedReport:        boolean; // 심층 주간 리포트
 }
 
 export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
-  // 베이직: 입문 플랜 — 핵심 기능만 제공
+  // 무료: 기본 탐색만 가능, AI 미제공
+  free: {
+    maxChildren:           1,
+    maxGuardians:          0,
+    aiConsultMonthlyLimit: 0,
+    myeonddraYearlyLimit:  0,
+    roadmapFullAccess:     false,
+    hasAdvancedReport:     false,
+  },
+  // 베이직: 입문 유료 — 로드맵 전체 + AI 월 3회
   basic: {
-    maxChildren:       1,
-    maxCoParents:      0,
-    hasMyeonddara:     false,
-    hasAiConsulting:   false,
-    hasAdvancedReport: false,
+    maxChildren:           1,
+    maxGuardians:          0,
+    aiConsultMonthlyLimit: 3,
+    myeonddraYearlyLimit:  0,
+    roadmapFullAccess:     true,
+    hasAdvancedReport:     false,
   },
-  // 프리미엄: 단일 자녀 + 심층 기능 전체 제공
+  // 프리미엄: 단일 자녀 + 전체 기능 (AI 월 20회, 명따라 연 12회)
   premium: {
-    maxChildren:       1,
-    maxCoParents:      1,
-    hasMyeonddara:     true,
-    hasAiConsulting:   true,
-    hasAdvancedReport: true,
+    maxChildren:           1,
+    maxGuardians:          1,
+    aiConsultMonthlyLimit: 20,
+    myeonddraYearlyLimit:  12,
+    roadmapFullAccess:     true,
+    hasAdvancedReport:     true,
   },
-  // 패밀리: 자녀 2명 + 공동 양육자 1명
+  // 패밀리: 자녀 3명 + 공동양육자 1명 (AI 월 10회, 명따라 연 6회)
   family: {
-    maxChildren:       2,
-    maxCoParents:      1,
-    hasMyeonddara:     true,
-    hasAiConsulting:   true,
-    hasAdvancedReport: true,
-  },
-  // 패밀리+: 자녀 3명 이상 (DB child_limit이 실제 상한 결정) + 공동 양육자 1명
-  family_plus: {
-    maxChildren:       5,
-    maxCoParents:      1,
-    hasMyeonddara:     true,
-    hasAiConsulting:   true,
-    hasAdvancedReport: true,
+    maxChildren:           3,
+    maxGuardians:          1,
+    aiConsultMonthlyLimit: 10,
+    myeonddraYearlyLimit:  6,
+    roadmapFullAccess:     true,
+    hasAdvancedReport:     true,
   },
 };
 
 /** UI 표시용 한글 플랜 라벨 */
 export const PLAN_LABEL: Record<PlanName, string> = {
-  basic:       "베이직",
-  premium:     "프리미엄",
-  family:      "패밀리",
-  family_plus: "패밀리+",
+  free:    "무료",
+  basic:   "베이직",
+  premium: "프리미엄",
+  family:  "패밀리",
 };
 
 // ────────────────────────────────────────────────────────────

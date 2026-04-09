@@ -124,33 +124,47 @@ export interface Database {
       };
 
       // ─── subscription_plan ───────────────────────────
+      // 006: plan_name → free/basic/family/premium 4종
+      //      신규 컬럼 추가 (ai_consult, myeonddara, guardians, roadmap)
       subscription_plan: {
         Row: {
-          id:          string;
-          parent_id:   string;
-          plan_name:   "basic" | "premium" | "family" | "family_plus";
-          child_limit: number;
-          status:      "active" | "expired" | "cancelled";
-          expires_at:  string | null;
-          created_at:  string;
-          updated_at:  string;
+          id:                       string;
+          parent_id:                string;
+          plan_name:                "free" | "basic" | "family" | "premium";
+          child_limit:              number;
+          ai_consult_monthly_limit: number;
+          myeonddara_yearly_limit:  number;
+          max_guardians:            number;
+          roadmap_full_access:      boolean;
+          status:                   "active" | "expired" | "cancelled";
+          expires_at:               string | null;
+          created_at:               string;
+          updated_at:               string;
         };
         Insert: {
-          id?:         string;
-          parent_id:   string;
-          plan_name?:  "free" | "basic" | "pro";
-          child_limit?: number;
-          status?:     "active" | "expired" | "cancelled";
-          expires_at?: string | null;
-          created_at?: string;
-          updated_at?: string;
+          id?:                        string;
+          parent_id:                  string;
+          plan_name?:                 "free" | "basic" | "family" | "premium";
+          child_limit?:               number;
+          ai_consult_monthly_limit?:  number;
+          myeonddara_yearly_limit?:   number;
+          max_guardians?:             number;
+          roadmap_full_access?:       boolean;
+          status?:                    "active" | "expired" | "cancelled";
+          expires_at?:                string | null;
+          created_at?:                string;
+          updated_at?:                string;
         };
         Update: {
-          plan_name?:  "free" | "basic" | "pro";
-          child_limit?: number;
-          status?:     "active" | "expired" | "cancelled";
-          expires_at?: string | null;
-          updated_at?: string;
+          plan_name?:                 "free" | "basic" | "family" | "premium";
+          child_limit?:               number;
+          ai_consult_monthly_limit?:  number;
+          myeonddara_yearly_limit?:   number;
+          max_guardians?:             number;
+          roadmap_full_access?:       boolean;
+          status?:                    "active" | "expired" | "cancelled";
+          expires_at?:                string | null;
+          updated_at?:                string;
         };
         Relationships: [];
       };
