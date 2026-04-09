@@ -1,5 +1,5 @@
 // ====================================================
-// 직업 더미 데이터 (42개, 8개 카테고리)
+// 직업 더미 데이터 (50개, 8개 카테고리)
 // [Supabase 연동 후] DB fetch로 교체 예정
 // ====================================================
 
@@ -7,7 +7,7 @@ import type { Occupation } from "@/types/occupation";
 
 export const OCCUPATIONS: Occupation[] = [
 
-  // ── IT·기술 (6개) ─────────────────────────────────
+  // ── IT·기술 (7개) ─────────────────────────────────
   {
     id: "software-engineer",
     name: "소프트웨어 엔지니어",
@@ -146,7 +146,31 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
 
-  // ── 의료·과학 (6개) ────────────────────────────────
+  {
+    id: "info-security-specialist",
+    name: "정보보안전문가",
+    emoji: "🛡️",
+    category: "IT·기술",
+    description: "개인정보·기업 데이터를 해킹과 유출로부터 지키는 전문가예요. 디지털 세상이 커질수록 꼭 필요한 직업이에요.",
+    fitScore: 77,
+    relatedMajors: [
+      { name: "정보보안학과", universities: ["고려대", "동국대", "순천향대"] },
+      { name: "컴퓨터공학과", universities: ["KAIST", "한양대", "서울대"] },
+    ],
+    skills: ["분석적 사고", "집중력", "보안 감각"],
+    salaryMin: 4000,
+    salaryMax: 10000,
+    growthRate: 17.8,
+    futureRating: 5,
+    preparations: [
+      "개인정보 보호 관련 뉴스 꾸준히 읽기",
+      "CTF(해킹 방어 퀴즈 대회) 입문 문제 도전하기",
+      "리눅스 기초 명령어 배우기",
+      "보안 관련 유튜브 채널 구독하기",
+    ],
+  },
+
+  // ── 의료·과학 (7개) ────────────────────────────────
   {
     id: "doctor",
     name: "의사",
@@ -277,7 +301,31 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
 
-  // ── 예술·디자인 (6개) ─────────────────────────────
+  {
+    id: "biotech-researcher",
+    name: "바이오연구원",
+    emoji: "🧬",
+    category: "의료·과학",
+    description: "생명과학 기술로 신약·치료법을 개발하는 연구자예요. 바이오 산업은 미래 유망 분야 중 하나예요.",
+    fitScore: 76,
+    relatedMajors: [
+      { name: "생명공학과", universities: ["KAIST", "포항공대", "연세대"] },
+      { name: "바이오의약학과", universities: ["서울대", "고려대", "한양대"] },
+    ],
+    skills: ["과학적 호기심", "꼼꼼함", "실험 능력"],
+    salaryMin: 3500,
+    salaryMax: 9000,
+    growthRate: 15.6,
+    futureRating: 5,
+    preparations: [
+      "생물·화학 과목 집중 공부하기",
+      "바이오·생명과학 다큐멘터리 시청하기",
+      "과학 탐구 대회 참가해 보기",
+      "학교 과학 동아리 활동하기",
+    ],
+  },
+
+  // ── 예술·디자인 (7개) ─────────────────────────────
   {
     id: "ux-designer",
     name: "UX 디자이너",
@@ -410,7 +458,31 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
 
-  // ── 교육·사회 (5개) ───────────────────────────────
+  {
+    id: "ux-ui-designer",
+    name: "UX/UI 디자이너",
+    emoji: "🎨",
+    category: "예술·디자인",
+    description: "앱·웹이 쉽고 예쁘게 사용되도록 화면을 설계하는 디자이너예요. 기술과 감각을 함께 쓰는 직업이에요.",
+    fitScore: 82,
+    relatedMajors: [
+      { name: "디지털미디어디자인학과", universities: ["홍익대", "국민대", "상명대"] },
+      { name: "시각디자인학과", universities: ["서울대", "한양대", "이화여대"] },
+    ],
+    skills: ["창의력", "공감 능력", "디자인 감각"],
+    salaryMin: 3200,
+    salaryMax: 8500,
+    growthRate: 13.2,
+    futureRating: 5,
+    preparations: [
+      "Figma 무료 계정으로 앱 화면 직접 만들어 보기",
+      "좋아하는 앱의 버튼·색상 배치 분석해 보기",
+      "미술·디자인 동아리 활동하기",
+      "UI 트렌드 Pinterest·Dribbble로 탐색하기",
+    ],
+  },
+
+  // ── 교육·사회 (6개) ───────────────────────────────
   {
     id: "teacher",
     name: "교사",
@@ -521,7 +593,31 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
 
-  // ── 비즈니스·경영 (5개) ───────────────────────────
+  {
+    id: "career-guidance-counselor",
+    name: "진로상담사",
+    emoji: "🧭",
+    category: "교육·사회",
+    description: "학생이 자신에게 맞는 진로를 찾도록 함께 고민하고 도와주는 전문가예요. 학교·기관에서 상담하며 아이들의 미래를 응원해요.",
+    fitScore: 78,
+    relatedMajors: [
+      { name: "교육학과", universities: ["서울대", "한국교원대", "성균관대"] },
+      { name: "상담심리학과", universities: ["이화여대", "건국대", "숙명여대"] },
+    ],
+    skills: ["경청", "공감", "진로 지식"],
+    salaryMin: 2800,
+    salaryMax: 6000,
+    growthRate: 8.2,
+    futureRating: 4,
+    preparations: [
+      "학교 진로 프로그램 적극 참여하기",
+      "친구의 고민을 들어주고 조언하는 연습하기",
+      "직업 체험 박람회 방문하기",
+      "심리학·상담 관련 입문 도서 읽기",
+    ],
+  },
+
+  // ── 비즈니스·경영 (6개) ───────────────────────────
   {
     id: "marketer",
     name: "마케터",
@@ -633,7 +729,31 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
 
-  // ── 콘텐츠·미디어 (5개) ───────────────────────────
+  {
+    id: "brand-manager",
+    name: "브랜드매니저",
+    emoji: "🏷️",
+    category: "비즈니스·경영",
+    description: "제품이나 회사의 이미지를 기획하고 관리하는 전문가예요. 소비자가 브랜드를 좋아하게 만드는 사람이에요.",
+    fitScore: 76,
+    relatedMajors: [
+      { name: "경영학과", universities: ["서울대", "연세대", "고려대"] },
+      { name: "광고홍보학과", universities: ["한양대", "중앙대", "성균관대"] },
+    ],
+    skills: ["창의력", "트렌드 감각", "기획력"],
+    salaryMin: 3200,
+    salaryMax: 8000,
+    growthRate: 7.0,
+    futureRating: 4,
+    preparations: [
+      "좋아하는 브랜드의 광고·패키지 분석해 보기",
+      "SNS 채널 직접 운영하며 반응 관찰하기",
+      "학교 축제·행사 홍보물 직접 기획해 보기",
+      "마케팅·브랜딩 관련 입문서 읽기",
+    ],
+  },
+
+  // ── 콘텐츠·미디어 (6개) ───────────────────────────
   {
     id: "youtuber-creator",
     name: "크리에이터",
@@ -744,7 +864,31 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
 
-  // ── 공공·안전 (4개) ───────────────────────────────
+  {
+    id: "video-content-editor",
+    name: "영상편집자",
+    emoji: "🎬",
+    category: "콘텐츠·미디어",
+    description: "촬영된 영상을 편집해서 완성된 콘텐츠로 만드는 전문가예요. 유튜브·OTT 시대에 점점 더 수요가 높아지는 직업이에요.",
+    fitScore: 80,
+    relatedMajors: [
+      { name: "영상학과", universities: ["중앙대", "한양대", "동국대"] },
+      { name: "미디어커뮤니케이션학과", universities: ["연세대", "고려대", "한국외대"] },
+    ],
+    skills: ["집중력", "감각", "스토리텔링"],
+    salaryMin: 2800,
+    salaryMax: 7500,
+    growthRate: 13.0,
+    futureRating: 4,
+    preparations: [
+      "스마트폰으로 직접 찍고 CapCut으로 편집해 보기",
+      "좋아하는 유튜버의 편집 스타일 분석하기",
+      "다빈치 리졸브·프리미어 무료 버전 입문하기",
+      "학교 방송반 또는 미디어 동아리 참여하기",
+    ],
+  },
+
+  // ── 공공·안전 (5개) ───────────────────────────────
   {
     id: "police-officer",
     name: "경찰관",
@@ -833,7 +977,31 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
 
-  // ── 환경·미래산업 (5개) ───────────────────────────
+  {
+    id: "forensic-scientist",
+    name: "과학수사관",
+    emoji: "🔬",
+    category: "공공·안전",
+    description: "범죄 현장에서 과학적 증거를 수집·분석해 사건 해결을 돕는 전문가예요. 드라마 CSI처럼 과학과 수사를 함께 해요.",
+    fitScore: 76,
+    relatedMajors: [
+      { name: "법과학과", universities: ["국립경찰대", "경기대", "가천대"] },
+      { name: "화학과", universities: ["서울대", "연세대", "고려대"] },
+    ],
+    skills: ["관찰력", "과학적 사고", "꼼꼼함"],
+    salaryMin: 3000,
+    salaryMax: 7000,
+    growthRate: 6.5,
+    futureRating: 4,
+    preparations: [
+      "화학·생물 과목 집중 공부하기",
+      "CSI·과학 수사 다큐멘터리 시청하기",
+      "과학 실험 동아리 또는 탐구 대회 참가하기",
+      "법과 정의에 관심 갖기",
+    ],
+  },
+
+  // ── 환경·미래산업 (6개) ───────────────────────────
   {
     id: "renewable-energy-engineer",
     name: "신재생에너지 전문가",
@@ -940,6 +1108,29 @@ export const OCCUPATIONS: Occupation[] = [
       "Unity 3D 무료 강의로 기초 배우기",
       "VR 체험 기기 사용해 보기",
       "게임·코딩 동아리 활동하기",
+    ],
+  },
+  {
+    id: "carbon-neutral-specialist",
+    name: "탄소중립전문가",
+    emoji: "🌿",
+    category: "환경·미래산업",
+    description: "온실가스를 줄이고 탄소 중립을 실현하는 환경 전문가예요. 기후 위기 시대에 꼭 필요한 직업으로 주목받고 있어요.",
+    fitScore: 73,
+    relatedMajors: [
+      { name: "환경공학과", universities: ["서울대", "한양대", "고려대"] },
+      { name: "기후변화학과", universities: ["연세대", "부산대", "KAIST"] },
+    ],
+    skills: ["환경 의식", "분석적 사고", "협업"],
+    salaryMin: 3500,
+    salaryMax: 8500,
+    growthRate: 20.5,
+    futureRating: 5,
+    preparations: [
+      "기후 변화·탄소 중립 관련 뉴스 꾸준히 읽기",
+      "일상에서 탄소발자국 줄이는 실천 기록해 보기",
+      "환경부 청소년 기후 프로그램 참여하기",
+      "화학·지구과학 과목 관심 갖기",
     ],
   },
 ];
