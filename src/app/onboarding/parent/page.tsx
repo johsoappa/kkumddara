@@ -13,20 +13,27 @@ import { Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { completeParentOnboarding, flushPendingProfile } from "@/lib/auth";
 import { getFirstActiveChild, canAddChild } from "@/lib/db/family";
-import type { Grade, InterestField } from "@/types/family";
-import { INTEREST_LABEL, VALID_GRADES } from "@/types/family";
+import type { InterestField, GradeLevel } from "@/types/family";
+import {
+  INTEREST_LABEL,
+  VALID_GRADE_LEVELS,
+  GRADE_LEVEL_TO_SCHOOL_GRADE,
+} from "@/types/family";
 
-const GRADES: { value: Grade; label: string; group: string }[] = [
-  { value: "elementary3", label: "초3", group: "초등" },
-  { value: "elementary4", label: "초4", group: "초등" },
-  { value: "elementary5", label: "초5", group: "초등" },
-  { value: "elementary6", label: "초6", group: "초등" },
-  { value: "middle1",     label: "중1", group: "중학" },
-  { value: "middle2",     label: "중2", group: "중학" },
-  { value: "middle3",     label: "중3", group: "중학" },
-  { value: "high1",       label: "고1", group: "고등" },
-  { value: "high2",       label: "고2", group: "고등" },
-  { value: "high3",       label: "고3", group: "고등" },
+// 005: elem_1~high_3 전체 범위 (초1·초2 신규 추가)
+const GRADES: { value: GradeLevel; label: string; group: string }[] = [
+  { value: "elem_1",   label: "초1", group: "초등" },
+  { value: "elem_2",   label: "초2", group: "초등" },
+  { value: "elem_3",   label: "초3", group: "초등" },
+  { value: "elem_4",   label: "초4", group: "초등" },
+  { value: "elem_5",   label: "초5", group: "초등" },
+  { value: "elem_6",   label: "초6", group: "초등" },
+  { value: "middle_1", label: "중1", group: "중학" },
+  { value: "middle_2", label: "중2", group: "중학" },
+  { value: "middle_3", label: "중3", group: "중학" },
+  { value: "high_1",   label: "고1", group: "고등" },
+  { value: "high_2",   label: "고2", group: "고등" },
+  { value: "high_3",   label: "고3", group: "고등" },
 ];
 
 const INTERESTS: InterestField[] = ["it", "art", "medical", "business", "education"];
@@ -34,12 +41,12 @@ const INTERESTS: InterestField[] = ["it", "art", "medical", "business", "educati
 export default function OnboardingParentPage() {
   const router = useRouter();
 
-  const [parentId, setParentId]     = useState<string | null>(null);
-  const [childName, setChildName]   = useState("");
-  const [grade, setGrade]           = useState<Grade | null>(null);
-  const [interests, setInterests]   = useState<InterestField[]>([]);
-  const [loading, setLoading]       = useState(false);
-  const [error, setError]           = useState<string | null>(null);
+  const [parentId, setParentId]       = useState<string | null>(null);
+  const [childName, setChildName]     = useState("");
+  const [gradeLevel, setGradeLevel]   = useState<GradeLevel | null>(null);
+  const [interests, setInterests]     = useState<InterestField[]>([]);
+  const [loading, setLoading]         = useState(false);
+  const [error, setError]             = useState<string | null>(null);
 
   // 현재 로그인된 유저의 parent.id 로드
   useEffect(() => {
@@ -64,14 +71,17 @@ export default function OnboardingParentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!parentId || !grade || !childName.trim()) return;
+    if (!parentId || !gradeLevel || !childName.trim()) return;
 
-    // ── grade 런타임 검증 (TypeScript 외 extra defense) ──────────
-    if (!(VALID_GRADES as readonly string[]).includes(grade)) {
-      console.error("[onboarding/parent] 유효하지 않은 grade 값:", grade);
+    // ── grade_level 런타임 검증 ────────────────────────────────
+    if (!(VALID_GRADE_LEVELS as readonly string[]).includes(gradeLevel)) {
+      console.error("[onboarding/parent] 유효하지 않은 grade_level 값:", gradeLevel);
       setError("올바르지 않은 학년 값입니다.");
       return;
     }
+
+    // school_grade 역방향 매핑 (elem_1·elem_2는 null — 기존 enum에 없음)
+    const schoolGrade = GRADE_LEVEL_TO_SCHOOL_GRADE[gradeLevel] ?? null;
 
     setLoading(true);
     setError(null);
@@ -88,7 +98,8 @@ export default function OnboardingParentPage() {
           .from("child")
           .update({
             name:         childName.trim(),
-            school_grade: grade,
+            grade_level:  gradeLevel,   // 005 신규
+            school_grade: schoolGrade,  // 하위호환 병행 저장
             interests:    interests,
           })
           .eq("id", existingChild.id)
@@ -107,7 +118,8 @@ export default function OnboardingParentPage() {
         const { error: childErr } = await supabase.from("child").insert({
           parent_id:    parentId,
           name:         childName.trim(),
-          school_grade: grade,
+          grade_level:  gradeLevel,   // 005 신규
+          school_grade: schoolGrade,  // 하위호환 병행 저장
           interests:    interests,
         });
         if (childErr) throw childErr;
@@ -128,7 +140,7 @@ export default function OnboardingParentPage() {
     }
   };
 
-  const isValid = !!childName.trim() && !!grade;
+  const isValid = !!childName.trim() && !!gradeLevel;
 
   return (
     <div className="min-h-screen bg-base-off flex justify-center">
@@ -175,15 +187,15 @@ export default function OnboardingParentPage() {
             <label className="block text-sm font-semibold text-base-text mb-2">
               학년
             </label>
-            <div className="grid grid-cols-5 gap-2">
+            <div className="grid grid-cols-6 gap-2">
               {GRADES.map(({ value, label }) => (
                 <button
                   key={value}
                   type="button"
-                  onClick={() => setGrade(value)}
+                  onClick={() => setGradeLevel(value)}
                   className={`
                     py-2.5 rounded-button text-sm font-medium border transition-all
-                    ${grade === value
+                    ${gradeLevel === value
                       ? "border-brand-red text-brand-red font-semibold bg-brand-light"
                       : "border-base-border text-base-text bg-white hover:border-brand-red"}
                   `}

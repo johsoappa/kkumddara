@@ -1,11 +1,18 @@
 // ====================================================
 // 꿈따라 — 도메인 타입 정의 (002_mvp_refactor 기준)
+// 005_add_grade_level: GradeLevel 타입 추가
 // ====================================================
 
 export type Grade =
   | "elementary3" | "elementary4" | "elementary5" | "elementary6"
   | "middle1" | "middle2" | "middle3"
   | "high1" | "high2" | "high3";
+
+/** 005 신규: elem_1~elem_6 / middle_1~middle_3 / high_1~high_3 */
+export type GradeLevel =
+  | "elem_1" | "elem_2" | "elem_3" | "elem_4" | "elem_5" | "elem_6"
+  | "middle_1" | "middle_2" | "middle_3"
+  | "high_1" | "high_2" | "high_3";
 
 export type InterestField = "it" | "art" | "medical" | "business" | "education";
 
@@ -34,7 +41,8 @@ export interface Child {
   parent_id:      string;
   name:           string;
   birth_year:     number | null;
-  school_grade:   Grade | null;
+  school_grade:   Grade | null;       // 기존 형식 (하위호환 유지)
+  grade_level:    GradeLevel | null;  // 005 신규: elem_1~high_3
   interests:      InterestField[];
   avatar_emoji:   string;
   profile_status: "active" | "inactive";
@@ -144,6 +152,43 @@ export const GRADE_LABEL: Record<Grade, string> = {
   high2:       "고2",
   high3:       "고3",
 };
+
+/** 005 신규: GradeLevel 표시 라벨 */
+export const GRADE_LEVEL_LABEL: Record<GradeLevel, string> = {
+  elem_1:   "초1",
+  elem_2:   "초2",
+  elem_3:   "초3",
+  elem_4:   "초4",
+  elem_5:   "초5",
+  elem_6:   "초6",
+  middle_1: "중1",
+  middle_2: "중2",
+  middle_3: "중3",
+  high_1:   "고1",
+  high_2:   "고2",
+  high_3:   "고3",
+};
+
+/** 005 신규: grade_level → school_grade 역방향 매핑 (초1·초2 없음 → null) */
+export const GRADE_LEVEL_TO_SCHOOL_GRADE: Partial<Record<GradeLevel, Grade>> = {
+  elem_3:   "elementary3",
+  elem_4:   "elementary4",
+  elem_5:   "elementary5",
+  elem_6:   "elementary6",
+  middle_1: "middle1",
+  middle_2: "middle2",
+  middle_3: "middle3",
+  high_1:   "high1",
+  high_2:   "high2",
+  high_3:   "high3",
+};
+
+/** DB INSERT/UPDATE 전 런타임 grade_level 검증용 */
+export const VALID_GRADE_LEVELS: readonly GradeLevel[] = [
+  "elem_1", "elem_2", "elem_3", "elem_4", "elem_5", "elem_6",
+  "middle_1", "middle_2", "middle_3",
+  "high_1", "high_2", "high_3",
+] as const;
 
 export const INTEREST_LABEL: Record<InterestField, string> = {
   it:        "IT·기술",

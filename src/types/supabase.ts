@@ -1,12 +1,18 @@
 // ====================================================
 // Supabase 데이터베이스 타입 정의
 // 002_mvp_refactor.sql 기준
+// 005_add_grade_level: GradeLevel 추가
 // ====================================================
 
 export type Grade =
   | "elementary3" | "elementary4" | "elementary5" | "elementary6"
   | "middle1" | "middle2" | "middle3"
   | "high1" | "high2" | "high3";
+
+export type GradeLevel =
+  | "elem_1" | "elem_2" | "elem_3" | "elem_4" | "elem_5" | "elem_6"
+  | "middle_1" | "middle_2" | "middle_3"
+  | "high_1" | "high_2" | "high_3";
 
 export type InterestField = "it" | "art" | "medical" | "business" | "education";
 
@@ -53,6 +59,7 @@ export interface Database {
           name:           string;
           birth_year:     number | null;
           school_grade:   Grade | null;
+          grade_level:    GradeLevel | null;  // 005 신규
           interests:      InterestField[];
           avatar_emoji:   string;
           profile_status: "active" | "inactive";
@@ -66,6 +73,7 @@ export interface Database {
           name:           string;
           birth_year?:    number | null;
           school_grade?:  Grade | null;
+          grade_level?:   GradeLevel | null;  // 005 신규
           interests?:     InterestField[];
           avatar_emoji?:  string;
           profile_status?: "active" | "inactive";
@@ -77,6 +85,7 @@ export interface Database {
           name?:          string;
           birth_year?:    number | null;
           school_grade?:  Grade | null;
+          grade_level?:   GradeLevel | null;  // 005 신규
           interests?:     InterestField[];
           avatar_emoji?:  string;
           profile_status?: "active" | "inactive";
