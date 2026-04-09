@@ -302,7 +302,7 @@ export const OCCUPATIONS: Occupation[] = [
   },
 
   {
-    id: "biotech-researcher",
+    id: "bio-researcher",
     name: "바이오연구원",
     emoji: "🧬",
     category: "의료·과학",
