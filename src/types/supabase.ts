@@ -251,6 +251,61 @@ export interface Database {
         Relationships: [];
       };
 
+      // ─── ai_consult_sessions ─────────────────────────
+      // 007: 유료 플랜 AI 진로 상담 이력
+      ai_consult_sessions: {
+        Row: {
+          id:         string;
+          parent_id:  string;
+          child_id:   string | null;
+          title:      string | null;
+          messages:   Array<{ role: "user" | "assistant"; content: string }>;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?:        string;
+          parent_id:  string;
+          child_id?:  string | null;
+          title?:     string | null;
+          messages?:  Array<{ role: "user" | "assistant"; content: string }>;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          title?:     string | null;
+          messages?:  Array<{ role: "user" | "assistant"; content: string }>;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
+      // ─── ai_consult_usage ────────────────────────────
+      // 007: 월별 AI 상담 사용량 (무료/유료 공통)
+      ai_consult_usage: {
+        Row: {
+          id:         string;
+          parent_id:  string;
+          used_month: string;   // 'YYYY-MM'
+          count:      number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?:        string;
+          parent_id:  string;
+          used_month: string;
+          count?:     number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          count?:     number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
       // ─── myeonddara_sessions ─────────────────────────
       myeonddara_sessions: {
         Row: {

@@ -46,8 +46,7 @@ const PARENT_FEATURES: ParentFeature[] = [
     icon:        <MessageSquare size={20} strokeWidth={1.8} />,
     label:       "AI 진로 상담",
     description: "아이의 관심 분야에 맞는 진로를 함께 탐색해요.",
-    href:        "/report",
-    badge:       "준비 중",
+    href:        "/parent/counseling",
   },
   {
     id:          "myeonddara",
