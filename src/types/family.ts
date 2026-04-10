@@ -110,11 +110,11 @@ export interface PlanEntitlement {
 //   basic: 0→3 / premium: 12→9 / family: 6 유지
 //   child_limit: family 3→2, premium 1→3 (확정 요금제 기준)
 export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
-  // 무료: 기본 탐색만 가능, 명따라·AI 미제공
+  // 무료: 기본 탐색, AI 상담 월 1회 (009: 0→1), 명따라 없음
   free: {
     maxChildren:           1,
     maxGuardians:          0,
-    aiConsultMonthlyLimit: 0,
+    aiConsultMonthlyLimit: 1,   // 009 보정: DB 값과 동일, 0=무료 암묵 규칙 제거
     myeonddraYearlyLimit:  0,   // 명따라 없음
     roadmapFullAccess:     false,
     hasAdvancedReport:     false,

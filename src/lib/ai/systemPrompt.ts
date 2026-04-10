@@ -108,16 +108,20 @@ ${childSection}
 // ────────────────────────────────────────────────────────────
 // 에러 메시지 상수 (API route와 공유)
 // ────────────────────────────────────────────────────────────
+// ────────────────────────────────────────────────────────────
+// 에러 메시지 상수 (API route와 공유)
+//
+// [009 보정]
+//   FREE_LIMIT_REACHED 제거 — 무료/유료 구분 없이 LIMIT_EXCEEDED 단일 사용
+//   무료 여부는 plan_name === 'free'로 판별, 한도는 DB 값 그대로 사용
+//   "0이면 무료" 암묵 규칙 완전 제거
+// ────────────────────────────────────────────────────────────
 export const AI_CONSULT_ERRORS = {
-  LIMIT_EXCEEDED:     "이번 달 AI 상담 횟수를 모두 사용했어요. 다음 달에 다시 이용하거나 플랜을 업그레이드해 보세요.",
-  FREE_LIMIT_REACHED: "무료 플랜의 이번 달 상담 1회를 사용했어요. 더 많은 상담이 필요하다면 베이직 이상 플랜을 고려해 보세요.",
-  AUTH_REQUIRED:      "로그인이 필요한 기능이에요.",
-  PARENT_ONLY:        "AI 진로 상담은 학부모 계정에서만 이용할 수 있어요.",
-  SERVER_ERROR:       "일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
-  API_KEY_MISSING:    "AI 상담 서비스 설정이 완료되지 않았어요. 운영팀에 문의해주세요.",
+  LIMIT_EXCEEDED:  "이번 달 AI 상담 횟수를 모두 사용했어요. 다음 달에 다시 이용하거나 플랜을 업그레이드해 보세요.",
+  AUTH_REQUIRED:   "로그인이 필요한 기능이에요.",
+  PARENT_ONLY:     "AI 진로 상담은 학부모 계정에서만 이용할 수 있어요.",
+  SERVER_ERROR:    "일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
+  API_KEY_MISSING: "AI 상담 서비스 설정이 완료되지 않았어요. 운영팀에 문의해주세요.",
 } as const;
 
 export type AiConsultErrorCode = keyof typeof AI_CONSULT_ERRORS;
-
-/** 무료 플랜 월 1회 한도 (ai_consult_monthly_limit = 0일 때 적용) */
-export const FREE_PLAN_MONTHLY_LIMIT = 1;

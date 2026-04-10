@@ -82,7 +82,7 @@ export default function CounselingPage() {
       const [planRes, usageRes] = await Promise.all([
         supabase
           .from("subscription_plan")
-          .select("ai_consult_monthly_limit")
+          .select("ai_consult_monthly_limit, plan_name")
           .eq("parent_id", parentRow.id)
           .maybeSingle(),
         supabase
@@ -93,11 +93,11 @@ export default function CounselingPage() {
           .maybeSingle(),
       ]);
 
-      const dbLimit: number = planRes.data?.ai_consult_monthly_limit ?? 0;
-      const free = dbLimit === 0;
-      const monthlyLimit = free ? 1 : dbLimit;
-      const used: number  = usageRes.data?.count ?? 0;
-      const remaining     = Math.max(0, monthlyLimit - used);
+      // [009 보정] 무료 여부: plan_name 기준. "limit=0 → 무료" 암묵 규칙 제거.
+      const free = !planRes.data || planRes.data.plan_name === "free";
+      const monthlyLimit: number = planRes.data?.ai_consult_monthly_limit ?? 1;
+      const used: number         = usageRes.data?.count ?? 0;
+      const remaining            = Math.max(0, monthlyLimit - used);
 
       setIsFree(free);
       setRemaining(remaining);
