@@ -27,9 +27,11 @@ interface Plan {
   highlight: boolean;   // 레드오렌지 보더 강조
 }
 
-// ─── 요금제 데이터 (008 확정 기준) ──────────────────────
+// ─── 요금제 데이터 (012 확정 기준) ──────────────────────
+// max_guardians 의미: 추가 초대 가능한 공동양육자 수 (부모 미포함)
+//   free=0(보호자1=부모만) / basic,family,premium=1(보호자2명)
+// AI 상담: free=1, basic=5, family=10, premium=15
 // 명따라: 아이당 연 3회 (1학기·2학기·연말)
-// free/basic/family/premium 4종 체계
 const PLANS: Plan[] = [
   {
     name:      "무료",
@@ -39,13 +41,14 @@ const PLANS: Plan[] = [
     highlight: false,
     desc:      "꿈따라를 먼저 경험해보세요",
     features: [
-      { label: "직업 탐색 (10개)",   included: true  },
-      { label: "나의 로드맵 (1개)", included: true  },
-      { label: "부모 리포트 (기본)", included: true  },
-      { label: "나침반 모드",        included: true  },
-      { label: "명따라",             included: false },
-      { label: "AI 상담",            included: false },
-      { label: "공동 양육자 초대",   included: false },
+      { label: "아이 1명 관리",           included: true  },
+      { label: "직업 탐색 50개",          included: true  },
+      { label: "로드맵 미리보기 1개",     included: true  },
+      { label: "AI 상담 월 1회",          included: true  },
+      { label: "보호자 1명 (부모 본인)",  included: true  },
+      { label: "명따라",                  included: false },
+      { label: "주간 리포트",             included: false },
+      { label: "공동 양육자 초대",        included: false },
     ],
   },
   {
@@ -56,12 +59,14 @@ const PLANS: Plan[] = [
     highlight: false,
     desc:      "진로 탐색을 제대로 시작하고 싶은 분께",
     features: [
-      { label: "직업 탐색 (전체)",                              included: true  },
-      { label: "나의 로드맵 (무제한)",                          included: true  },
-      { label: "부모 리포트 (주간/월간)",                       included: true  },
-      { label: "AI 진로 상담 (월 3회)",                         included: true  },
+      { label: "아이 1명 관리",                                    included: true  },
+      { label: "직업 탐색 50개",                                   included: true  },
+      { label: "로드맵 전체 열람",                                 included: true  },
+      { label: "AI 상담 월 5회",                                   included: true  },
+      { label: "히스토리 저장",                                    included: true  },
       { label: "명따라 연 3회 (1학기·2학기·연말)", included: true, badge: "✨" },
-      { label: "공동 양육자 초대",                              included: false },
+      { label: "주간 리포트",                                      included: true  },
+      { label: "공동 양육자 초대 (1명)",                           included: true  },
     ],
   },
   {
@@ -73,12 +78,14 @@ const PLANS: Plan[] = [
     highlight: true,
     desc:      "자녀가 2명인 가정을 위한 플랜",
     features: [
-      { label: "베이직 전체 포함",                                         included: true },
-      { label: "자녀 2명 동시 관리",                                       included: true },
+      { label: "아이 2명 동시 관리",                                         included: true },
+      { label: "직업 탐색 50개",                                             included: true },
+      { label: "로드맵 전체 열람",                                           included: true },
+      { label: "AI 상담 월 10회",                                            included: true },
+      { label: "히스토리 저장",                                              included: true },
       { label: "명따라 아이당 연 3회 (총 6회)", included: true, badge: "✨" },
-      { label: "AI 진로 상담 (월 10회)",                                   included: true },
-      { label: "공동 양육자 초대 (1명)",                                   included: true },
-      { label: "자녀별 개별 리포트",                                       included: true },
+      { label: "주간 리포트",                                                included: true },
+      { label: "공동 양육자 초대 (1명)",                                     included: true },
     ],
   },
   {
@@ -89,12 +96,14 @@ const PLANS: Plan[] = [
     highlight: false,
     desc:      "자녀가 3명인 가정을 위한 플랜",
     features: [
-      { label: "패밀리 전체 포함",                                         included: true },
-      { label: "자녀 3명 동시 관리",                                       included: true },
+      { label: "아이 3명 동시 관리",                                         included: true },
+      { label: "직업 탐색 50개",                                             included: true },
+      { label: "로드맵 전체 열람",                                           included: true },
+      { label: "AI 상담 월 15회",                                            included: true },
+      { label: "히스토리 저장",                                              included: true },
       { label: "명따라 아이당 연 3회 (총 9회)", included: true, badge: "✨" },
-      { label: "AI 진로 상담 (월 20회)",                                   included: true },
-      { label: "공동 양육자 초대 (1명)",                                   included: true },
-      { label: "심화 부모 리포트",                                         included: true },
+      { label: "주간 리포트",                                                included: true },
+      { label: "공동 양육자 초대 (1명)",                                     included: true },
     ],
   },
 ];
