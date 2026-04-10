@@ -119,10 +119,10 @@ export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
     roadmapFullAccess:     false,
     hasAdvancedReport:     false,
   },
-  // 베이직 (9,900원): 자녀 1명, 명따라 연 3회, AI 월 3회
+  // 베이직 (9,900원): 자녀 1명, 명따라 연 3회, AI 월 3회, 보호자 1명
   basic: {
     maxChildren:           1,
-    maxGuardians:          0,
+    maxGuardians:          1,   // 011 보정: 0→1 (free만 초대 불가)
     aiConsultMonthlyLimit: 3,
     myeonddraYearlyLimit:  3,   // 008: 0 → 3 (아이 1명 × 3회)
     roadmapFullAccess:     true,

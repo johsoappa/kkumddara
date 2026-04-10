@@ -308,11 +308,13 @@ export interface Database {
 
       // ─── myeonddara_usage ────────────────────────────
       // 008: 연간 명따라 사용량 추적 (used_year INT 기준)
+      // 011: child_id 추가 → (child_id, used_year) unique
       myeonddara_usage: {
         Row: {
           id:         string;
           parent_id:  string;
-          used_year:  number;   // YYYY 정수
+          child_id:   string | null;  // 011: child 기준 관리
+          used_year:  number;         // YYYY 정수
           count:      number;
           created_at: string;
           updated_at: string;
@@ -320,6 +322,7 @@ export interface Database {
         Insert: {
           id?:        string;
           parent_id:  string;
+          child_id?:  string | null;
           used_year:  number;
           count?:     number;
           created_at?: string;
