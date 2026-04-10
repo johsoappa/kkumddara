@@ -13,6 +13,7 @@ import {
   FileText,
   MessageSquare,
   Sparkles,
+  Users,
   Copy,
   Check,
   LogOut,
@@ -54,6 +55,13 @@ const PARENT_FEATURES: ParentFeature[] = [
     label:       "명따라",
     description: "사주 기반으로 아이의 성향과 진로를 분석해요.",
     href:        "/myeonddara",
+  },
+  {
+    id:          "family",
+    icon:        <Users size={20} strokeWidth={1.8} />,
+    label:       "가족 설정",
+    description: "보호자를 초대하고 자녀의 진로 탐색을 함께 확인해요.",
+    href:        "/parent/family",
   },
 ];
 
