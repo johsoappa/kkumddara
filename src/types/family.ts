@@ -105,40 +105,44 @@ export interface PlanEntitlement {
   hasAdvancedReport:        boolean; // 심층 주간 리포트
 }
 
+// [008 변경] 명따라 횟수 기준 아이당 연 3회로 통일
+//   제공 시점: 1학기(3월) · 2학기(9월) · 연말(12월)
+//   basic: 0→3 / premium: 12→9 / family: 6 유지
+//   child_limit: family 3→2, premium 1→3 (확정 요금제 기준)
 export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
-  // 무료: 기본 탐색만 가능, AI 미제공
+  // 무료: 기본 탐색만 가능, 명따라·AI 미제공
   free: {
     maxChildren:           1,
     maxGuardians:          0,
     aiConsultMonthlyLimit: 0,
-    myeonddraYearlyLimit:  0,
+    myeonddraYearlyLimit:  0,   // 명따라 없음
     roadmapFullAccess:     false,
     hasAdvancedReport:     false,
   },
-  // 베이직: 입문 유료 — 로드맵 전체 + AI 월 3회
+  // 베이직 (9,900원): 자녀 1명, 명따라 연 3회, AI 월 3회
   basic: {
     maxChildren:           1,
     maxGuardians:          0,
     aiConsultMonthlyLimit: 3,
-    myeonddraYearlyLimit:  0,
+    myeonddraYearlyLimit:  3,   // 008: 0 → 3 (아이 1명 × 3회)
     roadmapFullAccess:     true,
     hasAdvancedReport:     false,
   },
-  // 프리미엄: 단일 자녀 + 전체 기능 (AI 월 20회, 명따라 연 12회)
-  premium: {
-    maxChildren:           1,
+  // 패밀리 (14,900원): 자녀 2명, 명따라 아이당 연 3회 (총 6회), AI 월 10회
+  family: {
+    maxChildren:           2,   // 008: 3 → 2 (확정 요금제)
     maxGuardians:          1,
-    aiConsultMonthlyLimit: 20,
-    myeonddraYearlyLimit:  12,
+    aiConsultMonthlyLimit: 10,
+    myeonddraYearlyLimit:  6,   // 아이 2명 × 3회
     roadmapFullAccess:     true,
     hasAdvancedReport:     true,
   },
-  // 패밀리: 자녀 3명 + 공동양육자 1명 (AI 월 10회, 명따라 연 6회)
-  family: {
-    maxChildren:           3,
+  // 프리미엄 (19,900원): 자녀 3명, 명따라 아이당 연 3회 (총 9회), AI 월 20회
+  premium: {
+    maxChildren:           3,   // 008: 1 → 3 (확정 요금제)
     maxGuardians:          1,
-    aiConsultMonthlyLimit: 10,
-    myeonddraYearlyLimit:  6,
+    aiConsultMonthlyLimit: 20,
+    myeonddraYearlyLimit:  9,   // 008: 12 → 9 (아이 3명 × 3회)
     roadmapFullAccess:     true,
     hasAdvancedReport:     true,
   },

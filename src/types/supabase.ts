@@ -306,6 +306,32 @@ export interface Database {
         Relationships: [];
       };
 
+      // ─── myeonddara_usage ────────────────────────────
+      // 008: 연간 명따라 사용량 추적 (used_year INT 기준)
+      myeonddara_usage: {
+        Row: {
+          id:         string;
+          parent_id:  string;
+          used_year:  number;   // YYYY 정수
+          count:      number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?:        string;
+          parent_id:  string;
+          used_year:  number;
+          count?:     number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          count?:     number;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+
       // ─── myeonddara_sessions ─────────────────────────
       myeonddara_sessions: {
         Row: {
