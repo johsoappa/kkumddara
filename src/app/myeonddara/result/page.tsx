@@ -91,6 +91,9 @@ export default function MyeonddaraResultPage() {
   const timeLabel    = BIRTH_TIME_LABEL[birthTime].split(" ")[0];
   const genderLabel  = gender === "male" ? "남자" : "여자";
 
+  // 음력/윤달 입력 시 베타 안내 표시 여부
+  const showLunarNotice = calendarType === "음력" || calendarType === "윤달";
+
   // 상위 2개 오행 (운세 카드 뱃지용)
   const topTwoOhaeng = [...result.ohaeng]
     .sort((a, b) => b.percent - a.percent)
@@ -120,6 +123,21 @@ export default function MyeonddaraResultPage() {
         </div>
 
         <div className="px-4 pt-4 flex flex-col gap-4">
+
+          {/* ── 베타 안내 (음력/윤달 입력 시) ───────── */}
+          {showLunarNotice && (
+            <div
+              className="rounded-card px-4 py-3 text-xs leading-relaxed"
+              style={{ backgroundColor: "#FFF9C4", color: "#7A5900" }}
+            >
+              <p className="font-bold mb-0.5">📌 음력 정밀 계산 준비 중</p>
+              <p>
+                현재 음력·윤달 입력은 양력 기준으로 근사 계산됩니다.
+                정확한 음력 변환 기능을 준비하고 있어요.
+                결과는 참고용으로 활용해 주세요.
+              </p>
+            </div>
+          )}
 
           {/* ── 결과 상단 카드 (4주) ──────────────── */}
           <div
@@ -239,7 +257,8 @@ export default function MyeonddaraResultPage() {
 
           {/* ── 면책 안내 ─────────────────────────── */}
           <p className="text-[11px] text-base-muted text-center leading-relaxed px-4 pb-2">
-            명따라는 동양 철학 기반의 참고용 진로 분석 서비스입니다.<br />
+            명따라는 동양 철학 기반의 참고용 진로 분석 서비스입니다. (베타)<br />
+            만세력 기반 정밀 분석 기능을 준비하고 있어요.<br />
             아이의 가능성은 무한합니다. 💛
           </p>
 

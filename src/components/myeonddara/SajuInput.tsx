@@ -178,11 +178,13 @@ export default function SajuInput({ onSubmit, isLoading = false }: SajuInputProp
           </div>
 
           {calendarType === "음력" && (
-            <p className="text-xs text-base-muted mb-2">음력 날짜를 입력해주세요</p>
+            <p className="text-xs mb-2 leading-relaxed" style={{ color: "#7A5900", backgroundColor: "#FFF9C4", padding: "6px 10px", borderRadius: "6px" }}>
+              📌 음력 정밀 계산은 준비 중이에요. 현재는 양력 기준으로 근사 계산됩니다.
+            </p>
           )}
           {calendarType === "윤달" && (
-            <p className="text-xs mb-2" style={{ color: "#E84B2E" }}>
-              윤달에 태어난 경우 선택해주세요
+            <p className="text-xs mb-2 leading-relaxed" style={{ color: "#7A5900", backgroundColor: "#FFF9C4", padding: "6px 10px", borderRadius: "6px" }}>
+              📌 윤달 정밀 계산은 준비 중이에요. 현재는 양력 기준으로 근사 계산됩니다.
             </p>
           )}
 
