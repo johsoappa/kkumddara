@@ -46,7 +46,8 @@ interface ChildOption {
 
 export default function MyeonddaraPage() {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading]         = useState(false);
+  const [submitError, setSubmitError]     = useState<string | null>(null);
 
   // ── 인증 상태 ──────────────────────────────────────
   const [authState, setAuthState]        = useState<AuthState>("loading");
@@ -214,37 +215,70 @@ export default function MyeonddaraPage() {
 
   // ── 폼 제출 ────────────────────────────────────────
   const handleSubmit = async (data: SajuInputData) => {
-    if (blocked || !selectedChildId) return;
+    console.log("[명따라] handleSubmit 시작 — selectedChildId:", selectedChildId, "blocked:", blocked);
+
+    if (!selectedChildId) {
+      setSubmitError("자녀를 선택해주세요.");
+      return;
+    }
+    if (blocked) {
+      console.log("[명따라] blocked 상태 — 제출 차단");
+      return;
+    }
+
     setIsLoading(true);
+    setSubmitError(null);
 
     try {
+      console.log("[명따라] API 호출 시작 → POST /api/myeonddara/use");
       const res = await fetch("/api/myeonddara/use", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body:    JSON.stringify({ childId: selectedChildId }),
       });
 
+      console.log("[명따라] API 응답 status:", res.status, "ok:", res.ok);
+
       if (!res.ok) {
-        const err = await res.json();
-        if (res.status === 429 || res.status === 403) {
-          setBlocked(true);
-          setBlockMsg(err.error);
-          setBlockType(res.status === 403 ? "plan" : "limit");
-          if (res.status === 429) {
-            setChildren((prev) =>
-              prev.map((c) =>
-                c.id === selectedChildId
-                  ? { ...c, usedCount: PER_CHILD_YEARLY_LIMIT }
-                  : c
-              )
-            );
+        let errMsg = "분석 요청 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.";
+        try {
+          const err = await res.json();
+          console.log("[명따라] API 에러 응답:", err);
+
+          if (res.status === 429 || res.status === 403) {
+            // 플랜 차단 또는 한도 초과 → blocked 상태로 전환
+            setBlocked(true);
+            setBlockMsg(err.error ?? errMsg);
+            setBlockType(res.status === 403 ? "plan" : "limit");
+            if (res.status === 429) {
+              setChildren((prev) =>
+                prev.map((c) =>
+                  c.id === selectedChildId
+                    ? { ...c, usedCount: PER_CHILD_YEARLY_LIMIT }
+                    : c
+                )
+              );
+            }
+          } else if (res.status === 401) {
+            errMsg = "로그인이 필요해요. 다시 로그인해주세요.";
+            setSubmitError(errMsg);
+          } else {
+            // 500, 502, 기타 서버 오류
+            errMsg = err.error ?? errMsg;
+            setSubmitError(errMsg);
           }
+        } catch {
+          console.warn("[명따라] 에러 응답 파싱 실패");
+          setSubmitError(errMsg);
         }
+
         setIsLoading(false);
         return;
       }
 
       const { remaining } = await res.json();
+      console.log("[명따라] 차감 성공 — remaining:", remaining);
+
       setChildren((prev) =>
         prev.map((c) =>
           c.id === selectedChildId
@@ -254,8 +288,11 @@ export default function MyeonddaraPage() {
       );
 
       localStorage.setItem(MYEONDDARA_INPUT_KEY, JSON.stringify(data));
+      console.log("[명따라] localStorage 저장 완료 → /myeonddara/result 이동");
       router.push("/myeonddara/result");
-    } catch {
+    } catch (e) {
+      console.error("[명따라] fetch 예외 발생:", e);
+      setSubmitError("네트워크 오류가 발생했어요. 인터넷 연결을 확인해주세요.");
       setIsLoading(false);
     }
   };
@@ -472,6 +509,16 @@ export default function MyeonddaraPage() {
                   요금제 살펴보기
                 </button>
               )}
+            </div>
+          )}
+
+          {/* ── C. 학부모 — 서버 에러 배너 ──────────────── */}
+          {authState === "parent" && submitError && (
+            <div
+              className="rounded-card px-4 py-3 text-sm font-semibold text-center"
+              style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+            >
+              ⚠️ {submitError}
             </div>
           )}
 
