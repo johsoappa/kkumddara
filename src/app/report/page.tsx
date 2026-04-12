@@ -222,20 +222,22 @@ export default function ReportPage() {
           <ActivitySuggestions activities={REPORT_DUMMY.activities} />
         </FadeInSection>
 
-        {/* ⑨ 명따라 유도 버튼 */}
-        <FadeInSection delay={0}>
-          <button
-            onClick={() => router.push("/myeonddara")}
-            className="
-              w-full py-4 rounded-button text-sm font-bold
-              flex items-center justify-center gap-2
-              active:opacity-80 transition-opacity
-            "
-            style={{ background: "linear-gradient(135deg, #1A3A6B, #2C5F8A)", color: "#fff" }}
-          >
-            ✨ 명따라로 더 깊이 분석해보기
-          </button>
-        </FadeInSection>
+        {/* ⑨ 명따라 유도 버튼 — 학부모/비로그인만 표시, 학생은 숨김 */}
+        {userType !== "student" && (
+          <FadeInSection delay={0}>
+            <button
+              onClick={() => router.push("/myeonddara")}
+              className="
+                w-full py-4 rounded-button text-sm font-bold
+                flex items-center justify-center gap-2
+                active:opacity-80 transition-opacity
+              "
+              style={{ background: "linear-gradient(135deg, #1A3A6B, #2C5F8A)", color: "#fff" }}
+            >
+              ✨ 명따라로 더 깊이 분석해보기
+            </button>
+          </FadeInSection>
+        )}
 
         {/* ⑩ 공유 / 저장 버튼 */}
         <FadeInSection delay={0}>

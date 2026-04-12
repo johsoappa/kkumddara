@@ -3,16 +3,19 @@
 // ====================================================
 // 명따라 메인 입력 화면 (/myeonddara)
 //
-// [011 보정]
-//   - 비로그인 / 학생 계정: 즉시 차단 (테스트 모드 제거)
-//   - 자녀 프로필 연동: 자녀별 사용량 관리
-//   - 사용량 차감: 서버 API(/api/myeonddara/use) 기준
-//   - 클라이언트: 안내용 표시 목적으로만 사용량 조회
+// [상태별 분기]
+//   loading  : 인증 확인 중 → 스켈레톤
+//   guest    : 비로그인 → 소개 + 로그인 유도 (홈 리다이렉트 없음)
+//   student  : 학생 계정 → 학부모 전용 안내 (홈 리다이렉트 없음)
+//   parent   : 학부모 로그인 → 플랜 확인 → 자녀 선택 → 분석
+//
+// [서버 차단]
+//   POST /api/myeonddara/use — 플랜·한도 검증 + 차감
 // ====================================================
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Lock, ChevronDown } from "lucide-react";
+import { ArrowLeft, Lock, ChevronDown, LogIn, Users } from "lucide-react";
 import SajuInput from "@/components/myeonddara/SajuInput";
 import { MYEONDDARA_INPUT_KEY } from "@/data/myeonddara";
 import type { SajuInputData } from "@/types/myeonddara";
@@ -30,6 +33,9 @@ const OHAENG_BADGES = [
   { emoji: "⛰️", label: "토(土)" },
 ];
 
+// ── 인증 상태 타입 ──
+type AuthState = "loading" | "guest" | "student" | "parent";
+
 interface ChildOption {
   id:           string;
   name:         string;
@@ -42,19 +48,22 @@ export default function MyeonddaraPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
-  // ── 초기화 상태 ────────────────────────────────────
-  const [checkDone, setCheckDone]       = useState(false);
-  const [blocked, setBlocked]           = useState(false);
-  const [blockMsg, setBlockMsg]         = useState("");
-  const [blockType, setBlockType]       = useState<"plan" | "limit" | "auth" | null>(null);
+  // ── 인증 상태 ──────────────────────────────────────
+  const [authState, setAuthState]        = useState<AuthState>("loading");
+
+  // ── 학부모 전용: 플랜/한도 차단 ───────────────────
+  const [checkDone, setCheckDone]        = useState(false);
+  const [blocked, setBlocked]            = useState(false);
+  const [blockMsg, setBlockMsg]          = useState("");
+  const [blockType, setBlockType]        = useState<"plan" | "limit" | "auth" | null>(null);
 
   // ── 자녀 선택 ──────────────────────────────────────
-  const [children, setChildren]         = useState<ChildOption[]>([]);
-  const [selectedChildId, setSelected]  = useState<string | null>(null);
-  const [showSelector, setShowSelector] = useState(false);
+  const [children, setChildren]          = useState<ChildOption[]>([]);
+  const [selectedChildId, setSelected]   = useState<string | null>(null);
+  const [showSelector, setShowSelector]  = useState(false);
 
   // ── 남은 횟수 (선택된 자녀 기준) ─────────────────
-  const selectedChild = children.find((c) => c.id === selectedChildId);
+  const selectedChild  = children.find((c) => c.id === selectedChildId);
   const remainingCount =
     selectedChild != null
       ? Math.max(0, PER_CHILD_YEARLY_LIMIT - selectedChild.usedCount)
@@ -65,17 +74,20 @@ export default function MyeonddaraPage() {
     async function init() {
       const { data: { user } } = await supabase.auth.getUser();
 
-      // 비로그인 → 홈으로
+      // 비로그인 → guest 상태로 소개 화면 표시 (홈 이동 없음)
       if (!user) {
-        router.replace("/");
+        setAuthState("guest");
         return;
       }
 
-      // 학부모가 아닌 계정 → 홈으로
+      // 학생 계정 → student 상태로 안내 화면 표시 (홈 이동 없음)
       if (user.user_metadata?.role !== "parent") {
-        router.replace("/");
+        setAuthState("student");
         return;
       }
+
+      // 학부모 확인
+      setAuthState("parent");
 
       const { data: parentRow } = await supabase
         .from("parent")
@@ -158,17 +170,16 @@ export default function MyeonddaraPage() {
 
       setChildren(options);
 
-      // 기본 선택: 남은 횟수가 있는 첫 자녀, 없으면 첫 자녀
       const firstWithRemaining = options.find(
         (c) => c.usedCount < PER_CHILD_YEARLY_LIMIT
       );
       const defaultChild = firstWithRemaining ?? options[0];
       setSelected(defaultChild.id);
 
-      // 선택된 자녀가 이미 한도 초과인지 확인
-      if (defaultChild.usedCount >= PER_CHILD_YEARLY_LIMIT && options.every(
-        (c) => c.usedCount >= PER_CHILD_YEARLY_LIMIT
-      )) {
+      if (
+        defaultChild.usedCount >= PER_CHILD_YEARLY_LIMIT &&
+        options.every((c) => c.usedCount >= PER_CHILD_YEARLY_LIMIT)
+      ) {
         setBlocked(true);
         setBlockMsg(
           "이번 연도 명따라 분석 횟수를 모두 사용했어요.\n1학기(3월) · 2학기(9월) · 연말(12월)\n총 3회 제공됩니다."
@@ -180,7 +191,7 @@ export default function MyeonddaraPage() {
     }
 
     init();
-  }, [router]);
+  }, []);
 
   // ── 자녀 선택 변경 시 차단 상태 재평가 ─────────────
   useEffect(() => {
@@ -206,7 +217,6 @@ export default function MyeonddaraPage() {
     if (blocked || !selectedChildId) return;
     setIsLoading(true);
 
-    // 서버 차감 API 호출
     try {
       const res = await fetch("/api/myeonddara/use", {
         method:  "POST",
@@ -216,12 +226,10 @@ export default function MyeonddaraPage() {
 
       if (!res.ok) {
         const err = await res.json();
-        // 한도 초과 or 플랜 차단 → 상태 업데이트
         if (res.status === 429 || res.status === 403) {
           setBlocked(true);
           setBlockMsg(err.error);
           setBlockType(res.status === 403 ? "plan" : "limit");
-          // 자녀 usedCount 갱신 (UI 반영)
           if (res.status === 429) {
             setChildren((prev) =>
               prev.map((c) =>
@@ -237,8 +245,6 @@ export default function MyeonddaraPage() {
       }
 
       const { remaining } = await res.json();
-
-      // 자녀 usedCount 갱신
       setChildren((prev) =>
         prev.map((c) =>
           c.id === selectedChildId
@@ -247,7 +253,6 @@ export default function MyeonddaraPage() {
         )
       );
 
-      // localStorage에 입력 저장 후 결과 페이지로 이동
       localStorage.setItem(MYEONDDARA_INPUT_KEY, JSON.stringify(data));
       router.push("/myeonddara/result");
     } catch {
@@ -255,68 +260,130 @@ export default function MyeonddaraPage() {
     }
   };
 
+  // ── 공통 헤더 ──────────────────────────────────────
+  const Header = () => (
+    <div className="sticky top-0 z-50 bg-white border-b border-base-border">
+      <div className="flex items-center justify-between px-4 h-14">
+        <button
+          onClick={() => router.back()}
+          className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-base-off transition-colors"
+          aria-label="뒤로가기"
+        >
+          <ArrowLeft size={20} className="text-base-text" />
+        </button>
+        <h1 className="text-sm font-bold text-base-text">명따라</h1>
+        {/* 남은 횟수 배지 (학부모 + 정상 상태만) */}
+        {authState === "parent" && remainingCount !== null && !blocked ? (
+          <span
+            className="text-xs font-semibold px-2.5 py-1 rounded-full"
+            style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+          >
+            올해 {remainingCount}회 남음
+          </span>
+        ) : (
+          <div className="w-9" />
+        )}
+      </div>
+    </div>
+  );
+
+  // ── 소개 카드 (모든 상태 공통 표시) ───────────────
+  const IntroCard = () => (
+    <div
+      className="rounded-card-lg px-4 py-6 text-center"
+      style={{ background: "linear-gradient(135deg, #1A3A6B, #2C5F8A)" }}
+    >
+      <span className="text-5xl leading-none block mb-3">✨</span>
+      <h2 className="text-2xl font-bold text-white mb-2">명따라</h2>
+      <p className="text-sm text-white/80 leading-relaxed mb-3">
+        아이의 생년월일시로<br />
+        타고난 기질과 적성을 분석해드려요.<br />
+        동양 철학의 지혜로<br />
+        진로의 방향을 찾아보세요.
+      </p>
+      <p className="text-xs text-white/60 mb-4">
+        연 3회 제공 · 1학기(3월) · 2학기(9월) · 연말(12월)
+      </p>
+      <div className="flex justify-center gap-1 flex-nowrap">
+        {OHAENG_BADGES.map((b) => (
+          <span
+            key={b.label}
+            className="flex items-center gap-0.5 text-xs font-semibold text-white px-2 py-1 rounded-full whitespace-nowrap"
+            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+          >
+            <span>{b.emoji}</span>
+            <span>{b.label}</span>
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-base-off flex justify-center">
       <div className="w-full max-w-mobile bg-base-off">
 
-        {/* ── 헤더 ── */}
-        <div className="sticky top-0 z-50 bg-white border-b border-base-border">
-          <div className="flex items-center justify-between px-4 h-14">
-            <button
-              onClick={() => router.back()}
-              className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-base-off transition-colors"
-              aria-label="뒤로가기"
-            >
-              <ArrowLeft size={20} className="text-base-text" />
-            </button>
-            <h1 className="text-sm font-bold text-base-text">명따라</h1>
-            {/* 남은 횟수 배지 */}
-            {remainingCount !== null && !blocked && (
-              <span
-                className="text-xs font-semibold px-2.5 py-1 rounded-full"
-                style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
-              >
-                올해 {remainingCount}회 남음
-              </span>
-            )}
-            {(remainingCount === null || blocked) && <div className="w-9" />}
-          </div>
-        </div>
+        <Header />
 
         <div className="px-4 pt-4 pb-10 flex flex-col gap-4">
 
-          {/* ① 소개 카드 */}
-          <div
-            className="rounded-card-lg px-4 py-6 text-center"
-            style={{ background: "linear-gradient(135deg, #1A3A6B, #2C5F8A)" }}
-          >
-            <span className="text-5xl leading-none block mb-3">✨</span>
-            <h2 className="text-2xl font-bold text-white mb-2">명따라</h2>
-            <p className="text-sm text-white/80 leading-relaxed mb-3">
-              아이의 생년월일시로<br />
-              타고난 기질과 적성을 분석해드려요.<br />
-              동양 철학의 지혜로<br />
-              진로의 방향을 찾아보세요.
-            </p>
-            <p className="text-xs text-white/60 mb-4">
-              연 3회 제공 · 1학기(3월) · 2학기(9월) · 연말(12월)
-            </p>
-            <div className="flex justify-center gap-1 flex-nowrap">
-              {OHAENG_BADGES.map((b) => (
-                <span
-                  key={b.label}
-                  className="flex items-center gap-0.5 text-xs font-semibold text-white px-2 py-1 rounded-full whitespace-nowrap"
-                  style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-                >
-                  <span>{b.emoji}</span>
-                  <span>{b.label}</span>
-                </span>
-              ))}
-            </div>
-          </div>
+          {/* 소개 카드 — 모든 상태 공통 */}
+          <IntroCard />
 
-          {/* ② 자녀 선택 (자녀 2명 이상일 때 표시) */}
-          {checkDone && !blocked && children.length > 1 && (
+          {/* ── A. 비로그인(체험) — 로그인 유도 ─────────── */}
+          {authState === "guest" && (
+            <div className="bg-white rounded-card-lg shadow-card p-6 text-center flex flex-col items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "#FFF0EB" }}
+              >
+                <LogIn size={22} style={{ color: "#E84B2E" }} />
+              </div>
+              <p className="text-sm font-semibold text-base-text">
+                명따라는 학부모 로그인 후 이용할 수 있어요
+              </p>
+              <p className="text-xs text-base-muted leading-relaxed">
+                베이직 이상 플랜에서 제공됩니다.<br />
+                연 3회 (1학기 · 2학기 · 연말)
+              </p>
+              <button
+                onClick={() => router.push("/")}
+                className="mt-1 px-5 py-2.5 rounded-button text-sm font-bold text-white"
+                style={{ backgroundColor: "#E84B2E" }}
+              >
+                로그인하고 시작하기
+              </button>
+            </div>
+          )}
+
+          {/* ── B. 학생 계정 — 학부모 전용 안내 ─────────── */}
+          {authState === "student" && (
+            <div className="bg-white rounded-card-lg shadow-card p-6 text-center flex flex-col items-center gap-3">
+              <div
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: "#FFF0EB" }}
+              >
+                <Users size={22} style={{ color: "#E84B2E" }} />
+              </div>
+              <p className="text-sm font-semibold text-base-text">
+                명따라는 학부모 전용 기능이에요
+              </p>
+              <p className="text-xs text-base-muted leading-relaxed">
+                학부모 계정으로 로그인하면<br />
+                자녀의 기질과 적성을 분석할 수 있어요.
+              </p>
+              <button
+                onClick={() => router.back()}
+                className="mt-1 px-5 py-2.5 rounded-button text-sm font-bold"
+                style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+              >
+                돌아가기
+              </button>
+            </div>
+          )}
+
+          {/* ── C. 학부모 — 자녀 선택 (2명 이상) ────────── */}
+          {authState === "parent" && checkDone && !blocked && children.length > 1 && (
             <div className="relative">
               <button
                 onClick={() => setShowSelector((v) => !v)}
@@ -356,10 +423,7 @@ export default function MyeonddaraPage() {
                     return (
                       <button
                         key={child.id}
-                        onClick={() => {
-                          setSelected(child.id);
-                          setShowSelector(false);
-                        }}
+                        onClick={() => { setSelected(child.id); setShowSelector(false); }}
                         className={`
                           w-full flex items-center justify-between px-4 py-3
                           text-sm hover:bg-base-off transition-colors
@@ -384,8 +448,8 @@ export default function MyeonddaraPage() {
             </div>
           )}
 
-          {/* ③ 차단 상태 */}
-          {checkDone && blocked && (
+          {/* ── C. 학부모 — 플랜/한도 차단 ──────────────── */}
+          {authState === "parent" && checkDone && blocked && (
             <div className="bg-white rounded-card-lg shadow-card p-6 text-center flex flex-col items-center gap-3">
               <div
                 className="w-12 h-12 rounded-full flex items-center justify-center"
@@ -411,13 +475,13 @@ export default function MyeonddaraPage() {
             </div>
           )}
 
-          {/* ④ 입력 폼 */}
-          {checkDone && !blocked && (
+          {/* ── C. 학부모 — 입력 폼 ──────────────────────── */}
+          {authState === "parent" && checkDone && !blocked && (
             <SajuInput onSubmit={handleSubmit} isLoading={isLoading} />
           )}
 
-          {/* ④ 로딩 스켈레톤 */}
-          {!checkDone && (
+          {/* ── 로딩 스켈레톤 ────────────────────────────── */}
+          {authState === "loading" && (
             <div className="bg-white rounded-card-lg shadow-card p-6 animate-pulse">
               <div className="h-4 bg-base-border rounded w-1/3 mb-4" />
               <div className="h-10 bg-base-border rounded mb-3" />
@@ -426,7 +490,7 @@ export default function MyeonddaraPage() {
             </div>
           )}
 
-          {/* ⑤ 하단 안내 */}
+          {/* ── 하단 안내 ────────────────────────────────── */}
           <p className="text-xs text-base-muted text-center leading-relaxed px-4">
             명따라는 동양 철학 기반의 참고용 진로 분석 서비스입니다.<br />
             아이의 가능성은 무한합니다. 💛
