@@ -7,7 +7,7 @@
 // - 저장 후 /parent/home 이동
 // ====================================================
 
-import { useState, useEffect, use } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
@@ -38,9 +38,9 @@ const GRADE_GROUPS = [
 export default function ChildEditPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  const { id: childId } = use(params);
+  const childId = params.id;
   const router = useRouter();
 
   const [childName,   setChildName]   = useState("");
