@@ -36,6 +36,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import {
   buildSystemPrompt,
   buildChildContext,
@@ -60,6 +61,15 @@ function errRes(
 }
 
 export async function POST(req: NextRequest) {
+  // ── 0. 기능 플래그 확인 ─────────────────────────────────
+  // featureFlags.ts에서 AI_CONSULT_ENABLED = true 로 변경하면 해제
+  if (!FEATURE_FLAGS.AI_CONSULT_ENABLED) {
+    return NextResponse.json(
+      { error: "AI 상담 기능은 현재 준비 중입니다.", code: "SERVICE_UNAVAILABLE" },
+      { status: 503 }
+    );
+  }
+
   // ── 1. API 키 확인 ──────────────────────────────────────
   const apiKey = process.env.ANTHROPIC_API_KEY;
   if (!apiKey) {

@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signOut } from "@/lib/auth";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import type { Child, SubscriptionPlan } from "@/types/family";
 import { GRADE_LABEL, INTEREST_LABEL, PLAN_LABEL } from "@/types/family";
 import type { Grade, InterestField } from "@/types/family";
@@ -46,8 +47,11 @@ const PARENT_FEATURES: ParentFeature[] = [
     id:          "counseling",
     icon:        <MessageSquare size={20} strokeWidth={1.8} />,
     label:       "AI 진로 상담",
-    description: "아이의 관심 분야에 맞는 진로를 함께 탐색해요.",
+    description: FEATURE_FLAGS.AI_CONSULT_ENABLED
+      ? "아이의 관심 분야에 맞는 진로를 함께 탐색해요."
+      : "자녀 맞춤형 AI 상담 기능을 준비하고 있어요.",
     href:        "/parent/counseling",
+    badge:       FEATURE_FLAGS.AI_CONSULT_ENABLED ? undefined : "준비 중",
   },
   {
     id:          "myeonddara",

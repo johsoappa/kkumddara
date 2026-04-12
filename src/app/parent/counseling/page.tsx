@@ -12,9 +12,10 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Send, ChevronLeft, RefreshCw, Info } from "lucide-react";
+import { Send, ChevronLeft, RefreshCw, Info, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getFirstActiveChild } from "@/lib/db/family";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 
 // ── 채팅 메시지 타입 ──
 type ChatRole = "user" | "assistant" | "system";
@@ -38,7 +39,69 @@ const WELCOME_MSG: ChatMessage = {
     "안녕하세요! 꿈따라 AI 진로 설계 도우미예요.\n자녀의 진로 탐색이나 준비 방향에 대해 궁금한 점을 자유롭게 물어보세요.\n\n예시: \"중2 아이가 IT에 관심이 있는데, 어떤 활동을 해볼 수 있을까요?\"",
 };
 
+// ── AI 상담 준비중 화면 ──────────────────────────────────
+// FEATURE_FLAGS.AI_CONSULT_ENABLED = false 일 때 표시
+// 재활성화: featureFlags.ts 에서 true 로 변경 후 배포
+function ComingSoonScreen({ onBack }: { onBack: () => void }) {
+  return (
+    <div className="min-h-screen bg-base-off flex justify-center">
+      <div className="w-full max-w-mobile bg-white min-h-screen flex flex-col">
+        {/* 헤더 */}
+        <div className="flex items-center gap-3 px-4 h-14 border-b border-base-border">
+          <button
+            onClick={onBack}
+            className="p-1.5 rounded-full hover:bg-base-off transition-colors"
+            aria-label="뒤로가기"
+          >
+            <ChevronLeft size={20} className="text-base-text" />
+          </button>
+          <h1 className="text-sm font-bold text-base-text">AI 진로 상담</h1>
+        </div>
+
+        {/* 바디 */}
+        <div className="flex-1 flex flex-col items-center justify-center px-6 pb-10 gap-5 text-center">
+          <div
+            className="w-16 h-16 rounded-full flex items-center justify-center"
+            style={{ backgroundColor: "#FFF0EB" }}
+          >
+            <Clock size={28} style={{ color: "#E84B2E" }} />
+          </div>
+
+          <div>
+            <p className="text-lg font-bold text-base-text mb-2">
+              AI 진로 상담 준비 중
+            </p>
+            <p className="text-sm text-base-muted leading-relaxed">
+              자녀 맞춤형 AI 상담 기능을 준비하고 있어요.<br />
+              곧 오픈 예정입니다.
+            </p>
+          </div>
+
+          <button
+            onClick={onBack}
+            className="mt-2 px-6 py-3 rounded-button text-sm font-semibold text-white"
+            style={{ backgroundColor: "#E84B2E" }}
+          >
+            돌아가기
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── 래퍼 — 플래그에 따라 준비중 / 실제 화면 분기 ──────────
+// Hooks 규칙 준수: early return은 래퍼에서, 실제 hook 사용은 Impl에서
 export default function CounselingPage() {
+  const router = useRouter();
+  if (!FEATURE_FLAGS.AI_CONSULT_ENABLED) {
+    return <ComingSoonScreen onBack={() => router.back()} />;
+  }
+  return <CounselingPageImpl />;
+}
+
+// ── 실제 AI 상담 구현 (AI_CONSULT_ENABLED = true 시 사용) ──
+function CounselingPageImpl() {
   const router                            = useRouter();
   const bottomRef                         = useRef<HTMLDivElement>(null);
 
