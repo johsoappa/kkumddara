@@ -18,13 +18,14 @@ import {
   Check,
   LogOut,
   ChevronRight,
+  Pencil,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signOut } from "@/lib/auth";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import type { Child, SubscriptionPlan } from "@/types/family";
-import { GRADE_LABEL, INTEREST_LABEL, PLAN_LABEL } from "@/types/family";
-import type { Grade, InterestField } from "@/types/family";
+import { GRADE_LABEL, GRADE_LEVEL_LABEL, INTEREST_LABEL, PLAN_LABEL } from "@/types/family";
+import type { Grade, GradeLevel, InterestField } from "@/types/family";
 
 type ParentFeature = {
   id:          string;
@@ -249,9 +250,15 @@ function ChildSummaryCard({
   copied:  boolean;
   onCopy:  () => void;
 }) {
-  const gradeLabel = child.school_grade
-    ? GRADE_LABEL[child.school_grade as Grade]
-    : null;
+  const router = useRouter();
+
+  // grade_level 우선, 없으면 school_grade 폴백
+  const gradeLabel =
+    child.grade_level
+      ? (GRADE_LEVEL_LABEL[child.grade_level as GradeLevel] ?? null)
+      : child.school_grade
+        ? (GRADE_LABEL[child.school_grade as Grade] ?? null)
+        : null;
 
   const interestLabels = (child.interests ?? [])
     .slice(0, 3)
@@ -259,31 +266,47 @@ function ChildSummaryCard({
 
   return (
     <div className="bg-white rounded-card-lg shadow-card p-5">
-      {/* 이름 + 학년 */}
+      {/* 이름 + 학년 + 수정 버튼 */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <span className="text-xl leading-none">{child.avatar_emoji}</span>
           <div>
             <p className="text-base font-bold text-base-text">{child.name}</p>
-            {gradeLabel && (
+            {gradeLabel ? (
               <p className="text-xs text-base-muted">{gradeLabel}</p>
+            ) : (
+              <p className="text-xs text-base-muted">학년 미설정</p>
             )}
           </div>
         </div>
-        {/* 관심 분야 뱃지 */}
-        {interestLabels.length > 0 && (
-          <div className="flex flex-wrap gap-1 justify-end max-w-[140px]">
-            {interestLabels.map((label) => (
-              <span
-                key={label}
-                className="text-[11px] px-2 py-0.5 rounded-full font-medium"
-                style={{ background: "#FFF0EB", color: "#E84B2E" }}
-              >
-                {label}
-              </span>
-            ))}
-          </div>
-        )}
+        {/* 관심 분야 뱃지 + 수정 버튼 */}
+        <div className="flex flex-col items-end gap-1.5">
+          {interestLabels.length > 0 && (
+            <div className="flex flex-wrap gap-1 justify-end max-w-[130px]">
+              {interestLabels.map((label) => (
+                <span
+                  key={label}
+                  className="text-[11px] px-2 py-0.5 rounded-full font-medium"
+                  style={{ background: "#FFF0EB", color: "#E84B2E" }}
+                >
+                  {label}
+                </span>
+              ))}
+            </div>
+          )}
+          <button
+            onClick={() => router.push(`/parent/child/${child.id}/edit`)}
+            className="
+              flex items-center gap-1 text-[11px] font-semibold
+              px-2 py-1 rounded-full
+              transition-colors
+            "
+            style={{ background: "#F3F4F6", color: "#6B7280" }}
+          >
+            <Pencil size={10} />
+            수정
+          </button>
+        </div>
       </div>
 
       {/* 초대 코드 */}

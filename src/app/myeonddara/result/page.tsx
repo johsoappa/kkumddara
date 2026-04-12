@@ -2,8 +2,9 @@
 
 // ====================================================
 // 명따라 결과 화면 (/myeonddara/result)
+// - localStorage에서 SajuInputData 읽기
+// - calculateSaju() 로 실시간 계산 → SajuResult
 // - 사주 4柱 / 오행 분석 / 기질 / 추천 직업 / 운세
-// - localStorage에서 입력 데이터 읽어 개인화
 // ====================================================
 
 import { useEffect, useState } from "react";
@@ -12,20 +13,27 @@ import { ArrowLeft } from "lucide-react";
 import OhaengChart from "@/components/myeonddara/OhaengChart";
 import PersonalityCard from "@/components/myeonddara/PersonalityCard";
 import RecommendedCareers from "@/components/myeonddara/RecommendedCareers";
-import { DUMMY_SAJU_RESULT, MYEONDDARA_INPUT_KEY } from "@/data/myeonddara";
+import { MYEONDDARA_INPUT_KEY } from "@/data/myeonddara";
 import { BIRTH_TIME_LABEL } from "@/types/myeonddara";
-import type { SajuInputData } from "@/types/myeonddara";
+import type { SajuInputData, SajuResult } from "@/types/myeonddara";
+import { calculateSaju } from "@/lib/myeonddara/calculate";
 
 export default function MyeonddaraResultPage() {
   const router = useRouter();
-  const result = DUMMY_SAJU_RESULT;
 
-  const [input, setInput] = useState<SajuInputData | null>(null);
+  const [input,  setInput]  = useState<SajuInputData | null>(null);
+  const [result, setResult] = useState<SajuResult | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem(MYEONDDARA_INPUT_KEY);
     if (stored) {
-      setInput(JSON.parse(stored) as SajuInputData);
+      try {
+        const parsed = JSON.parse(stored) as SajuInputData;
+        setInput(parsed);
+        setResult(calculateSaju(parsed));
+      } catch (e) {
+        console.error("[명따라/result] 입력 파싱 실패:", e);
+      }
     }
   }, []);
 
@@ -36,30 +44,67 @@ export default function MyeonddaraResultPage() {
     return `${y}년 ${Number(m)}월 ${Number(d)}일`;
   };
 
-  const name          = input?.name         ?? "김꿈따";
-  const birthDate     = input?.birthDate    ?? "2014-01-17";
-  const birthTime     = input?.birthTime    ?? "o";
-  const gender        = input?.gender       ?? "male";
-  const calendarType  = input?.calendarType ?? "양력";
-  const timeLabel     = BIRTH_TIME_LABEL[birthTime].split(" ")[0]; // "오시"만
-  const genderLabel   = gender === "male" ? "남자" : "여자";
-
-  // 오늘 날짜 포맷
-  const today = new Date();
+  // 오늘 날짜
+  const today      = new Date();
   const todayLabel = `${today.getFullYear()}년 ${today.getMonth() + 1}월 ${today.getDate()}일`;
 
   const handleShare   = () => alert("카카오톡 공유 기능은 준비 중입니다. 😊");
   const handleRetry   = () => router.push("/myeonddara");
   const handleRoadmap = () => {
+    if (!result) return;
     localStorage.setItem("kkumddara_chosen_roadmap", result.topOccupationId);
     router.push(`/roadmap/${result.topOccupationId}`);
   };
+
+  // ── 로딩 상태 ──────────────────────────────────────
+  if (!result || !input) {
+    return (
+      <div className="min-h-screen bg-base-off flex justify-center">
+        <div className="w-full max-w-mobile bg-base-off">
+          <div className="sticky top-0 z-50 bg-white border-b border-base-border">
+            <div className="flex items-center px-4 h-14">
+              <button
+                onClick={() => router.back()}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-base-off"
+                aria-label="뒤로가기"
+              >
+                <ArrowLeft size={20} className="text-base-text" />
+              </button>
+              <h1 className="ml-2 text-sm font-bold text-base-text">명따라 분석 결과</h1>
+            </div>
+          </div>
+          <div className="px-4 pt-6 flex flex-col gap-4 animate-pulse">
+            <div className="h-40 bg-white rounded-card-lg shadow-card" />
+            <div className="h-32 bg-white rounded-card-lg shadow-card" />
+            <div className="h-24 bg-white rounded-card-lg shadow-card" />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const name         = input.name         || "아이";
+  const birthDate    = input.birthDate    || "";
+  const birthTime    = input.birthTime    || "unknown";
+  const gender       = input.gender       ?? "male";
+  const calendarType = input.calendarType || "양력";
+  const timeLabel    = BIRTH_TIME_LABEL[birthTime].split(" ")[0];
+  const genderLabel  = gender === "male" ? "남자" : "여자";
+
+  // 상위 2개 오행 (운세 카드 뱃지용)
+  const topTwoOhaeng = [...result.ohaeng]
+    .sort((a, b) => b.percent - a.percent)
+    .slice(0, 2);
+  const fortuTags = [
+    ...topTwoOhaeng.map((e) => ({ emoji: e.emoji, label: e.name })),
+    { emoji: "✨", label: "오늘의 기운" },
+  ];
 
   return (
     <div className="min-h-screen bg-base-off flex justify-center">
       <div className="w-full max-w-mobile bg-base-off pb-8">
 
-        {/* ---- 헤더 ---- */}
+        {/* ── 헤더 ─────────────────────────────────── */}
         <div className="sticky top-0 z-50 bg-white border-b border-base-border">
           <div className="flex items-center justify-between px-4 h-14">
             <button
@@ -72,20 +117,11 @@ export default function MyeonddaraResultPage() {
             <h1 className="text-sm font-bold text-base-text">명따라 분석 결과</h1>
             <div className="w-9" />
           </div>
-          {/* 🧪 테스트 뱃지 */}
-          <div className="flex justify-center pb-2">
-            <span
-              className="text-xs font-semibold px-3 py-1 rounded-full"
-              style={{ backgroundColor: "#FFF9C4", color: "#7A5900" }}
-            >
-              🧪 테스트 버전 · 예시 데이터입니다
-            </span>
-          </div>
         </div>
 
         <div className="px-4 pt-4 flex flex-col gap-4">
 
-          {/* ② 결과 상단 카드 (딥블루) */}
+          {/* ── 결과 상단 카드 (4주) ──────────────── */}
           <div
             className="rounded-card-lg p-5 text-white"
             style={{ background: "linear-gradient(135deg, #1A3A6B, #2C5F8A)" }}
@@ -111,22 +147,22 @@ export default function MyeonddaraResultPage() {
             </div>
           </div>
 
-          {/* ③ 오행 분석 */}
+          {/* ── 오행 분석 ─────────────────────────── */}
           <OhaengChart
             elements={result.ohaeng}
             summary={result.ohaengSummary}
           />
 
-          {/* ④ 타고난 기질 */}
+          {/* ── 타고난 기질 ───────────────────────── */}
           <PersonalityCard
             tags={result.personalityTags}
             description={result.personalityDesc}
           />
 
-          {/* ⑤ 추천 직업군 */}
+          {/* ── 추천 직업군 ───────────────────────── */}
           <RecommendedCareers careers={result.careers} />
 
-          {/* ⑥ 꿈따라 연동 카드 */}
+          {/* ── 꿈따라 연동 카드 ──────────────────── */}
           <div
             className="rounded-card-lg p-4 border border-brand-red"
             style={{ backgroundColor: "#FFF0EB" }}
@@ -135,7 +171,7 @@ export default function MyeonddaraResultPage() {
               ✨ 명따라 결과를 꿈따라에 반영했어요!
             </p>
             <p className="text-xs text-base-muted mb-3 leading-snug">
-              소프트웨어 엔지니어 로드맵을 지금 바로 시작해보세요
+              {result.careers[0]?.name} 로드맵을 지금 바로 시작해보세요
             </p>
             <button
               onClick={handleRoadmap}
@@ -149,7 +185,7 @@ export default function MyeonddaraResultPage() {
             </button>
           </div>
 
-          {/* ⑦ 오늘의 진로 운세 카드 */}
+          {/* ── 오늘의 진로 운세 ──────────────────── */}
           <div
             className="rounded-card-lg p-5 text-center"
             style={{ background: "linear-gradient(135deg, #1A3A6B, #2C5F8A)" }}
@@ -158,18 +194,11 @@ export default function MyeonddaraResultPage() {
               ✨ 오늘의 진로 운세
             </p>
             <p className="text-xs text-white/50 mb-3">{todayLabel}</p>
-            <p className="text-sm font-medium text-white leading-relaxed mb-4">
-              물처럼 유연하게, 바다처럼 깊게.<br />
-              오늘은 새로운 것을 배우기<br />
-              좋은 날이에요. 관심 있는 분야의<br />
-              영상이나 책을 찾아보세요 📚
+            <p className="text-sm font-medium text-white leading-relaxed mb-4 whitespace-pre-line">
+              {result.fortune}
             </p>
             <div className="flex justify-center gap-3">
-              {[
-                { emoji: "🌊", label: "수(水)" },
-                { emoji: "🌲", label: "목(木)" },
-                { emoji: "✨", label: "오늘의 기운" },
-              ].map((item) => (
+              {fortuTags.map((item) => (
                 <span
                   key={item.label}
                   className="flex items-center gap-1 text-xs text-white/80 font-medium px-2.5 py-1 rounded-full"
@@ -182,7 +211,7 @@ export default function MyeonddaraResultPage() {
             </div>
           </div>
 
-          {/* ⑧ 하단 버튼 */}
+          {/* ── 하단 버튼 ─────────────────────────── */}
           <div className="flex flex-col gap-3 mt-2">
             <button
               onClick={handleShare}
@@ -207,6 +236,12 @@ export default function MyeonddaraResultPage() {
               다시 분석하기
             </button>
           </div>
+
+          {/* ── 면책 안내 ─────────────────────────── */}
+          <p className="text-[11px] text-base-muted text-center leading-relaxed px-4 pb-2">
+            명따라는 동양 철학 기반의 참고용 진로 분석 서비스입니다.<br />
+            아이의 가능성은 무한합니다. 💛
+          </p>
 
         </div>
       </div>
