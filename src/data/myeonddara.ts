@@ -63,4 +63,5 @@ export const DUMMY_SAJU_RESULT: SajuResult = {
   topOccupationId: "software-engineer",
 };
 
-export const MYEONDDARA_INPUT_KEY = "kkumddara_myeonddara_input";
+export const MYEONDDARA_INPUT_KEY   = "kkumddara_myeonddara_input";
+export const MYEONDDARA_SESSION_KEY = "kkumddara_myeonddara_session";
