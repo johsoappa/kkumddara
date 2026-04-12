@@ -16,9 +16,14 @@
 // [정책]
 //   - 인증 필수 (학부모만)
 //   - child 소유권 검증
-//   - 자녀별 연 3회 한도 (plan.myeonddara_yearly_limit ÷ child_limit)
-//   - 차감은 정책상 "분석 실행 시점" = 폼 제출 성공 시
-//   - 실패 시 차감 없음 (DB 트랜잭션으로 보장)
+//   - 자녀별 연 3회 한도
+//   - 차감: select → update / insert 명시적 2단계
+//     (PostgREST upsert + partial index 불호환 문제 회피)
+//   - 실패 시 차감 없음
+//
+// [스키마 버전 자동 감지]
+//   - migration 011 적용 → child_id 컬럼 존재 → child 기준
+//   - migration 011 미적용 → 42703 에러 → parent_id 기준 폴백
 // ====================================================
 
 import { NextRequest, NextResponse } from "next/server";
@@ -105,10 +110,9 @@ export async function POST(req: NextRequest) {
     .eq("parent_id", parentId)
     .maybeSingle();
 
-  const isFree        = !plan || plan.plan_name === "free";
-  const yearlyLimit   = plan?.myeonddara_yearly_limit ?? 0;
+  const isFree      = !plan || plan.plan_name === "free";
+  const yearlyLimit = plan?.myeonddara_yearly_limit ?? 0;
 
-  // 무료 또는 yearly_limit = 0 → 차단
   if (isFree || yearlyLimit === 0) {
     return errRes(
       "명따라는 베이직 이상 플랜에서 이용할 수 있어요.",
@@ -118,9 +122,10 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 7. 이번 연도 사용량 확인 (스키마 자동 감지) ──
-  // migration 011 적용 여부에 따라 child_id / parent_id 기준으로 분기
+  // migration 011 적용 여부 판단: child_id 컬럼 존재 확인
   // PostgreSQL error code 42703 = "column does not exist"
   const currentYear = new Date().getFullYear();
+  console.log("[myeonddara/use] 요청 — parentId:", parentId, "childId:", childId, "year:", currentYear);
 
   const { data: usageByChild, error: childColErr } = await supabase
     .from("myeonddara_usage")
@@ -129,27 +134,38 @@ export async function POST(req: NextRequest) {
     .eq("used_year", currentYear)
     .maybeSingle();
 
-  // child_id 컬럼 존재 여부 판단 (42703 = column does not exist)
+  // child_id 컬럼 존재 여부 판단
   const hasChildIdCol = !childColErr || childColErr.code !== "42703";
 
+  console.log("[myeonddara/use] 스키마 감지 — hasChildIdCol:", hasChildIdCol,
+    "childColErr:", childColErr ? `${childColErr.code} / ${childColErr.message}` : "없음");
+
   let usedCount = 0;
+  let existingRowId: string | null = null;
+
   if (hasChildIdCol) {
-    // migration 011 이상 적용됨 — child 기준
-    usedCount = usageByChild?.count ?? 0;
-    console.log("[myeonddara/use] 스키마 v2 (child_id), usedCount:", usedCount);
+    // ── v2 스키마 (migration 011 적용) — child 기준 ──
+    usedCount     = usageByChild?.count   ?? 0;
+    existingRowId = usageByChild?.id      ?? null;
+    console.log("[myeonddara/use] v2 (child_id) — usedCount:", usedCount, "rowId:", existingRowId);
   } else {
-    // migration 011 미적용 — parent_id 기준 폴백
-    console.log("[myeonddara/use] 스키마 v1 폴백 (parent_id) — migration 011 미적용");
-    const { data: usageByParent } = await supabase
+    // ── v1 스키마 (migration 011 미적용) — parent_id 폴백 ──
+    console.log("[myeonddara/use] v1 폴백 (parent_id) — migration 011 미적용");
+    const { data: usageByParent, error: parentUsageErr } = await supabase
       .from("myeonddara_usage")
       .select("id, count")
       .eq("parent_id", parentId)
       .eq("used_year", currentYear)
       .maybeSingle();
-    usedCount = usageByParent?.count ?? 0;
-    console.log("[myeonddara/use] parent_id 기준 usedCount:", usedCount);
+    if (parentUsageErr) {
+      console.error("[myeonddara/use] parent 사용량 조회 실패:", parentUsageErr);
+    }
+    usedCount     = usageByParent?.count ?? 0;
+    existingRowId = usageByParent?.id    ?? null;
+    console.log("[myeonddara/use] v1 parent 기준 — usedCount:", usedCount, "rowId:", existingRowId);
   }
 
+  // ── 8. 한도 초과 확인 ─────────────────────────────
   if (usedCount >= PER_CHILD_YEARLY_LIMIT) {
     return errRes(
       "이번 연도 명따라 분석 횟수를 모두 사용했어요. (연 3회)",
@@ -158,41 +174,65 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  // ── 8. 사용량 차감 (upsert — 스키마에 맞게 분기) ──
-  let upsertErr;
-  if (hasChildIdCol) {
-    // migration 011 이상 — child_id 기준
-    const result = await supabase
+  // ── 9. 사용량 차감 — select → update / insert 2단계 ──
+  // 이유: PostgREST upsert + partial unique index 불호환
+  //       (partial index는 onConflict 타겟으로 인식 안 됨)
+  if (existingRowId) {
+    // ── 9a. 기존 행 업데이트 ──────────────────────────
+    console.log("[myeonddara/use] UPDATE 시도 — id:", existingRowId, "→ count:", usedCount + 1);
+
+    const { error: updateErr } = await supabase
       .from("myeonddara_usage")
-      .upsert(
-        { parent_id: parentId, child_id: childId, used_year: currentYear, count: usedCount + 1 },
-        { onConflict: "child_id,used_year" }
+      .update({ count: usedCount + 1, updated_at: new Date().toISOString() })
+      .eq("id", existingRowId);
+
+    if (updateErr) {
+      console.error("[myeonddara/use] UPDATE 실패 —",
+        "message:", updateErr.message,
+        "code:", updateErr.code,
+        "details:", updateErr.details,
+        "hint:", updateErr.hint
       );
-    upsertErr = result.error;
+      return errRes(
+        "사용량 기록 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
+        "SERVER_ERROR",
+        502
+      );
+    }
+
+    console.log("[myeonddara/use] UPDATE 성공");
   } else {
-    // migration 011 미적용 — parent_id 기준 폴백
-    const result = await supabase
+    // ── 9b. 신규 행 삽입 ──────────────────────────────
+    const insertPayload = hasChildIdCol
+      ? { parent_id: parentId, child_id: childId, used_year: currentYear, count: 1 }
+      : { parent_id: parentId, used_year: currentYear, count: 1 };
+
+    console.log("[myeonddara/use] INSERT 시도 — payload:", JSON.stringify(insertPayload));
+
+    const { error: insertErr } = await supabase
       .from("myeonddara_usage")
-      .upsert(
-        { parent_id: parentId, used_year: currentYear, count: usedCount + 1 },
-        { onConflict: "parent_id,used_year" }
+      .insert(insertPayload);
+
+    if (insertErr) {
+      console.error("[myeonddara/use] INSERT 실패 —",
+        "message:", insertErr.message,
+        "code:", insertErr.code,
+        "details:", insertErr.details,
+        "hint:", insertErr.hint
       );
-    upsertErr = result.error;
+      return errRes(
+        "사용량 기록 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
+        "SERVER_ERROR",
+        502
+      );
+    }
+
+    console.log("[myeonddara/use] INSERT 성공");
   }
 
-  if (upsertErr) {
-    console.error("[myeonddara/use] upsert 실패:", upsertErr);
-    return errRes(
-      "사용량 기록 중 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
-      "SERVER_ERROR",
-      502
-    );
-  }
+  const remaining = PER_CHILD_YEARLY_LIMIT - (usedCount + 1);
+  console.log("[myeonddara/use] 완료 — remaining:", remaining);
 
-  console.log("[myeonddara/use] 차감 완료, remaining:", PER_CHILD_YEARLY_LIMIT - (usedCount + 1));
-
-  // ── 9. 성공 응답 ──────────────────────────────────
-  return NextResponse.json({
-    remaining: PER_CHILD_YEARLY_LIMIT - (usedCount + 1),
-  });
+  // ── 10. 성공 응답 ─────────────────────────────────
+  return NextResponse.json({ remaining });
 }
