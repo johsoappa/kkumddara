@@ -3,18 +3,15 @@
 // ====================================================
 // 명따라 메인 입력 화면 (/myeonddara)
 //
+// [Phase 1/2 전환]
+//   NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true → Claude API 호출
+//   미설정 또는 false → 만세력 계산 후 직접 결과 이동 (Phase 1)
+//
 // [상태별 분기]
-//   loading   : 인증 확인 중
-//   guest     : 비로그인 → 소개 + 로그인 유도
-//   student   : 학생 계정 → 학부모 전용 안내
-//   parent    : 학부모 → 플랜 확인 → 자녀 선택 → 분석
-//   analyzing : Claude 분석 중 → 전체화면 오버레이
-//
-// [API]
-//   POST /api/myeonddara — 인증 + 사용량 차감 + Claude 분석 통합
-//
-// [계산]
-//   lib/manseryeok.ts — 클라이언트 사이드 만세력 계산
+//   loading : 인증 확인 중
+//   guest   : 비로그인 → 로그인 유도
+//   student : 학생 계정 → 학부모 전용 안내
+//   parent  : 학부모 → 플랜 확인 → 자녀 선택 → 분석
 // ====================================================
 
 import { useState, useEffect } from "react";
@@ -27,7 +24,21 @@ import type { GradeLevel, Grade } from "@/types/family";
 import { BIRTH_TIME_LABEL } from "@/types/myeonddara";
 import type { SajuInputData } from "@/types/myeonddara";
 import { supabase } from "@/lib/supabase";
-import { MYEONDDARA_SESSION_KEY } from "@/data/myeonddara";
+import { MYEONDDARA_SAJU_KEY, MYEONDDARA_RESULT_KEY } from "@/data/myeonddara";
+
+// ── Feature Flag ────────────────────────────────────────────────
+// true  → Phase 2 (Claude API 호출, 사용량 차감)
+// false → Phase 1 (만세력 계산 결과만 표시, API 미호출)
+const PHASE2_ENABLED =
+  process.env.NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED === "true";
+
+// ── 운영 경로 식별 로그 (빌드 시 환경변수 임베드 결과 확인용) ──
+// 브라우저 콘솔 + Next.js SSR 서버 로그 모두 노출됩니다.
+console.log(
+  PHASE2_ENABLED
+    ? "[myeonddara] phase2 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true (Claude API 활성)"
+    : "[myeonddara] phase1 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED 미설정 or false (API 미호출)"
+);
 
 const PER_CHILD_YEARLY_LIMIT = 3;
 
@@ -68,8 +79,8 @@ export default function MyeonddaraPage() {
   // ── 인증 상태 ──────────────────────────────────────
   const [authState, setAuthState]       = useState<AuthState>("loading");
 
-  // ── 분석 중 오버레이 ───────────────────────────────
-  const [analyzing, setAnalyzing]       = useState(false);
+  // ── 분석 중 오버레이 (Phase 2 활성화 시 사용) ─────────
+  const [analyzing, setAnalyzing]         = useState(false);
   const [analyzingName, setAnalyzingName] = useState("");
 
   // ── 학부모 전용: 플랜/한도 차단 ───────────────────
@@ -181,9 +192,9 @@ export default function MyeonddaraPage() {
     }
   }, [selectedChildId, children, checkDone, blockType]);
 
-  // ── 폼 제출 ────────────────────────────────────────
+  // ── 폼 제출 ────────────────────────────────────────────────────
   const handleSubmit = async (data: SajuInputData) => {
-    console.log("[명따라] handleSubmit 시작 — childId:", selectedChildId, "blocked:", blocked);
+    console.log("[명따라] handleSubmit — phase2:", PHASE2_ENABLED, "childId:", selectedChildId);
 
     if (!selectedChildId) { setSubmitError("자녀를 선택해주세요."); return; }
     if (blocked) return;
@@ -191,7 +202,7 @@ export default function MyeonddaraPage() {
     setSubmitError(null);
     setAnalyzingName(data.name);
 
-    // ① 만세력 계산 (클라이언트)
+    // ① 만세력 계산 (클라이언트 — 항상 실행)
     let saju;
     try {
       saju = calculateManseryeok({
@@ -209,12 +220,29 @@ export default function MyeonddaraPage() {
       return;
     }
 
-    // ② 분석 중 오버레이 표시
-    setAnalyzing(true);
+    const inputData = {
+      name:           data.name,
+      birthDate:      data.birthDate,
+      birthDateLabel: toBirthDateLabel(data.birthDate, data.calendarType),
+      birthTime:      data.birthTime,
+      birthTimeLabel: toBirthTimeLabel(data.birthTime),
+      gender:         data.gender === "male" ? "남자" : "여자",
+      calendarType:   data.calendarType,
+    };
 
-    // ③ API 호출 (인증 + 사용량 + Claude)
+    // ── Phase 1: Claude 비활성화 → 바로 결과 이동 ──────
+    if (!PHASE2_ENABLED) {
+      console.log("[명따라] Phase 1 모드 — API 미호출, 결과 이동");
+      sessionStorage.setItem(MYEONDDARA_SAJU_KEY, JSON.stringify({ saju, inputData }));
+      router.push("/myeonddara/result");
+      return;
+    }
+
+    // ── Phase 2: Claude API 호출 ────────────────────────
+    setAnalyzing(true);
+    console.log("[명따라] Phase 2 모드 — POST /api/myeonddara 호출");
+
     try {
-      console.log("[명따라] POST /api/myeonddara 호출");
       const res = await fetch("/api/myeonddara", {
         method:  "POST",
         headers: { "Content-Type": "application/json" },
@@ -222,65 +250,68 @@ export default function MyeonddaraPage() {
           childId:   selectedChildId,
           name:      data.name,
           saju,
-          gender:    data.gender === "male" ? "남자" : "여자",
-          birthDate: toBirthDateLabel(data.birthDate, data.calendarType),
-          birthTime: toBirthTimeLabel(data.birthTime),
+          gender:    inputData.gender,
+          birthDate: inputData.birthDateLabel,
+          birthTime: inputData.birthTimeLabel,
         }),
       });
 
-      console.log("[명따라] 응답 status:", res.status);
+      console.log("[명따라] API 응답 status:", res.status);
 
       if (!res.ok) {
-        let errMsg = "분석 중 오류가 발생했어요. 다시 시도해 주세요.";
-        try {
-          const err = await res.json();
-          console.log("[명따라] API 에러:", err);
-          if (res.status === 429 || res.status === 403) {
-            setBlocked(true);
-            setBlockMsg(err.error ?? errMsg);
-            setBlockType(res.status === 403 ? "plan" : "limit");
-            if (res.status === 429) {
-              setChildren((prev) =>
-                prev.map((c) =>
-                  c.id === selectedChildId
-                    ? { ...c, usedCount: PER_CHILD_YEARLY_LIMIT }
-                    : c
-                )
-              );
-            }
-            setAnalyzing(false);
-            return;
-          } else if (res.status === 401) {
-            errMsg = "로그인이 필요해요. 다시 로그인해주세요.";
-          } else {
-            errMsg = err.error ?? errMsg;
+        let err: { error?: string; code?: string } = {};
+        try { err = await res.json(); } catch { /* noop */ }
+
+        console.log("[명따라] API 에러 코드:", err.code);
+
+        // 크레딧 부족 → Phase 1 fallback (에러 없이 만세력 결과 표시)
+        if (err.code === "BILLING_REQUIRED") {
+          console.warn("[명따라] Anthropic 크레딧 부족 → Phase 1 fallback");
+          sessionStorage.setItem(MYEONDDARA_SAJU_KEY, JSON.stringify({ saju, inputData }));
+          setAnalyzing(false);
+          router.push("/myeonddara/result");
+          return;
+        }
+
+        // 횟수 초과 / 플랜 차단
+        if (res.status === 429 || res.status === 403) {
+          setBlocked(true);
+          setBlockMsg(err.error ?? "이용 제한이 발생했어요.");
+          setBlockType(res.status === 429 ? "limit" : "plan");
+          if (res.status === 429) {
+            setChildren((prev) =>
+              prev.map((c) =>
+                c.id === selectedChildId
+                  ? { ...c, usedCount: PER_CHILD_YEARLY_LIMIT }
+                  : c
+              )
+            );
           }
-        } catch { /* JSON 파싱 실패 무시 */ }
-        setSubmitError(errMsg);
+          setAnalyzing(false);
+          return;
+        }
+
+        // 인증 오류
+        if (res.status === 401) {
+          setSubmitError("로그인이 필요해요. 다시 로그인해주세요.");
+          setAnalyzing(false);
+          return;
+        }
+
+        // 기타 오류
+        setSubmitError(err.error ?? "AI 분석 중 오류가 발생했어요. 다시 시도해 주세요.");
         setAnalyzing(false);
         return;
       }
 
-      // ④ 성공 — sessionStorage 저장
+      // ── 성공 → myeonddara_result 저장 후 이동 ────────
       const { analysis, remaining } = await res.json();
-      console.log("[명따라] 분석 완료 — remaining:", remaining);
+      console.log("[명따라] Claude 분석 완료 — remaining:", remaining);
 
-      const session = {
-        saju,
-        analysis,
-        inputData: {
-          name:           data.name,
-          birthDate:      data.birthDate,
-          birthDateLabel: toBirthDateLabel(data.birthDate, data.calendarType),
-          birthTime:      data.birthTime,
-          birthTimeLabel: toBirthTimeLabel(data.birthTime),
-          gender:         data.gender === "male" ? "남자" : "여자",
-          calendarType:   data.calendarType,
-        },
-      };
-      sessionStorage.setItem(MYEONDDARA_SESSION_KEY, JSON.stringify(session));
-
-      // 남은 횟수 UI 갱신
+      sessionStorage.setItem(
+        MYEONDDARA_RESULT_KEY,
+        JSON.stringify({ saju, analysis, inputData })
+      );
       setChildren((prev) =>
         prev.map((c) =>
           c.id === selectedChildId
@@ -288,8 +319,8 @@ export default function MyeonddaraPage() {
             : c
         )
       );
-
       router.push("/myeonddara/result");
+
     } catch (e) {
       console.error("[명따라] fetch 예외:", e);
       setSubmitError("네트워크 오류가 발생했어요. 인터넷 연결을 확인해주세요.");
@@ -307,10 +338,10 @@ export default function MyeonddaraPage() {
           <ArrowLeft size={20} className="text-base-text" />
         </button>
         <h1 className="text-sm font-bold text-base-text">명따라</h1>
-        {authState === "parent" && remainingCount !== null && !blocked ? (
+        {authState === "parent" && !blocked && (!PHASE2_ENABLED || remainingCount !== null) ? (
           <span className="text-xs font-semibold px-2.5 py-1 rounded-full"
             style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}>
-            올해 {remainingCount}회 남음
+            {PHASE2_ENABLED ? `올해 ${remainingCount}회 남음` : "베타 운영 중"}
           </span>
         ) : <div className="w-9" />}
       </div>

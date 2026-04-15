@@ -202,14 +202,17 @@ export async function POST(req: NextRequest) {
 
 위 사주를 분석해서 규정된 JSON 형식으로 응답하라.`;
 
-  console.log("[api/myeonddara] Claude 호출 — 사주:", saju.summary);
+  // ── 8. Claude API 호출 ────────────────────────────
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  console.log("[api/myeonddara] ① API 호출 시작 — 사주:", saju.summary);
+  console.log("[api/myeonddara]   모델:", CLAUDE_MODEL);
+  console.log("[api/myeonddara]   API Key 존재:", !!apiKey, apiKey ? `(${apiKey.slice(0,8)}...)` : "(없음)");
 
   let analysis: Record<string, unknown>;
   try {
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
+    const anthropic = new Anthropic({ apiKey });
 
+    console.log("[api/myeonddara] ② Anthropic messages.create 요청 직전");
     const msg = await anthropic.messages.create({
       model:      CLAUDE_MODEL,
       max_tokens: 2048,
@@ -217,18 +220,54 @@ export async function POST(req: NextRequest) {
       messages:   [{ role: "user", content: userMessage }],
     });
 
+    console.log("[api/myeonddara] ③ Anthropic 응답 수신 — stop_reason:", msg.stop_reason);
     const content = msg.content[0];
-    if (content.type !== "text") throw new Error("Unexpected response type");
+    if (content.type !== "text") throw new Error("Unexpected response type: " + content.type);
 
     let text = content.text.trim();
+    console.log("[api/myeonddara] ④ raw 응답 앞 200자:", text.slice(0, 200));
+
     // 마크다운 코드블록 제거
     if (text.startsWith("```")) {
       text = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "");
     }
+
+    console.log("[api/myeonddara] ⑤ JSON.parse 시도");
     analysis = JSON.parse(text);
-    console.log("[api/myeonddara] Claude 분석 완료 — dominantOhaeng:", analysis.dominantOhaeng);
-  } catch (e) {
-    console.error("[api/myeonddara] Claude API 실패:", e);
+    console.log("[api/myeonddara] ⑥ JSON 파싱 성공 — dominantOhaeng:", analysis.dominantOhaeng);
+
+  } catch (e: unknown) {
+    // Anthropic 크레딧 부족 감지
+    const err = e as { status?: number; error?: { type?: string; message?: string }; message?: string };
+    const errMsg  = err?.error?.message ?? err?.message ?? "";
+    const errType = err?.error?.type ?? "";
+
+    console.error("[api/myeonddara] ❌ Claude API 실패");
+    console.error("[api/myeonddara]   status:", err?.status);
+    console.error("[api/myeonddara]   type:", errType);
+    console.error("[api/myeonddara]   message:", errMsg);
+
+    // 크레딧/결제 관련 에러 → 프론트에서 Phase 1 fallback 처리
+    const isBilling =
+      (err?.status === 400 && errMsg.toLowerCase().includes("credit")) ||
+      errMsg.toLowerCase().includes("credit balance") ||
+      errMsg.toLowerCase().includes("billing");
+
+    if (isBilling) {
+      console.warn("[api/myeonddara] ⚠️ Anthropic 크레딧 부족 — BILLING_REQUIRED 반환");
+      return errRes(
+        "AI 분석 크레딧이 부족합니다. 현재는 기본 만세력 결과만 제공됩니다.",
+        "BILLING_REQUIRED",
+        402
+      );
+    }
+
+    // JSON 파싱 실패
+    if (e instanceof SyntaxError) {
+      console.error("[api/myeonddara] ❌ JSON 파싱 실패:", e.message);
+      return errRes("AI 응답 파싱에 실패했어요. 다시 시도해 주세요.", "PARSE_ERROR", 502);
+    }
+
     return errRes("AI 분석 중 오류가 발생했어요. 다시 시도해 주세요.", "AI_ERROR", 502);
   }
 
@@ -256,7 +295,9 @@ export async function POST(req: NextRequest) {
   }
 
   const remaining = PER_CHILD_YEARLY_LIMIT - (usedCount + 1);
-  console.log("[api/myeonddara] 완료 — remaining:", remaining);
+  console.log("[api/myeonddara] ⑦ 사용량 차감 완료 — remaining:", remaining);
+  console.log("[api/myeonddara] ⑧ sessionStorage 저장 payload 키: myeonddara_result");
+  console.log("[api/myeonddara] ⑨ 최종 응답 반환");
 
   return NextResponse.json({ analysis, remaining });
 }

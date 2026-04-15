@@ -65,3 +65,6 @@ export const DUMMY_SAJU_RESULT: SajuResult = {
 
 export const MYEONDDARA_INPUT_KEY   = "kkumddara_myeonddara_input";
 export const MYEONDDARA_SESSION_KEY = "kkumddara_myeonddara_session";
+// Phase 1/2 세션 키
+export const MYEONDDARA_SAJU_KEY   = "myeonddara_saju";
+export const MYEONDDARA_RESULT_KEY = "myeonddara_result";
