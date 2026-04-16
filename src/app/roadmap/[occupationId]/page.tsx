@@ -144,6 +144,20 @@ export default function RoadmapPage() {
     );
   }
 
+  // ── unlock 판단 함수 (단일 기준) ─────────────────────
+  // 75% 이상 완료 시 해당 단계를 "완료로 간주" → 다음 단계 해제
+  // Math.ceil(4 * 0.75) = 3 → 미션 4개 기준 3개 완료 시 unlock
+  // 토스트·카드 unlock 모두 이 함수 하나로 판단한다.
+  const isStageCleared = (
+    stageMissions: { id: string }[],
+    completedSet: Set<string>
+  ): boolean => {
+    const total = stageMissions.length;
+    if (total === 0) return true;
+    const done = stageMissions.filter((m) => completedSet.has(m.id)).length;
+    return done >= Math.ceil(total * 0.75);
+  };
+
   // ── 파생 값 ──────────────────────────────────────────
   const currentStage = roadmap.stages.find((s) => s.status === "current")!;
   const allMissions  = useMemo(
@@ -162,18 +176,17 @@ export default function RoadmapPage() {
 
   // ── 단계별 실효 상태 (동적 계산) ──────────────────────
   // stage.status는 정적 초기값. 실제 unlock 여부는
-  // "이전 단계 미션 전체 완료" 기준으로 동적으로 결정한다.
+  // isStageCleared (75% 기준) 로 동적으로 결정한다.
   //   i=0 (current): 항상 "current"
-  //   i=1 (next)   : stage[0] 전체 완료 시 → "current" (해제)
-  //   i=2 (future) : stage[1] 전체 완료 시 → "next"   (해제)
+  //   i=1 (next)   : stage[0] 75% 이상 완료 시 → "current" (해제)
+  //   i=2 (future) : stage[1] 75% 이상 완료 시 → "next"   (해제)
   const effectiveStatuses = useMemo<StageStatus[]>(() => {
     const missions = hydrated ? completedMissions : new Set<string>();
     return roadmap.stages.map((stage, i) => {
       if (i === 0) return "current";
-      const prevStage  = roadmap.stages[i - 1];
-      const prevAllDone = prevStage.missions.every((m) => missions.has(m.id));
-      if (!prevAllDone) return stage.status;
-      // 이전 단계 완료 → 한 단계 승격
+      const prevStage = roadmap.stages[i - 1];
+      if (!isStageCleared(prevStage.missions, missions)) return stage.status;
+      // 이전 단계 75% 이상 완료 → 한 단계 승격
       if (stage.status === "next")   return "current";
       if (stage.status === "future") return "next";
       return stage.status;
@@ -216,8 +229,10 @@ export default function RoadmapPage() {
     }
 
     if (wasAdded) {
-      const allCurrentDone = currentStage.missions.every((m) => next.has(m.id));
-      if (allCurrentDone) showToast("NEXT 단계가 해제됐어요! 🎉");
+      // 토스트 기준도 isStageCleared (75%) 로 카드 unlock과 동일하게 판단
+      if (isStageCleared(currentStage.missions, next)) {
+        showToast("NEXT 단계가 해제됐어요! 🎉");
+      }
     }
   };
 
