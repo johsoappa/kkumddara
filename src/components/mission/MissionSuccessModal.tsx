@@ -9,7 +9,7 @@
 //   compass : 팝업 스케일 + 체크 SVG 드로잉 — 나침반 모드
 //
 // [닫기 정책]
-//   "다음으로" 버튼으로만 닫힘 — 바깥 클릭 / ESC 차단
+//   "확인" 버튼으로만 닫힘 — 바깥 클릭 / ESC 차단
 // ====================================================
 
 import { useEffect, useState } from "react";
@@ -248,7 +248,7 @@ export default function MissionSuccessModal({
             className="w-full rounded-button py-3.5 text-sm font-bold text-white transition-opacity hover:opacity-90 active:opacity-80"
             style={{ backgroundColor: cfg.color }}
           >
-            다음으로
+            확인
           </button>
         </div>
       </div>

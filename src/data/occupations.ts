@@ -482,7 +482,30 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
 
-  // ── 교육·사회 (6개) ───────────────────────────────
+  // ── 교육·사회 (7개) ───────────────────────────────
+  {
+    id: "historian",
+    name: "역사학자",
+    emoji: "📜",
+    category: "교육·사회",
+    description: "과거의 사건·문화·사람들의 삶을 연구하고 기록하는 전문가예요. 자료를 분석해 역사적 사실을 밝혀내고 책·논문·강의로 세상에 알려요.",
+    fitScore: 74,
+    relatedMajors: [
+      { name: "사학과", universities: ["서울대", "연세대", "고려대"] },
+      { name: "역사교육과", universities: ["서울대", "한국교원대", "이화여대"] },
+    ],
+    skills: ["꼼꼼한 분석력", "자료 조사", "글쓰기"],
+    salaryMin: 2800,
+    salaryMax: 7000,
+    growthRate: 2.8,
+    futureRating: 3,
+    preparations: [
+      "역사 관련 책·다큐멘터리 꾸준히 보기",
+      "박물관·역사 유적지 방문하고 기록하기",
+      "한국사·세계사 과목 깊이 공부하기",
+      "학교 역사 동아리 또는 독서 토론 참여하기",
+    ],
+  },
   {
     id: "teacher",
     name: "교사",
@@ -614,30 +637,6 @@ export const OCCUPATIONS: Occupation[] = [
       "친구의 고민을 들어주고 조언하는 연습하기",
       "직업 체험 박람회 방문하기",
       "심리학·상담 관련 입문 도서 읽기",
-    ],
-  },
-
-  {
-    id: "historian",
-    name: "역사학자",
-    emoji: "📜",
-    category: "교육·사회",
-    description: "과거의 사건·문화·사람들의 삶을 연구하고 기록하는 전문가예요. 자료를 분석해 역사적 사실을 밝혀내고 책·논문·강의로 세상에 알려요.",
-    fitScore: 74,
-    relatedMajors: [
-      { name: "사학과", universities: ["서울대", "연세대", "고려대"] },
-      { name: "역사교육과", universities: ["서울대", "한국교원대", "이화여대"] },
-    ],
-    skills: ["꼼꼼한 분석력", "자료 조사", "글쓰기"],
-    salaryMin: 2800,
-    salaryMax: 7000,
-    growthRate: 2.8,
-    futureRating: 3,
-    preparations: [
-      "역사 관련 책·다큐멘터리 꾸준히 보기",
-      "박물관·역사 유적지 방문하고 기록하기",
-      "한국사·세계사 과목 깊이 공부하기",
-      "학교 역사 동아리 또는 독서 토론 참여하기",
     ],
   },
 
