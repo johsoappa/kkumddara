@@ -16,6 +16,7 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { MYEONDDARA_SAJU_KEY, MYEONDDARA_RESULT_KEY } from "@/data/myeonddara";
 import type { ManseryeokResult } from "@/lib/manseryeok";
+import { buildRuleBasedGuide } from "@/lib/myeonddara-rules";
 
 // ── Claude 분석 타입 ────────────────────────────────────────────
 interface CareerItem {
@@ -151,6 +152,7 @@ export default function MyeonddaraResultPage() {
 
   const { saju, inputData, hasAnalysis, analysis } = session;
   const { yearPillar, monthPillar, dayPillar, hourPillar, ohaeng } = saju;
+  const ruleGuide = buildRuleBasedGuide(saju);
 
   const ohaengBars = OHAENG_META.map((m) => ({
     ...m,
@@ -257,21 +259,94 @@ export default function MyeonddaraResultPage() {
             </div>
           </div>
 
-          {/* ── Phase 1: AI 준비중 안내 카드 ─────────── */}
+          {/* ── Phase 1: 규칙 기반 정보 카드 + AI 준비중 안내 ── */}
           {!hasAnalysis && (
-            <div className="bg-white rounded-card-lg shadow-card p-6 text-center flex flex-col items-center gap-3">
-              <span className="text-4xl">🔮</span>
-              <h3 className="text-sm font-bold text-base-text">명따라 AI 기질 분석</h3>
-              <p className="text-xs text-base-muted leading-relaxed">
-                현재는 기본 만세력 결과만 제공됩니다.<br />
-                타고난 기질 · 강점 · 추천 직업군 등<br />
-                심화 AI 해석은 준비 중입니다.
-              </p>
-              <span className="px-3 py-1.5 rounded-full text-xs font-semibold"
-                style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}>
-                Coming Soon
-              </span>
-            </div>
+            <>
+              {/* ① 일간 한줄 해설 */}
+              <div className="bg-white rounded-card-lg shadow-card p-5">
+                <p className="text-[11px] font-bold text-base-muted mb-3 tracking-wide uppercase">
+                  일간(日干) · {saju.ilgan}
+                </p>
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl leading-none shrink-0">
+                    {ruleGuide.ilganGuide.emoji}
+                  </span>
+                  <p className="text-sm text-base-text leading-relaxed">
+                    {ruleGuide.ilganGuide.text}
+                  </p>
+                </div>
+              </div>
+
+              {/* ② 기질 키워드 */}
+              <div className="bg-white rounded-card-lg shadow-card p-5">
+                <h3 className="text-sm font-bold text-base-text mb-3">기질 키워드</h3>
+                <div className="flex flex-wrap gap-2">
+                  {ruleGuide.keywords.map((kw) => (
+                    <span
+                      key={kw}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                      style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+                    >
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* ③ 오행 균형 해설 */}
+              <div className="bg-white rounded-card-lg shadow-card p-5">
+                <h3 className="text-sm font-bold text-base-text mb-2">오행 균형</h3>
+                <p className="text-sm text-base-text leading-relaxed">
+                  {ruleGuide.ohaengBalance}
+                </p>
+              </div>
+
+              {/* ④ 학습 스타일 가이드 */}
+              <div className="bg-white rounded-card-lg shadow-card p-5">
+                <div className="flex items-center gap-2 mb-2">
+                  <h3 className="text-sm font-bold text-base-text">학습 스타일</h3>
+                  <span
+                    className="text-xs font-bold px-2.5 py-1 rounded-full text-white shrink-0"
+                    style={{ backgroundColor: "#E84B2E" }}
+                  >
+                    {ruleGuide.learningStyle.style}
+                  </span>
+                </div>
+                <p className="text-sm text-base-text leading-relaxed">
+                  {ruleGuide.learningStyle.detail}
+                </p>
+              </div>
+
+              {/* ⑤ 부모 가이드 팁 */}
+              <div
+                className="rounded-card-lg p-5 border border-orange-200"
+                style={{ backgroundColor: "#FFF8F4" }}
+              >
+                <p className="text-xs font-bold mb-2" style={{ color: "#E84B2E" }}>
+                  💌 부모님께
+                </p>
+                <p className="text-sm text-base-text leading-relaxed">
+                  {ruleGuide.parentTip}
+                </p>
+              </div>
+
+              {/* AI 준비중 안내 */}
+              <div className="bg-white rounded-card-lg shadow-card p-6 text-center flex flex-col items-center gap-3">
+                <span className="text-4xl">🔮</span>
+                <h3 className="text-sm font-bold text-base-text">명따라 AI 기질 분석</h3>
+                <p className="text-xs text-base-muted leading-relaxed">
+                  현재는 기본 만세력 결과만 제공됩니다.<br />
+                  타고난 기질 · 강점 · 추천 직업군 등<br />
+                  심화 AI 해석은 준비 중입니다.
+                </p>
+                <span
+                  className="px-3 py-1.5 rounded-full text-xs font-semibold"
+                  style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+                >
+                  Coming Soon
+                </span>
+              </div>
+            </>
           )}
 
           {/* ── Phase 2: Claude 분석 카드들 ──────────── */}
