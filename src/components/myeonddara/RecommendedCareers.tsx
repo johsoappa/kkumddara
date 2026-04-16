@@ -56,10 +56,6 @@ export default function RecommendedCareers({ careers }: RecommendedCareersProps)
               </p>
             </div>
 
-            {/* 적합도 */}
-            <span className="text-sm font-bold text-brand-red flex-shrink-0">
-              {c.fitScore}%
-            </span>
           </button>
         ))}
       </div>

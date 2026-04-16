@@ -30,9 +30,6 @@ export default function TopOccupations({ occupations }: TopOccupationsProps) {
                   {occ.name}
                 </span>
               </div>
-              <span className="text-sm font-bold text-brand-red">
-                {occ.score}%
-              </span>
             </div>
             {/* 바 그래프 */}
             <div className="h-2.5 bg-base-border rounded-full overflow-hidden">

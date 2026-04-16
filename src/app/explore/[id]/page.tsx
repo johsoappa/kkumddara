@@ -13,7 +13,6 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Heart, TrendingUp, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OCCUPATIONS } from "@/data/occupations";
-import FitGauge from "@/components/explore/FitGauge";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
 import { QUIZ_DATA } from "@/data/quizData";
 
@@ -117,10 +116,9 @@ export default function OccupationDetailPage() {
           <h2 className="text-2xl font-bold text-base-text">
             {occupation.name}
           </h2>
-          <span className="mt-1.5 mb-6 text-xs font-medium text-white bg-brand-red px-3 py-1 rounded-full">
+          <span className="mt-1.5 text-xs font-medium text-white bg-brand-red px-3 py-1 rounded-full">
             {occupation.category}
           </span>
-          <FitGauge score={occupation.fitScore} size={88} />
         </div>
 
         {/* ---- 카드 섹션 목록 ---- */}

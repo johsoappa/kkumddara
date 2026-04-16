@@ -10,7 +10,6 @@ import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import type { Occupation } from "@/types/occupation";
-import FitGauge from "./FitGauge";
 
 interface OccupationCardProps {
   occupation: Occupation;
@@ -59,26 +58,23 @@ export default function OccupationCard({
         </div>
       </div>
 
-      {/* 오른쪽: 적합도 게이지 + 하트 */}
-      <div className="flex flex-col items-center gap-1.5 flex-shrink-0">
-        <FitGauge score={occupation.fitScore} size={52} />
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            onLikeToggle(occupation.id);
-          }}
-          className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-base-off transition-colors"
-          aria-label={liked ? "찜 해제" : "찜하기"}
-        >
-          <Heart
-            size={17}
-            className={cn(
-              "transition-colors",
-              liked ? "fill-brand-red text-brand-red" : "text-base-muted"
-            )}
-          />
-        </button>
-      </div>
+      {/* 오른쪽: 하트 */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onLikeToggle(occupation.id);
+        }}
+        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-base-off transition-colors flex-shrink-0"
+        aria-label={liked ? "찜 해제" : "찜하기"}
+      >
+        <Heart
+          size={17}
+          className={cn(
+            "transition-colors",
+            liked ? "fill-brand-red text-brand-red" : "text-base-muted"
+          )}
+        />
+      </button>
     </div>
   );
 }
