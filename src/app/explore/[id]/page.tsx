@@ -14,6 +14,8 @@ import { ArrowLeft, Heart, TrendingUp, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OCCUPATIONS } from "@/data/occupations";
 import FitGauge from "@/components/explore/FitGauge";
+import OccupationQuiz from "@/components/quiz/OccupationQuiz";
+import { QUIZ_DATA } from "@/data/quizData";
 
 const LIKED_KEY = "kkumddara_liked";
 const SALARY_MAX_REF = 10000; // 연봉 바 기준 (만원)
@@ -24,6 +26,7 @@ export default function OccupationDetailPage() {
   const id = params.id as string;
 
   const occupation = OCCUPATIONS.find((o) => o.id === id);
+  const quizData   = QUIZ_DATA.find((q) => q.occupationId === id);
 
   const [liked, setLiked] = useState(false);
   const [checkedPreps, setCheckedPreps] = useState<Set<number>>(new Set());
@@ -292,6 +295,13 @@ export default function OccupationDetailPage() {
               </div>
             </div>
           </section>
+          {/* ⑥ 직업 연계 퀴즈 (퀴즈 데이터가 있는 직업만 표시) */}
+          {quizData && (
+            <section>
+              <OccupationQuiz quizData={quizData} />
+            </section>
+          )}
+
         </div>
 
         {/* ---- 하단 고정 버튼 ---- */}
