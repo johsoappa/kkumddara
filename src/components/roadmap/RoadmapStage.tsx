@@ -9,7 +9,7 @@
 
 import { Lock } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { RoadmapStage as RoadmapStageType } from "@/types/roadmap";
+import type { RoadmapStage as RoadmapStageType, StageStatus } from "@/types/roadmap";
 import MissionItem from "./MissionItem";
 
 interface StageConfig {
@@ -42,19 +42,22 @@ const STAGE_CONFIG: Record<string, StageConfig> = {
 
 interface RoadmapStageProps {
   stage: RoadmapStageType;
+  /** 동적으로 계산된 실효 상태. stage.status(정적)가 아닌 이 값으로 렌더링 결정. */
+  effectiveStatus: StageStatus;
   completedMissions: Set<string>;
   onToggle: (id: string) => void;
 }
 
 export default function RoadmapStage({
   stage,
+  effectiveStatus,
   completedMissions,
   onToggle,
 }: RoadmapStageProps) {
-  const config = STAGE_CONFIG[stage.status];
-  const isCurrent = stage.status === "current";
-  const isNext    = stage.status === "next";
-  const isFuture  = stage.status === "future";
+  const config = STAGE_CONFIG[effectiveStatus];
+  const isCurrent = effectiveStatus === "current";
+  const isNext    = effectiveStatus === "next";
+  const isFuture  = effectiveStatus === "future";
 
   const completedCount = stage.missions.filter((m) =>
     completedMissions.has(m.id)

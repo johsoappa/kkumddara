@@ -24,6 +24,7 @@ import RoadmapStage from "@/components/roadmap/RoadmapStage";
 import TodayMission from "@/components/roadmap/TodayMission";
 import { getRoadmap } from "@/data/roadmaps";
 import { supabase } from "@/lib/supabase";
+import type { StageStatus } from "@/types/roadmap";
 
 const LAST_ROADMAP_KEY = "kkumddara_last_roadmap";
 
@@ -159,6 +160,26 @@ export default function RoadmapPage() {
     [currentStage.missions, completedMissions]
   );
 
+  // ── 단계별 실효 상태 (동적 계산) ──────────────────────
+  // stage.status는 정적 초기값. 실제 unlock 여부는
+  // "이전 단계 미션 전체 완료" 기준으로 동적으로 결정한다.
+  //   i=0 (current): 항상 "current"
+  //   i=1 (next)   : stage[0] 전체 완료 시 → "current" (해제)
+  //   i=2 (future) : stage[1] 전체 완료 시 → "next"   (해제)
+  const effectiveStatuses = useMemo<StageStatus[]>(() => {
+    const missions = hydrated ? completedMissions : new Set<string>();
+    return roadmap.stages.map((stage, i) => {
+      if (i === 0) return "current";
+      const prevStage  = roadmap.stages[i - 1];
+      const prevAllDone = prevStage.missions.every((m) => missions.has(m.id));
+      if (!prevAllDone) return stage.status;
+      // 이전 단계 완료 → 한 단계 승격
+      if (stage.status === "next")   return "current";
+      if (stage.status === "future") return "next";
+      return stage.status;
+    });
+  }, [roadmap.stages, completedMissions, hydrated]);
+
   // ── 토스트 ───────────────────────────────────────────
   const showToast = (msg: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
@@ -209,16 +230,25 @@ export default function RoadmapPage() {
   return (
     <AppShell headerTitle="나의 로드맵">
 
-      {/* ── 토스트 ── */}
+      {/* ── 토스트 (페이지 최상단 중앙, 카드와 겹치지 않음) ── */}
       {toast && (
         <div className="
-          fixed top-16 left-1/2 -translate-x-1/2 z-50
+          fixed top-4 left-1/2 -translate-x-1/2 z-[500]
           bg-base-text text-white text-sm font-semibold
-          px-5 py-3 rounded-full shadow-card animate-bounce
-        ">
+          px-5 py-3 rounded-full shadow-card
+          whitespace-nowrap
+        "
+          style={{ animation: "toast-in 0.25s ease-out both" }}
+        >
           {toast}
         </div>
       )}
+      <style>{`
+        @keyframes toast-in {
+          0%   { transform: translate(-50%, -12px); opacity: 0; }
+          100% { transform: translate(-50%, 0);     opacity: 1; }
+        }
+      `}</style>
 
       <div className="px-4 pt-4" style={{ paddingBottom: "190px" }}>
 
@@ -266,10 +296,11 @@ export default function RoadmapPage() {
 
         {/* ③ 3단계 타임라인 */}
         <div className="flex flex-col gap-3">
-          {roadmap.stages.map((stage) => (
+          {roadmap.stages.map((stage, i) => (
             <RoadmapStage
               key={stage.id}
               stage={stage}
+              effectiveStatus={effectiveStatuses[i]}
               completedMissions={displayMissions}
               onToggle={handleToggle}
             />
