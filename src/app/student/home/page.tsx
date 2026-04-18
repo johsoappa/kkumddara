@@ -7,6 +7,7 @@
 //   섹션 2 — 탐색 이어가기 / 추천 직업·활동
 // ====================================================
 
+import Image from "next/image";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -30,9 +31,29 @@ const CATEGORY_TO_INTEREST: Record<string, InterestField> = {
   "IT·기술":    "it",
   "예술·디자인": "art",
   "의료·과학":  "medical",
-  "비즈니스":   "business",
+  "비즈니스·경영": "business",
   "교육·사회":  "education",
 };
+
+// 카테고리별 추천 이유 (탐색 제안형 — "가장 맞는", "확실히" 금지)
+const CATEGORY_REASON: Record<string, string> = {
+  "IT·기술":       "IT 관심사와 연결되는 직업이에요",
+  "예술·디자인":   "예술·창작 관심사와 이어지는 직업이에요",
+  "의료·과학":     "의료·과학을 좋아한다면 살펴볼 만해요",
+  "비즈니스·경영": "비즈니스 관심사와 맞닿아 있는 직업이에요",
+  "교육·사회":     "사람·사회에 관심 있다면 탐색해볼 만해요",
+  "콘텐츠·미디어": "미디어·콘텐츠를 좋아한다면 어울릴 수 있어요",
+  "공공·안전":     "정의·봉사에 관심 있다면 탐색해볼 만해요",
+  "환경·미래산업": "미래 산업에 관심 있다면 주목할 직업이에요",
+};
+
+function getOccupationReason(category: string, interests: InterestField[]): string {
+  const mapped = CATEGORY_TO_INTEREST[category];
+  if (mapped && interests.includes(mapped)) {
+    return CATEGORY_REASON[category] ?? "관심 분야와 연결되는 직업이에요";
+  }
+  return CATEGORY_REASON[category] ?? "탐색해보면 의외로 잘 맞을 수 있어요";
+}
 
 export default function StudentHomePage() {
   const router = useRouter();
@@ -151,12 +172,14 @@ export default function StudentHomePage() {
 
         {/* ── 헤더 ─────────────────────────────────── */}
         <header className="sticky top-0 z-10 bg-white border-b border-base-border px-5 h-14 flex items-center justify-between">
-          <span
-            className="text-base font-bold tracking-tight"
-            style={{ color: "#E84B2E" }}
-          >
-            꿈따라
-          </span>
+          <Image
+            src="/logo.png"
+            alt="꿈따라"
+            width={66}
+            height={28}
+            priority
+            style={{ objectFit: "contain", objectPosition: "left center" }}
+          />
           <button
             onClick={handleSignOut}
             className="flex items-center gap-1 text-xs text-base-muted active:opacity-60"
@@ -369,16 +392,24 @@ export default function StudentHomePage() {
                   onClick={() => router.push(`/roadmap/${occ.id}`)}
                   className="
                     bg-white rounded-card-lg shadow-card px-4 py-3.5
-                    flex items-center gap-3 text-left
+                    flex items-start gap-3 text-left
                     hover:shadow-card-hover active:scale-[0.99] transition-all
                   "
                 >
-                  <span className="text-2xl leading-none shrink-0">{occ.emoji}</span>
+                  <span className="text-2xl leading-none shrink-0 mt-0.5">{occ.emoji}</span>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-bold text-base-text">{occ.name}</p>
-                    <p className="text-xs text-base-muted mt-0.5">{occ.category}</p>
+                    <p className="text-xs text-base-muted mt-0.5 leading-relaxed">
+                      {getOccupationReason(occ.category, child?.interests ?? [])}
+                    </p>
+                    {occ.preparations?.[0] && (
+                      <p className="text-[11px] mt-1.5 leading-relaxed truncate"
+                        style={{ color: "#E84B2E" }}>
+                        → {occ.preparations[0]}
+                      </p>
+                    )}
                   </div>
-                  <ChevronRight size={15} className="text-base-muted shrink-0" />
+                  <ChevronRight size={15} className="text-base-muted shrink-0 mt-0.5" />
                 </button>
               ))}
             </div>

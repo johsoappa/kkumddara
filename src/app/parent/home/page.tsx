@@ -7,6 +7,7 @@
 //   섹션 2 — 부모 전용 기능 진입 (리포트, AI 상담, 명따라)
 // ====================================================
 
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -26,6 +27,89 @@ import { FEATURE_FLAGS } from "@/lib/featureFlags";
 import type { Child, SubscriptionPlan } from "@/types/family";
 import { GRADE_LABEL, GRADE_LEVEL_LABEL, INTEREST_LABEL, PLAN_LABEL } from "@/types/family";
 import type { Grade, GradeLevel, InterestField } from "@/types/family";
+
+// ── 대화 주제 반개인화 ─────────────────────────────────────
+// 규칙 기반 (AI 없음): 관심분야 2개 + 학년단계 1개 조합
+const INTEREST_QUESTIONS: Partial<Record<InterestField, string[]>> = {
+  it: [
+    "요즘 좋아하는 앱이나 게임이 있어? 뭐가 재밌어?",
+    "기술이나 컴퓨터 관련 직업 중 궁금한 게 생긴 적 있어?",
+    "앱이나 웹사이트를 직접 만들어 보고 싶다는 생각 해본 적 있어?",
+  ],
+  art: [
+    "요즘 만들거나 그리고 싶은 게 있어?",
+    "좋아하는 영상이나 그림이 있어? 왜 좋아해?",
+    "창작 활동을 할 때 언제 제일 즐거워?",
+  ],
+  medical: [
+    "생물이나 과학 실험에서 재밌었던 경험이 있어?",
+    "의사, 간호사, 연구원 중에 궁금한 직업이 있어?",
+    "아픈 사람이나 동물을 도와주는 일을 상상해본 적 있어?",
+  ],
+  business: [
+    "나중에 내 사업을 해보고 싶다는 생각을 해본 적 있어?",
+    "학교에서 경제나 돈 관련 내용 배울 때 어떤 느낌이야?",
+    "친구들이 흥미로워할 것 같은 아이디어가 있어?",
+  ],
+  education: [
+    "친구나 동생에게 뭔가 가르쳐줄 때 어떤 느낌이야?",
+    "사회에서 고쳐지면 좋겠다고 생각한 문제가 있어?",
+    "학교에서 가장 보람 있었던 활동이 뭐야?",
+  ],
+};
+
+const GRADE_QUESTIONS: Record<"elementary" | "middle" | "high", string> = {
+  elementary: "학교에서 어떤 수업이 제일 재밌어?",
+  middle:     "나중에 어떤 일을 하면서 살고 싶은지 생각해봤어?",
+  high:       "진로 고민할 때 제일 어렵게 느껴지는 부분이 뭐야?",
+};
+
+function getGradeGroup(child: Child): "elementary" | "middle" | "high" {
+  const gl = child.grade_level ?? "";
+  if (gl.startsWith("elem")) return "elementary";
+  if (gl.startsWith("high")) return "high";
+  if (gl.startsWith("middle")) return "middle";
+  const sg = child.school_grade ?? "";
+  if (sg.startsWith("elementary")) return "elementary";
+  if (sg.startsWith("high")) return "high";
+  return "middle";
+}
+
+function getConversationQuestions(child: Child): string[] {
+  const interests = child.interests ?? [];
+  const used = new Set<string>();
+  const questions: string[] = [];
+
+  // 첫 번째·두 번째 관심분야 → 각각 첫 번째 질문
+  for (const field of interests.slice(0, 2)) {
+    const pool = INTEREST_QUESTIONS[field as InterestField];
+    if (pool?.[0] && !used.has(pool[0])) {
+      questions.push(pool[0]);
+      used.add(pool[0]);
+    }
+    if (questions.length >= 2) break;
+  }
+
+  // 학년 기반 질문 1개
+  const gradeQ = GRADE_QUESTIONS[getGradeGroup(child)];
+  if (!used.has(gradeQ)) {
+    questions.push(gradeQ);
+    used.add(gradeQ);
+  }
+
+  // 부족하면 fallback
+  const fallbacks = [
+    "학교에서 어떤 수업이 제일 재밌어?",
+    "나중에 어떤 일을 하면서 살고 싶은지 생각해봤어?",
+    "좋아하는 앱이나 유튜브 채널 있어? 왜 좋아해?",
+  ];
+  for (const f of fallbacks) {
+    if (questions.length >= 3) break;
+    if (!used.has(f)) { questions.push(f); used.add(f); }
+  }
+
+  return questions.slice(0, 3);
+}
 
 type ParentFeature = {
   id:          string;
@@ -143,12 +227,14 @@ export default function ParentHomePage() {
 
         {/* ── 앱 헤더 ──────────────────────────────── */}
         <header className="sticky top-0 z-10 bg-white border-b border-base-border px-5 h-14 flex items-center justify-between">
-          <span
-            className="text-base font-bold tracking-tight"
-            style={{ color: "#E84B2E" }}
-          >
-            꿈따라
-          </span>
+          <Image
+            src="/logo.png"
+            alt="꿈따라"
+            width={66}
+            height={28}
+            priority
+            style={{ objectFit: "contain", objectPosition: "left center" }}
+          />
           <button
             onClick={handleSignOut}
             className="flex items-center gap-1 text-xs text-base-muted active:opacity-60"
@@ -220,18 +306,16 @@ export default function ParentHomePage() {
 
           {/* ══════════════════════════════════════════
               섹션 1.5 — 이번 주 해볼 대화
-              자녀가 있을 때만 표시
+              자녀가 있을 때만 표시 / 관심분야·학년 기반 반개인화
           ══════════════════════════════════════════ */}
           {children.length > 0 && (
             <section>
-              <h2 className="text-sm font-bold text-base-text mb-3">이번 주 해볼 대화 💬</h2>
+              <h2 className="text-sm font-bold text-base-text mb-3">
+                {children[0].name}와 해볼 대화 💬
+              </h2>
               <div className="bg-white rounded-card-lg shadow-card p-4">
                 <div className="flex flex-col gap-3">
-                  {[
-                    "요즘 학교에서 어떤 수업이 제일 재밌어?",
-                    "나중에 어떤 일을 하면서 살고 싶은지 생각해본 적 있어?",
-                    "좋아하는 앱이나 유튜브 채널 있어? 왜 좋아해?",
-                  ].map((q, i) => (
+                  {getConversationQuestions(children[0]).map((q, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <span
                         className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"

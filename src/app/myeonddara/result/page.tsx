@@ -285,7 +285,7 @@ export default function MyeonddaraResultPage() {
                     <span
                       key={kw}
                       className="text-xs font-semibold px-3 py-1.5 rounded-full"
-                      style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+                      style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}
                     >
                       {kw}
                     </span>
@@ -293,7 +293,36 @@ export default function MyeonddaraResultPage() {
                 </div>
               </div>
 
-              {/* ③ 오행 균형 해설 */}
+              {/* ③ 부모 관찰 포인트 — 일상 체크리스트 */}
+              <div className="bg-white rounded-card-lg shadow-card p-5">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-bold text-base-text">부모 관찰 포인트</h3>
+                  <span
+                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}
+                  >
+                    체크해보세요
+                  </span>
+                </div>
+                <p className="text-xs text-base-muted mb-3 leading-relaxed">
+                  일상에서 아이를 관찰할 때 아래 질문을 떠올려 보세요.
+                </p>
+                <div className="flex flex-col gap-3">
+                  {ruleGuide.observationPoints.map((point, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <span
+                        className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                        style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}
+                      >
+                        {i + 1}
+                      </span>
+                      <p className="text-sm text-base-text leading-relaxed">{point}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* ⑤ 오행 균형 해설 */}
               <div className="bg-white rounded-card-lg shadow-card p-5">
                 <h3 className="text-sm font-bold text-base-text mb-2">오행 균형</h3>
                 <p className="text-sm text-base-text leading-relaxed">
@@ -301,7 +330,7 @@ export default function MyeonddaraResultPage() {
                 </p>
               </div>
 
-              {/* ④ 학습 스타일 가이드 */}
+              {/* ⑥ 학습 스타일 가이드 */}
               <div className="bg-white rounded-card-lg shadow-card p-5">
                 <div className="flex items-center gap-2 mb-2">
                   <h3 className="text-sm font-bold text-base-text">학습 스타일</h3>
@@ -317,7 +346,7 @@ export default function MyeonddaraResultPage() {
                 </p>
               </div>
 
-              {/* ⑤ 부모 가이드 팁 */}
+              {/* ⑦ 부모 가이드 팁 */}
               <div
                 className="rounded-card-lg p-5 border border-orange-200"
                 style={{ backgroundColor: "#FFF8F4" }}
@@ -360,7 +389,7 @@ export default function MyeonddaraResultPage() {
                     {analysis.personalityTags.map((tag) => (
                       <span key={tag}
                         className="text-xs font-semibold px-3 py-1.5 rounded-full"
-                        style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}>
+                        style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}>
                         {tag}
                       </span>
                     ))}

@@ -113,6 +113,35 @@ const OHAENG_LEARNING: Record<string, { style: string; detail: string }> = {
   },
 };
 
+// ── 부모 관찰 포인트 — 일상에서 체크할 행동 단서 3개 ─────────────
+const OHAENG_OBSERVATION_POINTS: Record<string, string[]> = {
+  "목": [
+    "혼자 뭔가를 만들거나 탐색할 때 얼마나 집중하나요?",
+    "새로운 경험이나 환경에 기대감을 보이나요, 불안해하나요?",
+    "남의 시선보다 스스로의 판단을 따르려는 경향이 있나요?",
+  ],
+  "화": [
+    "친구와 함께할 때 에너지가 더 높아지는 편인가요?",
+    "감정이 표정·말로 잘 드러나는 편인가요?",
+    "낯선 상황에서도 먼저 말을 걸거나 주도하려 하나요?",
+  ],
+  "토": [
+    "익숙한 루틴과 환경을 더 편안해하는 편인가요?",
+    "결정 전에 충분히 생각하고 신중하게 행동하나요?",
+    "약속이나 규칙을 지키는 것을 중요하게 여기나요?",
+  ],
+  "금": [
+    "옳고 그름에 민감하거나 정리정돈을 중요시하나요?",
+    "목표가 생기면 끝까지 해내려는 고집이 있나요?",
+    "칭찬보다 '왜 잘했는지 이유'를 궁금해하는 편인가요?",
+  ],
+  "수": [
+    "혼자만의 생각 시간이 필요한 편인가요?",
+    "'왜?'라는 질문을 자주 던지는 편인가요?",
+    "충분히 이해하기 전에는 쉽게 넘어가지 않는 편인가요?",
+  ],
+};
+
 // ── 부모 가이드 팁 ────────────────────────────────────────────────
 const OHAENG_PARENT_TIP: Record<string, string> = {
   "목": "새로운 도전을 격려해 주세요. 규칙보다 자율적인 탐색이 잘 맞아요.",
@@ -126,11 +155,12 @@ const OHAENG_PARENT_TIP: Record<string, string> = {
 // 타입
 // ────────────────────────────────────────────────────────────────
 export interface RuleBasedGuide {
-  ilganGuide:    { emoji: string; text: string };
-  ohaengBalance: string;
-  keywords:      string[];
-  learningStyle: { style: string; detail: string };
-  parentTip:     string;
+  ilganGuide:        { emoji: string; text: string };
+  ohaengBalance:     string;
+  keywords:          string[];
+  learningStyle:     { style: string; detail: string };
+  parentTip:         string;
+  observationPoints: string[]; // 부모가 일상에서 체크할 행동 단서 3개
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -189,5 +219,12 @@ export function buildRuleBasedGuide(saju: ManseryeokResult): RuleBasedGuide {
   // ── 5. 부모 가이드 팁 ────────────────────────────────────
   const parentTip = OHAENG_PARENT_TIP[dominant] ?? "아이의 기질을 먼저 인정하고 강점을 발견해 주세요.";
 
-  return { ilganGuide, ohaengBalance, keywords, learningStyle, parentTip };
+  // ── 6. 관찰 포인트 ───────────────────────────────────────
+  const observationPoints = OHAENG_OBSERVATION_POINTS[dominant] ?? [
+    "아이가 가장 몰입하는 활동이 무엇인가요?",
+    "어떤 상황에서 가장 편안해하나요?",
+    "혼자 있는 시간과 함께하는 시간 중 어느 쪽을 더 즐기나요?",
+  ];
+
+  return { ilganGuide, ohaengBalance, keywords, learningStyle, parentTip, observationPoints };
 }

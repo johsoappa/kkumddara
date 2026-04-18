@@ -7,6 +7,7 @@
 // - 저장 액션 시 GuestLoginPrompt 표시
 // ====================================================
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import {
@@ -84,12 +85,14 @@ export default function DemoParentPage() {
 
           {/* ── 헤더 ──────────────────────────────── */}
           <header className="sticky top-0 z-10 bg-white border-b border-base-border px-5 h-14 flex items-center justify-between">
-            <span
-              className="text-base font-bold tracking-tight"
-              style={{ color: "#E84B2E" }}
-            >
-              꿈따라
-            </span>
+            <Image
+              src="/logo.png"
+              alt="꿈따라"
+              width={66}
+              height={28}
+              priority
+              style={{ objectFit: "contain", objectPosition: "left center" }}
+            />
             <button
               onClick={() => router.push("/")}
               className="text-xs font-semibold px-3 py-1.5 rounded-full border border-base-border text-base-muted active:opacity-70"
@@ -173,6 +176,40 @@ export default function DemoParentPage() {
                     로그인 후 확인
                   </button>
                 </div>
+              </div>
+            </section>
+
+            {/* ══════════════════════════════════════════
+                섹션 1.5 — 이번 주 해볼 대화 (데모 미리보기)
+                지우 기준: IT + 예술 관심, 중1
+            ══════════════════════════════════════════ */}
+            <section>
+              <h2 className="text-sm font-bold text-base-text mb-3">
+                {DEMO_CHILD.name}와 해볼 대화 💬
+              </h2>
+              <div className="bg-white rounded-card-lg shadow-card p-4">
+                <div className="flex flex-col gap-3">
+                  {[
+                    "요즘 좋아하는 앱이나 게임이 있어? 뭐가 재밌어?",
+                    "요즘 만들거나 그리고 싶은 게 있어?",
+                    "나중에 어떤 일을 하면서 살고 싶은지 생각해봤어?",
+                  ].map((q, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <span
+                        className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                        style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+                      >
+                        {i + 1}
+                      </span>
+                      <p className="text-sm text-base-text leading-relaxed">
+                        &ldquo;{q}&rdquo;
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-base-muted mt-3 pt-3 border-t border-base-border leading-relaxed">
+                  💡 로그인하면 아이의 관심분야·학년에 맞는 대화 주제를 매주 받을 수 있어요.
+                </p>
               </div>
             </section>
 

@@ -6,6 +6,7 @@
 // Step 2: 이메일 인증 (회원가입 | 로그인)
 // ====================================================
 
+import Image from "next/image";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Users, BookOpen, Eye, EyeOff, ArrowLeft, ChevronRight } from "lucide-react";
@@ -94,27 +95,42 @@ export default function LandingPage() {
       <div className="w-full max-w-mobile bg-white min-h-screen flex flex-col">
 
         {/* ── 상단 로고 영역 ─────────────────────────── */}
-        <div className="px-6 pt-12 pb-2 flex items-center gap-2">
+        <div className="px-6 pt-10 pb-2 flex items-center gap-2">
           {step === "auth" && (
             <button
               onClick={() => { setStep("role"); setError(null); }}
-              className="p-1.5 -ml-1.5 rounded-full hover:bg-base-card transition-colors"
+              className="p-1.5 -ml-1.5 rounded-full hover:bg-base-card transition-colors flex-shrink-0"
               aria-label="뒤로"
             >
               <ArrowLeft size={20} className="text-base-text" />
             </button>
           )}
-          <span
-            className="text-lg font-bold tracking-tight"
-            style={{ color: "#E84B2E" }}
-          >
-            꿈따라
-          </span>
+          {/* 로고 — 흰 배경 PNG, bg-white 랜딩에서 자연 혼합 */}
+          <Image
+            src="/logo.png"
+            alt="꿈따라 — 꿈을 찾고, 길을 만든다"
+            width={104}
+            height={44}
+            priority
+            style={{ objectFit: "contain", objectPosition: "left center" }}
+          />
         </div>
+
+        {/* ── 베타 배너 — 역할 선택 화면에서만 표시 ── */}
+        {step === "role" && (
+          <div className="mx-6 mt-2 mb-0 flex justify-center">
+            <span
+              className="inline-flex items-center gap-1.5 text-[11px] font-semibold px-3 py-1.5 rounded-full"
+              style={{ backgroundColor: "#EEF2FF", color: "#4F6BD9" }}
+            >
+              🧪 지금은 베타 운영 중이에요 — 피드백을 기다립니다
+            </span>
+          </div>
+        )}
 
         {/* ── Step 1: 역할 선택 ──────────────────────── */}
         {step === "role" && (
-          <div className="flex-1 px-6 pt-8 pb-10 flex flex-col">
+          <div className="flex-1 px-6 pt-6 pb-10 flex flex-col">
 
             {/* ── 서비스 가치 블록 ─────────────────── */}
             <div className="mb-8">
@@ -140,9 +156,26 @@ export default function LandingPage() {
               </div>
             </div>
 
+            {/* ── 메인 CTA ─────────────────────── */}
+            <button
+              onClick={() => handleRoleSelect("parent")}
+              className="
+                w-full py-4 rounded-button text-sm font-bold text-white
+                flex items-center justify-center gap-1.5
+                active:opacity-80 transition-opacity
+              "
+              style={{ backgroundColor: "#E84B2E" }}
+            >
+              우리 아이 진로 탐색 시작하기
+              <ChevronRight size={16} />
+            </button>
+            <p className="text-xs text-center text-base-muted mt-2">
+              먼저 체험해 보고, 필요한 맞춤 기능을 이어서 이용해보세요
+            </p>
+
             {/* ── 역할 선택 안내 ─────────────────── */}
-            <p className="text-sm font-semibold text-base-text mb-4">
-              어떤 역할로 시작할까요?
+            <p className="text-xs text-base-muted mt-5 mb-3 font-semibold text-center">
+              또는 역할을 선택해 시작하기
             </p>
 
             <div className="flex flex-col gap-4 sm:flex-row">
@@ -174,9 +207,8 @@ export default function LandingPage() {
                 먼저 직접 체험해 보세요
               </p>
               <p className="text-xs text-base-muted leading-relaxed mb-3">
-                로그인 없이 미션·추천 직업·대화 주제를 바로 확인할 수 있어요.
-                <br />
-                저장과 맞춤 기록은 로그인 후 이용 가능해요.
+                로그인 없이 미션·추천 직업·대화 주제를 미리 확인할 수 있어요.
+                저장·개인화·맞춤 기능은 가입 후 이어서 이용해요.
               </p>
               <div className="flex gap-2">
                 <button

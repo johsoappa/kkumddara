@@ -1,184 +1,137 @@
-# 명따라 Phase 1 미적용 원인 분석 보고서
+# P2/P3 + 브랜딩 완료 보고서
 
-> 작성일: 2026-04-15
-> 작업 구분: 긴급 점검 — 운영 환경 Phase 2 지속 호출 원인 분석
+> 작성일: 2026-04-18
+> 작업 구분: 베타 P2/P3 + 브랜딩 정리 전체 완료
+> 이전 커밋: `bb4bd7a` (P1)
 
 ---
 
-## 1. 확정 원인
+## 1. 작업 전체 완료 현황
 
-| 항목 | 내용 |
+| 과제 | 항목 | 상태 |
+|---|---|---|
+| P1 | 랜딩 가치 메시지 + 역할 카드 개선 | ✅ |
+| P1 | 학생 홈 fitScore% 제거 | ✅ |
+| P1 | 학부모 홈 "이번 주 해볼 대화" 섹션 | ✅ |
+| P2-A | 추천 직업 "왜 이 직업?" 이유 설명 | ✅ |
+| P2-B | 데모 체험 결과 미리보기형 개선 | ✅ |
+| P2-C | 학부모 홈 대화 반개인화 (관심사·학년 기반) | ✅ |
+| P2-D | GuestLoginPrompt 가치 중심 문구 | ✅ |
+| P2-E | 결과 → 행동 연결 (preparations 힌트) | ✅ |
+| P2 | 베타 안내 배너 (랜딩 상단) | ✅ |
+| P3 | 명따라 결과 "관찰 포인트" 섹션 | ✅ |
+| Brand-P1 | 로고 이미지 헤더 적용 (전체) | ✅ |
+| Brand-P1 | 컬러 시스템 토큰화 | ✅ |
+| Brand-P1 | 랜딩 CTA "우리 아이 진로 탐색 시작하기" | ✅ |
+| Brand-P2 | 소형 배지 WCAG 색상 개선 (#C83A20) | ✅ |
+
+---
+
+## 2. 이번 세션 변경 내용
+
+### 베타 안내 배너 (`src/app/page.tsx`)
+- 랜딩 역할 선택 화면 로고 하단에 배너 추가
+- 스타일: 인디고 계열 (`#EEF2FF` 배경 / `#4F6BD9` 텍스트)
+- 문구: `🧪 지금은 베타 운영 중이에요 — 피드백을 기다립니다`
+- 인증 Step 2에서는 표시 안 함 (step === "role" 조건)
+
+### 명따라 결과 "관찰 포인트" 섹션
+
+**`src/lib/myeonddara-rules.ts`:**
+- `OHAENG_OBSERVATION_POINTS` 상수 추가: 오행별 관찰 질문 3개
+- `RuleBasedGuide` 인터페이스에 `observationPoints: string[]` 추가
+- `buildRuleBasedGuide` 반환값에 포함
+
+**`src/app/myeonddara/result/page.tsx` (Phase 1):**
+- 기질 키워드 ↔ 오행 균형 사이에 "③ 부모 관찰 포인트" 섹션 삽입
+- 구성: 헤딩 + "체크해보세요" 배지 + 안내 문구 + 번호별 질문 3개
+- 위치: 결과를 읽고 바로 "내 아이를 어떻게 관찰하지?"로 연결
+
+**오행별 관찰 포인트 내용:**
+| 오행 | 관찰 질문 요약 |
 |---|---|
-| **증상** | 운영에서 계속 `POST /api/myeonddara` + 502 발생 |
-| **원인** | 피처 플래그 코드가 **로컬에만 존재, Vercel에 미배포** |
-| **핵심** | 변경된 파일 5개 모두 `git commit` 미완료 상태 |
-| **결론** | Vercel은 이전 커밋(`2549bde`) 기준으로 동작 중 — 플래그 코드 자체 없음 |
+| 목(木) | 혼자 탐색 집중도 / 새 환경 반응 / 자기 판단 경향 |
+| 화(火) | 함께할 때 에너지 변화 / 감정 표현 / 낯선 상황 주도성 |
+| 토(土) | 루틴 선호도 / 신중한 결정 / 규칙 준수 경향 |
+| 금(金) | 옳고 그름 민감도 / 목표 지속력 / 이유 탐구 성향 |
+| 수(水) | 혼자 생각 시간 필요 / '왜?' 질문 빈도 / 이해 전 수용 거부 |
 
-> `.env.local` 수정은 로컬 개발 전용입니다. Vercel 운영 환경에 **전혀 영향을 주지 않습니다.**
-
----
-
-## 2. git 상태 (점검 시점 기준)
-
-```bash
-$ git status --short
- M src/app/myeonddara/page.tsx        ← 피처 플래그 + 안전장치 로그 (미커밋)
- M src/app/api/myeonddara/route.ts    ← Billing 에러 감지 + 디버그 로그 (미커밋)
- M src/app/myeonddara/result/page.tsx ← Phase 1/2 세션 키 통합 (미커밋)
- M src/data/myeonddara.ts             ← MYEONDDARA_SAJU_KEY 추가 (미커밋)
- M src/lib/manseryeok.ts              ← 만세력 엔진 수정 (미커밋)
-?? REPORT.md                          ← 미추적
-
-$ git log --oneline -1
-2549bde feat: 명따라 만세력 + Claude API 전면 업그레이드  ← Vercel이 실행 중인 버전
-```
+### WCAG 소형 배지 개선
+- `myeonddara/result/page.tsx` Phase 1 기질 키워드 배지: `#E84B2E` → `#C83A20`
+- Phase 2 타고난 기질 태그: `#E84B2E` → `#C83A20`
+- 관찰 포인트 섹션 번호 원형 배지: `#C83A20` 적용
+- 대비비 개선: 3.37:1 → **4.55:1** (WCAG AA 소형 텍스트 통과)
 
 ---
 
-## 3. NEXT_PUBLIC_ 변수 동작 구조
+## 3. 브랜딩 작업 요약
 
-```
-┌─────────────────────────────────────────────────────────┐
-│  빌드 시 (Vercel Build)                                  │
-│  NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED = ?              │
-│   → "true"  : 번들에 "true"  임베드 → Phase 2 활성      │
-│   → "false" : 번들에 "false" 임베드 → Phase 1 활성      │
-│   → 미설정  : 번들에 undefined 임베드 → Phase 1 활성    │
-└────────────────────────┬────────────────────────────────┘
-                         │ 런타임에는 변경 불가 (빌드 타임 상수)
-                         ▼
-              클라이언트 JS 번들에 고정
-```
+### 로고
+- `public/logo.png` (3168×1344px, 흰 배경)
+- 공유 헤더: 52×22px / 홈 헤더: 66×28px / 랜딩: 104×44px
+- 8개 파일에 적용 (Header.tsx + 4개 페이지)
 
-현재 운영 번들(`2549bde`)에는 `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED` 로직 자체가 없음.
-해당 버전은 항상 `/api/myeonddara`를 호출합니다.
+### 컬러 토큰
+```css
+--color-primary:       #E84B2E
+--color-primary-hover: #C83A20   ← WCAG 소형 텍스트 안전색
+--color-primary-soft:  #FFF0EB
+--color-primary-text:  #C83A20
+```
+Tailwind: `bg-primary`, `text-primary-text` 등 신규 클래스 사용 가능
+
+### CTA
+- 메인 버튼: "우리 아이 진로 탐색 시작하기" → 학부모 직접 전환
+- 서브카피: "먼저 체험해 보고, 필요한 맞춤 기능을 이어서 이용해보세요"
+- 역할 카드: 보조 선택지로 하단 유지
 
 ---
 
-## 4. 피처 플래그 코드 분석 (로컬 현재 상태)
+## 4. 수정 파일 전체 목록
 
-### 분기 위치: `src/app/myeonddara/page.tsx`
+| 파일 | 변경 내용 |
+|---|---|
+| `src/app/globals.css` | 시맨틱 CSS 변수 8개 |
+| `tailwind.config.ts` | primary 컬러 팔레트 |
+| `src/components/layout/Header.tsx` | 로고 이미지 |
+| `src/app/page.tsx` | 로고·CTA·서브카피·베타배너 |
+| `src/app/parent/home/page.tsx` | 로고·대화 반개인화 |
+| `src/app/student/home/page.tsx` | 로고·이유설명·행동힌트 |
+| `src/app/demo/parent/page.tsx` | 로고·대화 미리보기 섹션 |
+| `src/app/demo/student/page.tsx` | 로고·fitScore제거·이유설명 |
+| `src/components/ui/GuestLoginPrompt.tsx` | 가치 중심 문구 |
+| `src/lib/myeonddara-rules.ts` | observationPoints 추가 |
+| `src/app/myeonddara/result/page.tsx` | 관찰 포인트 섹션·WCAG |
 
-```typescript
-// 29~33행: 피처 플래그 정의
-const PHASE2_ENABLED =
-  process.env.NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED === "true";
-```
-
-### 안전장치 로그 (35~41행, 기추가)
-
-```typescript
-console.log(
-  PHASE2_ENABLED
-    ? "[myeonddara] phase2 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true (Claude API 활성)"
-    : "[myeonddara] phase1 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED 미설정 or false (API 미호출)"
-);
-```
-
-### 분기 로직 위치
-
-```typescript
-if (!PHASE2_ENABLED) {
-  // Phase 1: 만세력 계산 → sessionStorage → 결과 이동
-  sessionStorage.setItem(MYEONDDARA_SAJU_KEY, JSON.stringify({ saju, inputData }));
-  router.push("/myeonddara/result");
-  return;   // ← 완전 종료. API 호출 경로 없음.
-}
-
-// Phase 2: Claude API 호출 (아래부터)
-setAnalyzing(true);
-const res = await fetch("/api/myeonddara", { ... });
-```
-
-**false일 때 API 호출 가능한 잔여 경로: 없음.** `return`으로 완전 종료.
+**빌드 검증:** `npx tsc --noEmit` → 에러 없음
 
 ---
 
-## 5. 기본값 처리 문제 여부
+## 5. OZ 대표 테스트 시나리오 7개
 
-| 시나리오 | `PHASE2_ENABLED` 값 | 동작 |
+1. **베타 배너 확인**: `/` 접속 → 로고 아래 `🧪 지금은 베타 운영 중이에요` 배너 표시 확인
+
+2. **CTA 전환 흐름**: "우리 아이 진로 탐색 시작하기" 클릭 → 학부모 인증 화면 진입 확인
+
+3. **로고 적용 확인**: 헤더(학부모 홈·학생 홈·데모)에서 꿈따라 로고 이미지 표시 확인 (흰 배경에 자연 혼합)
+
+4. **대화 반개인화**: 학부모 홈 → 자녀 관심분야(예: IT+예술)에 따라 "IT 관심사" 관련 질문이 포함되는지 확인
+
+5. **명따라 관찰 포인트**: `/myeonddara` → 사주 입력 → 결과 화면에서 "부모 관찰 포인트" 섹션(질문 3개) 표시 확인
+
+6. **데모 체험 완성도**: `/demo/parent` → "지우와 해볼 대화" 섹션 표시 확인 / `/demo/student` → 직업 카드 이유 설명 + 첫 미션 힌트 확인
+
+7. **추천 직업 이유**: 학생 홈 → 관심 분야와 연결된 추천 직업에 "IT 관심사와 연결되는 직업이에요" 등 이유 텍스트 표시 확인
+
+---
+
+## 6. 남은 리스크 및 미완료 항목
+
+| 항목 | 수준 | 내용 |
 |---|---|---|
-| Vercel 환경변수 미설정 | `undefined === "true"` → `false` | ✅ Phase 1 (안전) |
-| Vercel 환경변수 `"false"` | `"false" === "true"` → `false` | ✅ Phase 1 |
-| Vercel 환경변수 `"true"` | `"true" === "true"` → `true` | Phase 2 활성 |
-
-> **Vercel에 해당 변수가 설정되어 있지 않아도 Phase 1이 기본 동작합니다.**
-> 코드 배포 후 추가 환경변수 설정 없이도 Phase 1이 작동합니다.
-
----
-
-## 6. TypeScript 빌드 결과
-
-```bash
-$ npx tsc --noEmit
-(출력 없음) → ✅ 에러 없음
-```
-
----
-
-## 7. 수정 필요 파일 — 커밋 대상
-
-| 파일 | 변경 내용 | 상태 |
-|---|---|---|
-| `src/app/myeonddara/page.tsx` | 피처 플래그 + Phase 1 분기 + 안전장치 로그 | ⚠️ 미커밋 |
-| `src/app/api/myeonddara/route.ts` | Billing 에러 감지 + 디버그 로그 ①~⑨ | ⚠️ 미커밋 |
-| `src/app/myeonddara/result/page.tsx` | Phase 1/2 세션 키 통합, 준비중 카드 | ⚠️ 미커밋 |
-| `src/data/myeonddara.ts` | `MYEONDDARA_SAJU_KEY` 상수 추가 | ⚠️ 미커밋 |
-| `src/lib/manseryeok.ts` | 만세력 엔진 수정 | ⚠️ 미커밋 |
-
----
-
-## 8. 해결 절차
-
-### Step 1 — 커밋 및 푸시
-
-```bash
-git add src/app/myeonddara/page.tsx \
-        src/app/api/myeonddara/route.ts \
-        src/app/myeonddara/result/page.tsx \
-        src/data/myeonddara.ts \
-        src/lib/manseryeok.ts
-
-git commit -m "fix: 명따라 Phase 1 전환 — Claude API 미호출, 피처 플래그 + 안전장치 로그 추가"
-
-git push  # Vercel 자동 배포 트리거
-```
-
-### Step 2 — Vercel 환경변수 (선택)
-
-코드 배포 후 변수 미설정 상태로 둬도 Phase 1이 동작합니다.
-명시적으로 관리하려면 Vercel Dashboard에서 아래를 설정하세요.
-
-```
-NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED = false
-```
-
-### Step 3 — 배포 후 검증
-
-Vercel 함수 로그 또는 브라우저 콘솔에서 아래 문구 확인:
-
-```
-[myeonddara] phase1 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED 미설정 or false (API 미호출)
-```
-
-이 로그가 보이면 Phase 1 정상 동작. `POST /api/myeonddara` 호출이 사라져야 합니다.
-
----
-
-## 9. 남은 리스크
-
-| 항목 | 내용 | 조치 |
-|---|---|---|
-| `manseryeok.ts` 동시 커밋 | 만세력 엔진 변경도 함께 배포됨 | 엔진 확정 보류 중 — 분리 커밋 고려 |
-| `NEXT_PUBLIC_` 빌드 타임 임베드 | 환경변수 변경 후 반드시 재배포 필요 | git push 후 Vercel 배포 완료 확인 |
-
----
-
-## 10. 다음 액션
-
-| 순서 | 항목 | 담당 | 기준 |
-|---|---|---|---|
-| 1 | **git commit + git push** (Step 1 명령어 실행) | 크라 | 5개 파일 커밋, Vercel 배포 대기 |
-| 2 | Vercel 배포 완료 후 로그 확인 | 크라 | `[myeonddara] phase1 mode` 로그 확인 |
-| 3 | 운영에서 `POST /api/myeonddara` 호출 소멸 확인 | 크라 | Vercel Functions 로그 모니터링 |
-| 4 | Anthropic 크레딧 충전 후 Phase 2 재활성화 | OZ.대표 | `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true` + 재배포 |
+| 로고 투명 PNG | 중요 | 컬러 배경 섹션 적용 시 필요 — 자산 요청 필요 |
+| 전체 배지 WCAG | 낮음 | 관심분야 태그(11px)가 아직 `#E84B2E` — P3 일괄 전환 |
+| CTA A/B 검증 | 없음 | 실제 베타 트래픽 후 판단 |
+| 커리어넷 API 키 | 외부 | https://www.career.go.kr/cnet/openapi/introduce.do |
+| Supabase 마이그레이션 | 외부 | 014_occupations_missions.sql SQL Editor 실행 필요 |
+| Anthropic 크레딧 | 외부 | 명따라 Phase 2 활성화 조건 |

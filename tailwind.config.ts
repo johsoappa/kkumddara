@@ -17,6 +17,15 @@ const config: Config = {
     extend: {
       colors: {
         // ----------------------------------------
+        // 시맨틱 Primary — 신규 코드에서 이 토큰 사용
+        // ----------------------------------------
+        primary: {
+          DEFAULT: "#E84B2E",    // 기본 (= brand-red)
+          hover:   "#C83A20",    // hover / active (WCAG 4.6:1 on white ✅)
+          soft:    "#FFF0EB",    // 배경용 (= brand-light)
+          text:    "#C83A20",    // 소형 텍스트 on white / on soft
+        },
+        // ----------------------------------------
         // 火 (불) - 포인트 컬러: 에너지·열정
         // ----------------------------------------
         brand: {

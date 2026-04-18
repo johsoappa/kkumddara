@@ -24,6 +24,24 @@
   --color-brand-soft: #FFA270;
   --color-brand-light: #FFF0EB;
 
+  /* ── 시맨틱 토큰 (신규 컴포넌트에서 이 변수를 사용) ────────
+     기존 bg-brand-red / text-brand-red Tailwind 클래스는 유지.
+     --color-primary-* 는 의미 기반 별칭 레이어.            */
+
+  /* Primary — 메인 인터랙션 포인트 */
+  --color-primary:          #E84B2E;   /* 버튼·강조 기본 */
+  --color-primary-hover:    #C83A20;   /* hover / active 상태 */
+  --color-primary-soft:     #FFF0EB;   /* 포인트 배경(연한) */
+  --color-primary-text:     #C83A20;   /* 소형 텍스트용 — 흰 배경 대비 4.6:1 ✅ */
+
+  /* Semantic Text */
+  --color-text-strong:      #212121;   /* 본문 제목·강조 */
+  --color-text-muted:       #9E9E9E;   /* 보조·힌트 */
+
+  /* Semantic Surface */
+  --color-bg-soft:          #F8F8F8;   /* 페이지 서브 배경 */
+  --color-border-subtle:    #E0E0E0;   /* 구분선·인풋 */
+
   /* 金 베이스 컬러 */
   --color-base-white: #FFFFFF;
   --color-base-off: #F8F8F8;

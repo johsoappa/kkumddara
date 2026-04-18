@@ -7,6 +7,7 @@
 // - 알림 버튼 (우측)
 // ====================================================
 
+import Image from "next/image";
 import { Bell, ChevronLeft } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -65,13 +66,21 @@ export default function Header({
               {title}
             </h1>
           ) : (
-            <div className="flex items-center gap-1">
-              <span className="text-xl font-bold text-brand-red">꿈따라</span>
+            <div className="flex items-center gap-2">
+              {/* 로고 — 흰 배경 PNG, 헤더 bg-white에 자연스럽게 혼합 */}
+              <Image
+                src="/logo.png"
+                alt="꿈따라"
+                width={52}
+                height={22}
+                priority
+                style={{ objectFit: "contain", objectPosition: "left center" }}
+              />
               <span
                 className="
-                  text-xs font-medium text-white
+                  text-[10px] font-bold text-white
                   bg-brand-red px-1.5 py-0.5 rounded-full
-                  ml-1
+                  flex-shrink-0
                 "
               >
                 BETA

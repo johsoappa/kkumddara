@@ -27,7 +27,7 @@ export default function GuestLoginPrompt({ onClose }: GuestLoginPromptProps) {
       >
         {/* 닫기 */}
         <div className="flex items-center justify-between mb-5">
-          <span className="text-2xl leading-none">🔐</span>
+          <span className="text-2xl leading-none">🌟</span>
           <button
             onClick={onClose}
             className="p-1 text-base-muted hover:text-base-text transition-colors"
@@ -39,13 +39,13 @@ export default function GuestLoginPrompt({ onClose }: GuestLoginPromptProps) {
 
         {/* 본문 */}
         <h3 className="text-base font-bold text-base-text mb-2">
-          이 내용은 로그인 후 저장할 수 있어요.
+          탐색한 내용을 저장해 두세요
         </h3>
         <p className="text-sm text-base-muted leading-relaxed mb-1">
-          계속하려면 로그인하고 내 정보로 이어서 진행해 주세요.
+          로그인하면 아이의 관심 직업, 미션 진행, 대화 주제를
         </p>
         <p className="text-sm text-base-muted leading-relaxed mb-7">
-          지금 가입하면 자녀 정보와 탐색 기록을 이어서 관리할 수 있어요.
+          이어서 관리하고 기록할 수 있어요. 무료로 시작할 수 있어요.
         </p>
 
         {/* CTA */}
@@ -55,7 +55,7 @@ export default function GuestLoginPrompt({ onClose }: GuestLoginPromptProps) {
             className="w-full py-3.5 rounded-button text-sm font-bold text-white"
             style={{ backgroundColor: "#E84B2E" }}
           >
-            로그인 / 가입하기
+            무료로 시작하기
           </button>
           <button
             onClick={onClose}
