@@ -115,22 +115,44 @@ export default function LandingPage() {
         {/* ── Step 1: 역할 선택 ──────────────────────── */}
         {step === "role" && (
           <div className="flex-1 px-6 pt-8 pb-10 flex flex-col">
-            <h1 className="text-2xl font-bold text-base-text leading-tight">
-              어떻게 시작할까요?
-            </h1>
-            <p className="mt-2 text-sm text-base-muted leading-relaxed">
-              꿈따라는 학부모와 학생에게 맞는 화면을 따로 제공합니다.
-              <br />내 역할에 맞는 방식으로 시작해 주세요.
+
+            {/* ── 서비스 가치 블록 ─────────────────── */}
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-base-text leading-snug">
+                아이의 진로,<br />
+                <span style={{ color: "#E84B2E" }}>막막하지 않게</span>
+              </h1>
+              <p className="mt-3 text-sm text-base-muted leading-relaxed">
+                꿈따라는 자녀의 관심사를 함께 탐색하고,
+                이번 주 할 수 있는 진로 활동을 제안해요.
+              </p>
+              <div className="mt-4 flex flex-col gap-2">
+                {[
+                  "관심 직업을 찾고 단계별 준비 방법을 확인해요",
+                  "오늘의 미션으로 진로를 한 걸음씩 탐색해요",
+                  "학부모와 학생이 나눌 수 있는 대화 주제를 제안해요",
+                ].map((text, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs text-base-muted">
+                    <span className="font-bold flex-shrink-0" style={{ color: "#E84B2E" }}>✓</span>
+                    {text}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* ── 역할 선택 안내 ─────────────────── */}
+            <p className="text-sm font-semibold text-base-text mb-4">
+              어떤 역할로 시작할까요?
             </p>
 
-            <div className="mt-8 flex flex-col gap-4 sm:flex-row">
+            <div className="flex flex-col gap-4 sm:flex-row">
 
               {/* 학부모 카드 */}
               <RoleCard
                 role="parent"
                 icon={<Users size={26} strokeWidth={1.8} />}
                 title="학부모로 시작하기"
-                description="아이의 관심 변화와 진로 방향을 함께 살펴볼 수 있어요."
+                description="자녀의 관심사를 파악하고, 이번 주 나눠볼 대화 주제와 진로 방향을 확인해요."
                 buttonLabel="학부모로 계속"
                 onSelect={handleRoleSelect}
               />
@@ -140,21 +162,21 @@ export default function LandingPage() {
                 role="student"
                 icon={<BookOpen size={26} strokeWidth={1.8} />}
                 title="학생으로 시작하기"
-                description="오늘의 미션과 탐색을 통해 내 꿈을 하나씩 찾아갈 수 있어요."
+                description="오늘의 미션을 완료하고, 관심 직업을 탐색하며 내 꿈을 찾아가요."
                 buttonLabel="학생으로 계속"
                 onSelect={handleRoleSelect}
               />
             </div>
 
             {/* ── 게스트 체험 섹션 ─────────────────── */}
-            <div className="mt-8 rounded-card-lg border border-base-border bg-base-off p-4">
+            <div className="mt-6 rounded-card-lg border border-base-border bg-base-off p-4">
               <p className="text-xs font-bold text-base-text mb-0.5">
-                먼저 가볍게 둘러보세요.
+                먼저 직접 체험해 보세요
               </p>
               <p className="text-xs text-base-muted leading-relaxed mb-3">
-                로그인 없이도 꿈따라의 주요 화면을 체험할 수 있어요.
+                로그인 없이 미션·추천 직업·대화 주제를 바로 확인할 수 있어요.
                 <br />
-                저장과 맞춤 리포트는 로그인 후 이용할 수 있습니다.
+                저장과 맞춤 기록은 로그인 후 이용 가능해요.
               </p>
               <div className="flex gap-2">
                 <button
@@ -165,7 +187,7 @@ export default function LandingPage() {
                     active:opacity-70 transition-opacity
                   "
                 >
-                  학부모 화면 체험
+                  학부모 체험하기
                 </button>
                 <button
                   onClick={() => router.push("/demo/student")}
@@ -175,7 +197,7 @@ export default function LandingPage() {
                     active:opacity-70 transition-opacity
                   "
                 >
-                  학생 화면 체험
+                  학생 체험하기
                 </button>
               </div>
             </div>

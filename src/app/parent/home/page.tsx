@@ -219,6 +219,40 @@ export default function ParentHomePage() {
           </section>
 
           {/* ══════════════════════════════════════════
+              섹션 1.5 — 이번 주 해볼 대화
+              자녀가 있을 때만 표시
+          ══════════════════════════════════════════ */}
+          {children.length > 0 && (
+            <section>
+              <h2 className="text-sm font-bold text-base-text mb-3">이번 주 해볼 대화 💬</h2>
+              <div className="bg-white rounded-card-lg shadow-card p-4">
+                <div className="flex flex-col gap-3">
+                  {[
+                    "요즘 학교에서 어떤 수업이 제일 재밌어?",
+                    "나중에 어떤 일을 하면서 살고 싶은지 생각해본 적 있어?",
+                    "좋아하는 앱이나 유튜브 채널 있어? 왜 좋아해?",
+                  ].map((q, i) => (
+                    <div key={i} className="flex items-start gap-3">
+                      <span
+                        className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                        style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+                      >
+                        {i + 1}
+                      </span>
+                      <p className="text-sm text-base-text leading-relaxed">
+                        &ldquo;{q}&rdquo;
+                      </p>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-base-muted mt-3 pt-3 border-t border-base-border leading-relaxed">
+                  💡 답변에 정답은 없어요. 자녀가 무엇에 관심 있는지 자연스럽게 파악하는 것이 목적이에요.
+                </p>
+              </div>
+            </section>
+          )}
+
+          {/* ══════════════════════════════════════════
               섹션 2 — 부모 전용 기능 진입
           ══════════════════════════════════════════ */}
           <section>

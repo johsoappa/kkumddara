@@ -378,15 +378,6 @@ export default function StudentHomePage() {
                     <p className="text-sm font-bold text-base-text">{occ.name}</p>
                     <p className="text-xs text-base-muted mt-0.5">{occ.category}</p>
                   </div>
-                  <div className="flex flex-col items-end gap-1 shrink-0">
-                    <span
-                      className="text-xs font-bold"
-                      style={{ color: "#E84B2E" }}
-                    >
-                      {occ.fitScore}%
-                    </span>
-                    <span className="text-[10px] text-base-muted">적합도</span>
-                  </div>
                   <ChevronRight size={15} className="text-base-muted shrink-0" />
                 </button>
               ))}
