@@ -78,7 +78,7 @@ export default function DemoParentPage() {
 
   return (
     <>
-      {showPrompt && <GuestLoginPrompt onClose={() => setShowPrompt(false)} />}
+      {showPrompt && <GuestLoginPrompt role="parent" onClose={() => setShowPrompt(false)} />}
 
       <div className="min-h-screen bg-base-off flex justify-center">
         <div className="w-full max-w-mobile bg-base-off">
@@ -94,7 +94,7 @@ export default function DemoParentPage() {
               style={{ objectFit: "contain", objectPosition: "left center" }}
             />
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/?role=parent&step=auth")}
               className="text-xs font-semibold px-3 py-1.5 rounded-full border border-base-border text-base-muted active:opacity-70"
             >
               로그인 / 가입
@@ -265,11 +265,11 @@ export default function DemoParentPage() {
 
             {/* ── 로그인 CTA ─────────────────────────── */}
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/?role=parent&step=auth")}
               className="w-full py-4 rounded-button text-sm font-bold text-white flex items-center justify-center gap-1.5"
               style={{ backgroundColor: "#E84B2E" }}
             >
-              로그인하고 내 자녀 프로필 만들기
+              로그인하고 내 아이 프로필 만들기
               <ChevronRight size={16} />
             </button>
             <p className="text-center text-xs text-base-muted -mt-2">

@@ -11,7 +11,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Plus, Copy, Check, Clock, UserCheck, RefreshCw } from "lucide-react";
+import { ChevronLeft, Plus, Copy, Check, Clock, UserCheck, RefreshCw, Share2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Child } from "@/types/family";
 import { GRADE_LEVEL_LABEL, GRADE_LABEL } from "@/types/family";
@@ -163,6 +163,35 @@ export default function FamilyPage() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
+  // ── 초대 공유 (Web Share API → 시스템 공유 시트) ─────────
+  // 모바일에서 카카오톡·문자 등 선택 가능.
+  // Web Share API 미지원 환경(PC 등)은 클립보드 텍스트 복사로 대체.
+  const shareInvite = async (childName: string, code: string) => {
+    const joinUrl = `${window.location.origin}/join/caregiver`;
+    const text = [
+      `${childName}의 보호자로 초대합니다.`,
+      ``,
+      `초대코드: ${code}`,
+      `꿈따라에서 코드를 입력하면 연결돼요.`,
+      joinUrl,
+      ``,
+      `코드는 7일간 유효합니다.`,
+    ].join("\n");
+
+    if (typeof navigator !== "undefined" && navigator.share) {
+      try {
+        await navigator.share({ title: "꿈따라 보호자 초대", text });
+      } catch {
+        // 사용자가 공유 취소한 경우 — no-op
+      }
+    } else {
+      // 시스템 공유 미지원 → 클립보드 복사
+      await navigator.clipboard.writeText(text);
+      setCopiedCode(code);
+      setTimeout(() => setCopiedCode(null), 2000);
+    }
+  };
+
   // ── 학년 표시 ──────────────────────────────────────────
   function gradeLabel(child: Child): string {
     if (child.grade_level && GRADE_LEVEL_LABEL[child.grade_level as GradeLevel]) {
@@ -272,8 +301,10 @@ export default function FamilyPage() {
 
                 {/* 발급된 초대코드 (pending) */}
                 {pendingInvite && pendingInvite.invite_code && (
-                  <div className="bg-base-off rounded-button px-3 py-3">
-                    <div className="flex items-center justify-between mb-1">
+                  <div className="bg-base-off rounded-button px-3 py-3 flex flex-col gap-2.5">
+
+                    {/* Row 1: 라벨 + 만료일 */}
+                    <div className="flex items-center justify-between">
                       <p className="text-[10px] text-base-muted font-medium">보호자 초대코드</p>
                       <div className="flex items-center gap-1 text-[10px] text-base-muted">
                         <Clock size={11} />
@@ -282,34 +313,57 @@ export default function FamilyPage() {
                           : ""}
                       </div>
                     </div>
+
+                    {/* Row 2: 코드 + 새 코드 버튼 */}
                     <div className="flex items-center justify-between">
-                      <p className="text-base font-mono font-bold tracking-[0.2em] text-base-text">
+                      <p className="text-xl font-mono font-bold tracking-[0.25em] text-base-text">
                         {pendingInvite.invite_code}
                       </p>
-                      <div className="flex gap-1.5">
-                        <button
-                          onClick={() => copyCode(pendingInvite.invite_code!)}
-                          className="flex items-center gap-1 text-xs font-semibold px-2.5 py-1.5 rounded-button transition-all"
-                          style={
-                            copiedCode === pendingInvite.invite_code
-                              ? { background: "#F0FDF4", color: "#16A34A" }
-                              : { background: "#FFF0EB", color: "#E84B2E" }
-                          }
-                        >
-                          {copiedCode === pendingInvite.invite_code
-                            ? <><Check size={11} /> 복사됨</>
-                            : <><Copy size={11} /> 복사</>}
-                        </button>
-                        <button
-                          onClick={() => generateInvite(child.id)}
-                          disabled={isGenerating}
-                          className="flex items-center gap-1 text-xs font-semibold px-2 py-1.5 rounded-button bg-base-card text-base-muted disabled:opacity-40 transition-all"
-                          title="새 코드 발급"
-                        >
-                          <RefreshCw size={11} className={isGenerating ? "animate-spin" : ""} />
-                        </button>
-                      </div>
+                      <button
+                        onClick={() => generateInvite(child.id)}
+                        disabled={isGenerating}
+                        className="flex items-center gap-1 text-xs font-semibold px-2 py-1.5 rounded-button bg-base-card text-base-muted disabled:opacity-40 transition-all"
+                        title="새 코드 발급"
+                      >
+                        <RefreshCw size={11} className={isGenerating ? "animate-spin" : ""} />
+                        <span className="text-[10px]">새 코드</span>
+                      </button>
                     </div>
+
+                    {/* Row 3: 복사 + 공유 버튼 */}
+                    <div className="flex gap-2">
+                      {/* 복사 */}
+                      <button
+                        onClick={() => copyCode(pendingInvite.invite_code!)}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-button transition-all"
+                        style={
+                          copiedCode === pendingInvite.invite_code
+                            ? { background: "#F0FDF4", color: "#16A34A" }
+                            : { background: "#FFF0EB", color: "#E84B2E" }
+                        }
+                      >
+                        {copiedCode === pendingInvite.invite_code
+                          ? <><Check size={13} /> 복사됨</>
+                          : <><Copy size={13} /> 복사하기</>}
+                      </button>
+
+                      {/* 공유하기 (Web Share API → 시스템 공유 시트)
+                          모바일: 카카오톡·문자·이메일 등 선택 가능
+                          PC 미지원 시: 클립보드 자동 복사 */}
+                      <button
+                        onClick={() => shareInvite(child.name, pendingInvite.invite_code!)}
+                        className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-button transition-all active:opacity-80"
+                        style={{ background: "#FEE500", color: "#3C1E1E" }}
+                      >
+                        <Share2 size={13} />
+                        공유하기
+                      </button>
+                    </div>
+
+                    {/* Row 4: 안내 문구 */}
+                    <p className="text-[10px] text-base-muted text-center leading-relaxed">
+                      공유 후 보호자가 앱에서 코드를 입력하면 연결돼요
+                    </p>
                   </div>
                 )}
 
@@ -347,10 +401,12 @@ export default function FamilyPage() {
 
           {/* 안내 텍스트 */}
           {maxGuardians > 0 && children.length > 0 && (
-            <p className="text-xs text-base-muted text-center px-4 leading-relaxed">
-              초대코드를 보호자에게 공유하면, 보호자가 꿈따라 앱에서 코드를 입력해 연결할 수 있어요.
-              코드는 발급 후 7일간 유효해요.
-            </p>
+            <div className="px-2 pb-2">
+              <p className="text-xs text-base-muted text-center leading-relaxed">
+                보호자가 꿈따라 앱에서 코드를 입력하면 연결돼요.
+                코드는 발급 후 7일간 유효해요.
+              </p>
+            </div>
           )}
 
         </div>

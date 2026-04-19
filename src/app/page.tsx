@@ -4,11 +4,16 @@
 // 역할 선택 랜딩 (/)
 // Step 1: 학부모 / 학생 카드 선택
 // Step 2: 이메일 인증 (회원가입 | 로그인)
+//
+// [URL 파라미터]
+//   ?role=parent|student  — 역할 사전 선택
+//   ?step=auth            — role과 함께 전달 시 auth 단계로 바로 진입
+//                           (demo 페이지에서 "로그인/가입" 클릭 시 사용)
 // ====================================================
 
 import Image from "next/image";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Users, BookOpen, Eye, EyeOff, ArrowLeft, ChevronRight } from "lucide-react";
 import { signUpParent, signUpStudent, signIn, signInWithKakao } from "@/lib/auth";
 import PasswordConditions, { isPasswordValid } from "@/components/PasswordConditions";
@@ -17,12 +22,26 @@ type Role = "parent" | "student";
 type Step = "role" | "auth";
 type AuthMode = "signup" | "signin";
 
-export default function LandingPage() {
-  const router = useRouter();
+// ── useSearchParams는 Suspense 경계 안에서만 사용 가능 ──────────
+// LandingContent: 실제 UI 로직 (searchParams 읽기 + 상태 관리)
+// LandingPage   : Suspense 래퍼 (빌드 오류 방지)
+// ──────────────────────────────────────────────────────────────
+function LandingContent() {
+  const router      = useRouter();
+  const searchParams = useSearchParams();
 
-  const [step, setStep]             = useState<Step>("role");
-  const [selectedRole, setRole]     = useState<Role | null>(null);
-  const [authMode, setAuthMode]     = useState<AuthMode>("signup");
+  // URL 파라미터로 초기 상태 결정 (?role=parent&step=auth 등)
+  const paramRole = searchParams.get("role");
+  const initRole: Role | null =
+    paramRole === "parent" || paramRole === "student" ? paramRole : null;
+  const initStep: Step =
+    searchParams.get("step") === "auth" && initRole != null ? "auth" : "role";
+  const initMode: AuthMode =
+    searchParams.get("mode") === "signin" ? "signin" : "signup";
+
+  const [step, setStep]             = useState<Step>(initStep);
+  const [selectedRole, setRole]     = useState<Role | null>(initRole);
+  const [authMode, setAuthMode]     = useState<AuthMode>(initMode);
   const [showPassword, setShowPw]   = useState(false);
   const [showConditions, setShowConditions] = useState(false);
   const [loading, setLoading]       = useState(false);
@@ -455,6 +474,17 @@ export default function LandingPage() {
 
       </div>
     </div>
+  );
+}
+
+// ── 랜딩 페이지 진입점 — Suspense 래퍼 ────────────────────────
+// useSearchParams()는 반드시 Suspense 경계 안에 있어야 합니다.
+// fallback=null: 초기 렌더 플리커 방지 (클라이언트 렌더 기준)
+export default function LandingPage() {
+  return (
+    <Suspense fallback={null}>
+      <LandingContent />
+    </Suspense>
   );
 }
 
