@@ -40,9 +40,10 @@ export default function ExplorePage() {
 
       try {
         // 1단계: occupation_master — is_active=true, priority 내림차순
+        // legacy_occupation_id: static /explore/[id] 상세 페이지 라우팅 호환용
         const { data: masters, error: masterErr } = await supabase
           .from("occupation_master")
-          .select("id, slug, name_ko, emoji, category, interest_fields, priority")
+          .select("id, slug, name_ko, emoji, category, interest_fields, priority, legacy_occupation_id")
           .eq("is_active", true)
           .order("priority", { ascending: false });
 
@@ -75,12 +76,15 @@ export default function ExplorePage() {
         );
 
         const items: OccupationListItem[] = masters.map((m) => ({
-          id:           m.slug,
+          // id: static /explore/[id] 상세 호환 — legacy_occupation_id 우선, 없으면 slug
+          // 상세 페이지 DB 전환 완료 후 slug로 교체 예정
+          id:           m.legacy_occupation_id ?? m.slug,
+          slug:         m.slug,
           name:         m.name_ko,
           emoji:        m.emoji,
           category:     m.category as OccupationCategory,
           description:  summaryMap.get(m.id) ?? "",
-          relatedMajors: [],           // [추후] DB 연결 예정
+          relatedMajors: [],           // [추후] occupation_traits DB 연결 예정
           skills:       m.interest_fields ?? [],
         }));
 

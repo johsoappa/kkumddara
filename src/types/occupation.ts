@@ -40,7 +40,11 @@ export interface Occupation {
 // occupation_master + occupation_summary(one_liner) DB 조회 결과
 // Occupation 전체 구조가 아닌 카드 렌더링에 필요한 필드만 포함
 export interface OccupationListItem {
-  id:           string;             // occupation_master.slug (URL 식별자)
+  // 카드 라우팅 ID: legacy_occupation_id (있으면) 또는 slug
+  // → /explore/[id] static 상세 페이지와 호환 유지
+  // → DB 기반 상세 페이지 전환 시 slug 기준으로 교체 예정
+  id:           string;
+  slug:         string;             // occupation_master.slug (DB 원본 식별자)
   name:         string;             // occupation_master.name_ko
   emoji:        string;             // occupation_master.emoji
   category:     OccupationCategory; // occupation_master.category

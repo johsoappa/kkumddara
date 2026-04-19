@@ -23,8 +23,10 @@ export default function OccupationCard({
   onLikeToggle,
 }: OccupationCardProps) {
   const router = useRouter();
-  // 상세 페이지: /explore/[id] (id = slug)
-  // [TODO] DB 연결 후 /explore/[slug] 상세 페이지 구현 필요
+  // 상세 라우팅: /explore/${occupation.id}
+  //   occupation.id = legacy_occupation_id ?? slug
+  //   → static /explore/[id] 상세 페이지와 호환 (10/10 정상 진입)
+  // [TODO] 상세 페이지 DB 전환 완료 후 slug 기준으로 변경
 
   return (
     <div
