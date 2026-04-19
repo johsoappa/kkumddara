@@ -416,6 +416,56 @@ export interface Database {
         Relationships: [];
       };
 
+      // ─── occupation_preparations (015 마이그레이션) ──────────
+      // mission_hint / step_action 등 prep_type 분류
+      occupation_preparations: {
+        Row: {
+          id:                   string;
+          occupation_id:        string;
+          layer:                "source" | "service";
+          prep_type:            string;   // 'mission_hint' | 'step_action'
+          content:              string;
+          grade_group:          string;   // 'all' | 'elem' | 'middle' | 'high'
+          stage_number:         number;
+          display_order:        number;
+          is_current:           boolean;
+          is_latest:            boolean;
+          status:               "draft" | "reviewed" | "published" | "archived";
+          created_by_user_id:   string | null;
+          actor_type:           string;
+          generation_source:    string;
+          reviewed_by_user_id:  string | null;
+          published_at:         string | null;
+          created_at:           string;
+          updated_at:           string;
+        };
+        Insert: {
+          id?:                  string;
+          occupation_id:        string;
+          layer:                "source" | "service";
+          prep_type:            string;
+          content:              string;
+          grade_group?:         string;
+          stage_number?:        number;
+          display_order?:       number;
+          is_current?:          boolean;
+          is_latest?:           boolean;
+          status?:              "draft" | "reviewed" | "published" | "archived";
+          actor_type?:          string;
+          generation_source?:   string;
+          published_at?:        string | null;
+        };
+        Update: {
+          content?:             string;
+          is_current?:          boolean;
+          is_latest?:           boolean;
+          status?:              "draft" | "reviewed" | "published" | "archived";
+          published_at?:        string | null;
+          updated_at?:          string;
+        };
+        Relationships: [];
+      };
+
       // ─── occupation_summary (015 마이그레이션) ────────────
       occupation_summary: {
         Row: {
