@@ -35,3 +35,16 @@ export interface Occupation {
   futureRating: number;     // 미래 유망도 1-5
   preparations: string[];   // 지금 할 수 있는 준비 3-5개
 }
+
+// ── /explore 리스트용 경량 타입 ──────────────────────────
+// occupation_master + occupation_summary(one_liner) DB 조회 결과
+// Occupation 전체 구조가 아닌 카드 렌더링에 필요한 필드만 포함
+export interface OccupationListItem {
+  id:           string;             // occupation_master.slug (URL 식별자)
+  name:         string;             // occupation_master.name_ko
+  emoji:        string;             // occupation_master.emoji
+  category:     OccupationCategory; // occupation_master.category
+  description:  string;             // occupation_summary.content (one_liner)
+  relatedMajors: Array<{ name: string }>; // [추후 DB 연결] 현재 빈 배열
+  skills:       string[];           // occupation_master.interest_fields
+}

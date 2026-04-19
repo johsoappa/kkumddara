@@ -366,6 +366,101 @@ export interface Database {
         };
         Relationships: [];
       };
+
+      // ─── occupation_master (015 마이그레이션) ─────────────
+      // [TODO] supabase gen types 재실행 시 이 블록을 자동 생성 타입으로 교체
+      occupation_master: {
+        Row: {
+          id:                   string;
+          slug:                 string;
+          employment24_code:    string | null;
+          careerapi_code:       string | null;
+          dictionary_code:      string | null;
+          name_ko:              string;
+          name_aliases:         string[];
+          emoji:                string;
+          category:             string;
+          interest_fields:      string[];
+          is_active:            boolean;
+          sync_status:          string;
+          last_synced_at:       string | null;
+          last_error_message:   string | null;
+          sync_attempt_count:   number;
+          priority:             number;
+          legacy_occupation_id: string | null;
+          created_at:           string;
+          updated_at:           string;
+        };
+        Insert: {
+          id?:                  string;
+          slug:                 string;
+          name_ko:              string;
+          emoji?:               string;
+          category:             string;
+          interest_fields?:     string[];
+          is_active?:           boolean;
+          sync_status?:         string;
+          priority?:            number;
+          legacy_occupation_id?: string | null;
+          employment24_code?:   string | null;
+        };
+        Update: {
+          is_active?:           boolean;
+          sync_status?:         string;
+          priority?:            number;
+          last_synced_at?:      string | null;
+          last_error_message?:  string | null;
+          employment24_code?:   string | null;
+          updated_at?:          string;
+        };
+        Relationships: [];
+      };
+
+      // ─── occupation_summary (015 마이그레이션) ────────────
+      occupation_summary: {
+        Row: {
+          id:                   string;
+          occupation_id:        string;
+          layer:                "source" | "service";
+          content_type:         string;
+          content:              string;
+          version_no:           number;
+          is_current:           boolean;
+          is_latest:            boolean;
+          status:               "draft" | "reviewed" | "published" | "archived";
+          created_by_user_id:   string | null;
+          actor_type:           string;
+          generation_source:    string;
+          reviewed_by_user_id:  string | null;
+          published_at:         string | null;
+          created_at:           string;
+          updated_at:           string;
+        };
+        Insert: {
+          id?:                  string;
+          occupation_id:        string;
+          layer:                "source" | "service";
+          content_type:         string;
+          content:              string;
+          version_no?:          number;
+          is_current?:          boolean;
+          is_latest?:           boolean;
+          status?:              "draft" | "reviewed" | "published" | "archived";
+          actor_type?:          string;
+          generation_source?:   string;
+          published_at?:        string | null;
+        };
+        Update: {
+          content?:             string;
+          is_current?:          boolean;
+          is_latest?:           boolean;
+          status?:              "draft" | "reviewed" | "published" | "archived";
+          published_at?:        string | null;
+          updated_at?:          string;
+        };
+        Relationships: [];
+      };
+
     };
 
     Views: Record<string, never>;

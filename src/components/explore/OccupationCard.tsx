@@ -9,10 +9,10 @@
 import { Heart } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import type { Occupation } from "@/types/occupation";
+import type { OccupationListItem } from "@/types/occupation";
 
 interface OccupationCardProps {
-  occupation: Occupation;
+  occupation: OccupationListItem;
   liked: boolean;
   onLikeToggle: (id: string) => void;
 }
@@ -23,6 +23,8 @@ export default function OccupationCard({
   onLikeToggle,
 }: OccupationCardProps) {
   const router = useRouter();
+  // 상세 페이지: /explore/[id] (id = slug)
+  // [TODO] DB 연결 후 /explore/[slug] 상세 페이지 구현 필요
 
   return (
     <div
