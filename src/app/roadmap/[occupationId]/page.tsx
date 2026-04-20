@@ -6,19 +6,38 @@
 // 데이터 소스 우선순위:
 //   1순위: DB (occupation_master.legacy_occupation_id 매핑)
 //          → 직업명/이모지: occupation_master
-//          → Stage 1 미션: occupation_student_actions
-//          → 준비 힌트: occupation_preparations(mission_hint)
-//          → Stage 2, 3: 정적 ROADMAPS 폴백
+//          → Stage 1 미션: occupation_preparations(step_action) +
+//                          occupation_student_actions(stage_number=1)
+//          → 준비 힌트: occupation_preparations(mission_hint) → 💡 callout
+//          → Stage 2, 3: 정적 ROADMAPS 유지 (DB에 해당 데이터 없음)
 //   2순위: 정적 ROADMAPS (비파일럿 직업 or DB 조회 실패 시)
+//
+// 파일럿 10개 직업 — legacy_occupation_id → DB name_ko 매핑:
+//   software-engineer    → 소프트웨어 개발자
+//   data-analyst         → 데이터 분석가
+//   graphic-designer     → 시각디자이너
+//   video-content-editor → 영상콘텐츠 제작자
+//   nurse                → 간호사
+//   biotech-researcher   → 생명과학 연구원
+//   teacher              → 교사
+//   psychologist         → 심리상담사
+//   police-officer       → 경찰관
+//   marketer             → 마케터
 //
 // 진행 상태 저장 우선순위:
 //   1순위: Supabase roadmap_progress (child_id 있을 때)
 //   2순위: localStorage fallback (비로그인/온보딩 미완료)
 //
-// [주의] DB Stage 1 미션 ID: 'prep-{uuid}' / 'action-{uuid}'
-//        정적 Stage 1 미션 ID: 'm1', 'm2' 등
-//        → DB 전환 후 기존 정적 Stage 1 진행률은 초기화됨 (MVP 허용 리스크)
-//        Stage 2, 3 미션 ID는 정적 그대로 유지 → 진행률 보존
+// roadmap_progress.occupation_id = legacy_occupation_id (text)  ← 키 방식 유지
+//
+// ── [MVP 허용 리스크] Stage 1 진행률 호환성 ──────────────────
+//   증상: 정적 Stage 1 미션 ID(m1~m4)가 DB ID(prep-{uuid}/action-{uuid})로
+//         교체되어 기존 Stage 1 체크 기록이 표시상 초기화됨
+//   영향: Stage 1 완료로 Stage 2가 열린 사용자 → Stage 2 재잠금 가능
+//   비영향: Stage 2(m5~m8), Stage 3(m9~m12) 기록은 정적 ID 유지 → 완전 보존
+//   허용 근거: MVP 파일럿 단계, 실 사용자 극소, Stage 재체크로 복구 가능
+//   후속 조치: 서비스 안정화 시 m1~m4 → 새 ID 변환 migration 처리 예정
+// ────────────────────────────────────────────────────────────
 //
 // child_id 결정:
 //   - student role → student 테이블에서 child_id 조회
