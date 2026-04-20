@@ -61,37 +61,48 @@ const LAST_ROADMAP_KEY = "kkumddara_last_roadmap";
 
 type RoadmapMode = "loading" | "db" | "static" | "not-found";
 
+// ── 컴포넌트 외부 순수 함수 (hook 규칙과 무관) ────────────────
+// 75% 이상 완료 시 단계 "완료로 간주" → 다음 단계 해제
+function isStageCleared(
+  stageMissions: { id: string }[],
+  completedSet: Set<string>
+): boolean {
+  const total = stageMissions.length;
+  if (total === 0) return true;
+  const done = stageMissions.filter((m) => completedSet.has(m.id)).length;
+  return done >= Math.ceil(total * 0.75);
+}
+
 export default function RoadmapPage() {
   const params       = useParams();
   const router       = useRouter();
   const occupationId = params.occupationId as string;   // = legacy_occupation_id
   const STORAGE_KEY  = `kkumddara_roadmap_${occupationId}`;
 
-  // ── 로드맵 데이터 상태 ──────────────────────────────────
+  // ── 로드맵 데이터 상태 ──────────────────────────────────────
   const [roadmap, setRoadmap]         = useState<RoadmapData | null>(null);
   const [missionHint, setMissionHint] = useState<string | null>(null);
   const [roadmapMode, setRoadmapMode] = useState<RoadmapMode>("loading");
 
-  // ── 진행 상태 ──────────────────────────────────────────
+  // ── 진행 상태 ────────────────────────────────────────────────
   const [childId, setChildId]             = useState<string | null>(null);
   const [completedMissions, setCompleted] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated]           = useState(false);
   const [toast, setToast]                 = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── 초기화: 로드맵 데이터 + 진행 상태 동시 로드 ──────────
+  // ── 초기화: 로드맵 데이터 + 진행 상태 동시 로드 ──────────────
   useEffect(() => {
     localStorage.setItem(LAST_ROADMAP_KEY, occupationId);
 
     let cancelled = false;
 
     async function init() {
-      // ── ① 로드맵 데이터 로드 (DB 우선) ─────────────────
+      // ① 로드맵 데이터 로드 (DB 우선)
       await loadRoadmapData();
-
       if (cancelled) return;
 
-      // ── ② 진행 상태 로드 (child_id → DB, 없으면 localStorage) ─
+      // ② 진행 상태 로드 (child_id → DB, 없으면 localStorage)
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || cancelled) {
         restoreFromLocalStorage();
@@ -149,7 +160,7 @@ export default function RoadmapPage() {
       setHydrated(true);
     }
 
-    // ── DB 우선 로드맵 데이터 빌드 ─────────────────────────
+    // ── DB 우선 로드맵 데이터 빌드 ───────────────────────────────
     async function loadRoadmapData() {
       try {
         // Query 1: occupation_master (legacy_occupation_id 기준)
@@ -161,8 +172,7 @@ export default function RoadmapPage() {
           .maybeSingle();
 
         if (masterErr || !master) {
-          // DB에 없는 직업 → 정적 폴백
-          useStaticFallback();
+          applyStaticFallback();
           return;
         }
 
@@ -206,37 +216,27 @@ export default function RoadmapPage() {
 
         // Stage 1 카드 구성
         const stage1: RoadmapStageType = {
-          id: staticRoadmap?.stages[0]?.id ?? "stage-current",
+          id:     staticRoadmap?.stages[0]?.id     ?? "stage-current",
           status: "current",
-          title: staticRoadmap?.stages[0]?.title ?? "탐색하기",
+          title:  staticRoadmap?.stages[0]?.title  ?? "탐색하기",
           missions: stage1Missions.length > 0
             ? stage1Missions
-            : (staticRoadmap?.stages[0]?.missions ?? []),  // DB 미션 없으면 정적 유지
+            : (staticRoadmap?.stages[0]?.missions ?? []),
         };
 
         // Stage 2, 3: 정적 ROADMAPS에서 그대로 사용
         const stages2and3: RoadmapStageType[] = staticRoadmap?.stages.slice(1) ?? [
-          {
-            id: "stage-next",
-            status: "next",
-            title: "실력 키우기",
-            missions: [],
-          },
-          {
-            id: "stage-future",
-            status: "future",
-            title: "전문가 되기",
-            missions: [],
-          },
+          { id: "stage-next",   status: "next",   title: "실력 키우기",  missions: [] },
+          { id: "stage-future", status: "future", title: "전문가 되기", missions: [] },
         ];
 
         const merged: RoadmapData = {
-          id: `${occupationId}-db-roadmap`,
+          id:             `${occupationId}-db-roadmap`,
           occupationId,
           occupationName: master.name_ko,
           occupationEmoji: master.emoji,
-          grade: staticRoadmap?.grade ?? "중1",
-          stages: [stage1, ...stages2and3],
+          grade:          staticRoadmap?.grade ?? "중1",
+          stages:         [stage1, ...stages2and3],
         };
 
         if (!cancelled) {
@@ -245,12 +245,11 @@ export default function RoadmapPage() {
           setRoadmapMode("db");
         }
       } catch {
-        // 예외 시 정적 폴백
-        useStaticFallback();
+        applyStaticFallback();
       }
     }
 
-    function useStaticFallback() {
+    function applyStaticFallback() {
       const staticRoadmap = getRoadmap(occupationId);
       if (staticRoadmap) {
         setRoadmap(staticRoadmap);
@@ -270,7 +269,42 @@ export default function RoadmapPage() {
     return () => { cancelled = true; };
   }, [occupationId, STORAGE_KEY]);
 
-  // ── 로딩 중 ─────────────────────────────────────────────
+  // ══════════════════════════════════════════════════════════════
+  // ── 파생 값 / useMemo — early return 이전에 전부 선언 ──────────
+  // React Rules of Hooks: hook은 항상 동일한 순서로 호출되어야 함.
+  // early return 뒤에 useMemo를 두면 렌더마다 hook 호출 수가 달라져
+  // "Rendered fewer hooks than expected" 크래시 발생.
+  // ══════════════════════════════════════════════════════════════
+
+  const allMissions = useMemo(
+    () => roadmap?.stages.flatMap((s) => s.missions) ?? [],
+    [roadmap]
+  );
+
+  const currentStage = useMemo(
+    () => roadmap?.stages.find((s) => s.status === "current") ?? null,
+    [roadmap]
+  );
+
+  const todayMission = useMemo(
+    () => currentStage?.missions.find((m) => !completedMissions.has(m.id)) ?? null,
+    [currentStage, completedMissions]
+  );
+
+  const effectiveStatuses = useMemo<StageStatus[]>(() => {
+    if (!roadmap) return [];
+    const missions = hydrated ? completedMissions : new Set<string>();
+    return roadmap.stages.map((stage, i) => {
+      if (i === 0) return "current";
+      const prevStage = roadmap.stages[i - 1];
+      if (!isStageCleared(prevStage.missions, missions)) return stage.status;
+      if (stage.status === "next")   return "current";
+      if (stage.status === "future") return "next";
+      return stage.status;
+    });
+  }, [roadmap, completedMissions, hydrated]);
+
+  // ── early return: 로딩 중 ────────────────────────────────────
   if (roadmapMode === "loading") {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-off">
@@ -282,7 +316,7 @@ export default function RoadmapPage() {
     );
   }
 
-  // ── 로드맵 없음 ───────────────────────────────────────────
+  // ── early return: 로드맵 없음 ────────────────────────────────
   if (roadmapMode === "not-found" || !roadmap) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-off">
@@ -302,57 +336,22 @@ export default function RoadmapPage() {
     );
   }
 
-  // ── unlock 판단 함수 ──────────────────────────────────────
-  // 75% 이상 완료 시 해당 단계 "완료로 간주" → 다음 단계 해제
-  const isStageCleared = (
-    stageMissions: { id: string }[],
-    completedSet: Set<string>
-  ): boolean => {
-    const total = stageMissions.length;
-    if (total === 0) return true;
-    const done = stageMissions.filter((m) => completedSet.has(m.id)).length;
-    return done >= Math.ceil(total * 0.75);
-  };
-
-  // ── 파생 값 ──────────────────────────────────────────────
-  const currentStage  = roadmap.stages.find((s) => s.status === "current")!;
-  const allMissions   = useMemo(
-    () => roadmap.stages.flatMap((s) => s.missions),
-    [roadmap]
-  );
+  // ── 진행률 계산 (roadmap 보장된 이후) ───────────────────────
   const completedCount = allMissions.filter((m) => completedMissions.has(m.id)).length;
   const progress = allMissions.length > 0
     ? Math.round((completedCount / allMissions.length) * 100)
     : 0;
 
-  const todayMission = useMemo(
-    () => currentStage?.missions.find((m) => !completedMissions.has(m.id)) ?? null,
-    [currentStage?.missions, completedMissions]
-  );
-
-  // ── 단계별 실효 상태 (동적 계산) ─────────────────────────
-  const effectiveStatuses = useMemo<StageStatus[]>(() => {
-    const missions = hydrated ? completedMissions : new Set<string>();
-    return roadmap.stages.map((stage, i) => {
-      if (i === 0) return "current";
-      const prevStage = roadmap.stages[i - 1];
-      if (!isStageCleared(prevStage.missions, missions)) return stage.status;
-      if (stage.status === "next")   return "current";
-      if (stage.status === "future") return "next";
-      return stage.status;
-    });
-  }, [roadmap.stages, completedMissions, hydrated]);
-
-  // ── 토스트 ───────────────────────────────────────────────
+  // ── 토스트 ───────────────────────────────────────────────────
   const showToast = (msg: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(msg);
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   };
 
-  // ── 미션 토글 ────────────────────────────────────────────
+  // ── 미션 토글 ────────────────────────────────────────────────
   const handleToggle = async (id: string) => {
-    const next    = new Set(completedMissions);
+    const next     = new Set(completedMissions);
     const wasAdded = !next.has(id);
     wasAdded ? next.add(id) : next.delete(id);
     setCompleted(next);
@@ -366,7 +365,7 @@ export default function RoadmapPage() {
         .upsert(
           {
             child_id:         childId,
-            occupation_id:    occupationId,     // legacy_occupation_id (text 키)
+            occupation_id:    occupationId,   // legacy_occupation_id (text 키)
             checked_missions: checkedObj,
             last_visited_at:  new Date().toISOString(),
           },
@@ -383,7 +382,7 @@ export default function RoadmapPage() {
     }
   };
 
-  // ── 렌더 ─────────────────────────────────────────────────
+  // ── 렌더 ─────────────────────────────────────────────────────
   const displayProgress  = hydrated ? progress      : 0;
   const displayCompleted = hydrated ? completedCount : 0;
   const displayMissions  = hydrated ? completedMissions : new Set<string>();
