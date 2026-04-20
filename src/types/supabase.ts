@@ -466,6 +466,62 @@ export interface Database {
         Relationships: [];
       };
 
+      // ─── occupation_student_actions (015 마이그레이션) ─────
+      // stage별 학생 탐색 미션 (stage_number 1~5)
+      occupation_student_actions: {
+        Row: {
+          id:                   string;
+          occupation_id:        string;
+          stage_number:         number;
+          stage_title:          string;
+          action_text:          string;
+          action_type:          string;  // 'read'|'watch'|'make'|'visit'|'interview'|'try'|'explore'
+          duration_minutes:     number | null;
+          grade_target:         string;  // 'elementary'|'middle'|'high'|'all'
+          display_order:        number;
+          version_no:           number;
+          is_current:           boolean;
+          is_latest:            boolean;
+          is_active:            boolean;
+          status:               "draft" | "reviewed" | "published" | "archived";
+          created_by_user_id:   string | null;
+          actor_type:           string;
+          generation_source:    string;
+          reviewed_by_user_id:  string | null;
+          published_at:         string | null;
+          created_at:           string;
+          updated_at:           string;
+        };
+        Insert: {
+          id?:                  string;
+          occupation_id:        string;
+          stage_number:         number;
+          stage_title:          string;
+          action_text:          string;
+          action_type?:         string;
+          duration_minutes?:    number | null;
+          grade_target?:        string;
+          display_order?:       number;
+          is_current?:          boolean;
+          is_latest?:           boolean;
+          is_active?:           boolean;
+          status?:              "draft" | "reviewed" | "published" | "archived";
+          actor_type?:          string;
+          generation_source?:   string;
+          published_at?:        string | null;
+        };
+        Update: {
+          action_text?:         string;
+          is_current?:          boolean;
+          is_latest?:           boolean;
+          is_active?:           boolean;
+          status?:              "draft" | "reviewed" | "published" | "archived";
+          published_at?:        string | null;
+          updated_at?:          string;
+        };
+        Relationships: [];
+      };
+
       // ─── occupation_summary (015 마이그레이션) ────────────
       occupation_summary: {
         Row: {

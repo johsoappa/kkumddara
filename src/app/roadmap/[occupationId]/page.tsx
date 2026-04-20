@@ -3,9 +3,22 @@
 // ====================================================
 // 나의 로드맵 페이지 (/roadmap/[occupationId])
 //
+// 데이터 소스 우선순위:
+//   1순위: DB (occupation_master.legacy_occupation_id 매핑)
+//          → 직업명/이모지: occupation_master
+//          → Stage 1 미션: occupation_student_actions
+//          → 준비 힌트: occupation_preparations(mission_hint)
+//          → Stage 2, 3: 정적 ROADMAPS 폴백
+//   2순위: 정적 ROADMAPS (비파일럿 직업 or DB 조회 실패 시)
+//
 // 진행 상태 저장 우선순위:
 //   1순위: Supabase roadmap_progress (child_id 있을 때)
 //   2순위: localStorage fallback (비로그인/온보딩 미완료)
+//
+// [주의] DB Stage 1 미션 ID: 'prep-{uuid}' / 'action-{uuid}'
+//        정적 Stage 1 미션 ID: 'm1', 'm2' 등
+//        → DB 전환 후 기존 정적 Stage 1 진행률은 초기화됨 (MVP 허용 리스크)
+//        Stage 2, 3 미션 ID는 정적 그대로 유지 → 진행률 보존
 //
 // child_id 결정:
 //   - student role → student 테이블에서 child_id 조회
@@ -13,7 +26,6 @@
 //   - 없으면 → localStorage 모드
 //
 // checked_missions JSONB 형식: { [missionId]: true }
-// 없는 키 = false (미완료) → 초기값 0%
 // ====================================================
 
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -24,36 +36,45 @@ import RoadmapStage from "@/components/roadmap/RoadmapStage";
 import TodayMission from "@/components/roadmap/TodayMission";
 import { getRoadmap } from "@/data/roadmaps";
 import { supabase } from "@/lib/supabase";
-import type { StageStatus } from "@/types/roadmap";
+import type { RoadmapData, RoadmapStage as RoadmapStageType, StageStatus } from "@/types/roadmap";
 
 const LAST_ROADMAP_KEY = "kkumddara_last_roadmap";
 
+type RoadmapMode = "loading" | "db" | "static" | "not-found";
+
 export default function RoadmapPage() {
-  const params    = useParams();
-  const router    = useRouter();
-  const occupationId = params.occupationId as string;
+  const params       = useParams();
+  const router       = useRouter();
+  const occupationId = params.occupationId as string;   // = legacy_occupation_id
+  const STORAGE_KEY  = `kkumddara_roadmap_${occupationId}`;
 
-  const roadmap    = getRoadmap(occupationId);
-  const STORAGE_KEY = `kkumddara_roadmap_${occupationId}`;
+  // ── 로드맵 데이터 상태 ──────────────────────────────────
+  const [roadmap, setRoadmap]         = useState<RoadmapData | null>(null);
+  const [missionHint, setMissionHint] = useState<string | null>(null);
+  const [roadmapMode, setRoadmapMode] = useState<RoadmapMode>("loading");
 
-  // ── 상태 ──────────────────────────────────────────────
-  const [childId, setChildId]               = useState<string | null>(null);
-  const [completedMissions, setCompleted]   = useState<Set<string>>(new Set());
-  const [hydrated, setHydrated]             = useState(false); // SSR flicker 방지
-  const [toast, setToast]                   = useState<string | null>(null);
+  // ── 진행 상태 ──────────────────────────────────────────
+  const [childId, setChildId]             = useState<string | null>(null);
+  const [completedMissions, setCompleted] = useState<Set<string>>(new Set());
+  const [hydrated, setHydrated]           = useState(false);
+  const [toast, setToast]                 = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // ── 초기화: child_id 확보 → DB 조회 → 진행 상태 복원 ──
+  // ── 초기화: 로드맵 데이터 + 진행 상태 동시 로드 ──────────
   useEffect(() => {
     localStorage.setItem(LAST_ROADMAP_KEY, occupationId);
 
     let cancelled = false;
 
     async function init() {
-      // 1. 로그인 사용자 확인
+      // ── ① 로드맵 데이터 로드 (DB 우선) ─────────────────
+      await loadRoadmapData();
+
+      if (cancelled) return;
+
+      // ── ② 진행 상태 로드 (child_id → DB, 없으면 localStorage) ─
       const { data: { user } } = await supabase.auth.getUser();
       if (!user || cancelled) {
-        // 비로그인 → localStorage fallback
         restoreFromLocalStorage();
         return;
       }
@@ -61,7 +82,6 @@ export default function RoadmapPage() {
       const role = user.user_metadata?.role as "parent" | "student" | undefined;
       let resolvedChildId: string | null = null;
 
-      // 2. child_id 확보
       if (role === "student") {
         const { data } = await supabase
           .from("student")
@@ -82,14 +102,12 @@ export default function RoadmapPage() {
       if (cancelled) return;
 
       if (!resolvedChildId) {
-        // child_id 없으면 localStorage fallback
         restoreFromLocalStorage();
         return;
       }
 
       setChildId(resolvedChildId);
 
-      // 3. DB에서 진행 상태 조회
       const { data: progress } = await supabase
         .from("roadmap_progress")
         .select("checked_missions")
@@ -100,18 +118,127 @@ export default function RoadmapPage() {
       if (cancelled) return;
 
       if (progress?.checked_missions) {
-        // checked_missions: { [missionId]: true } → Set으로 변환
         const checked = progress.checked_missions as Record<string, boolean>;
         const ids = Object.entries(checked)
           .filter(([, v]) => v === true)
           .map(([k]) => k);
         setCompleted(new Set(ids));
       } else {
-        // DB에 데이터 없음 → 0%로 시작
         setCompleted(new Set());
       }
 
       setHydrated(true);
+    }
+
+    // ── DB 우선 로드맵 데이터 빌드 ─────────────────────────
+    async function loadRoadmapData() {
+      try {
+        // Query 1: occupation_master (legacy_occupation_id 기준)
+        const { data: master, error: masterErr } = await supabase
+          .from("occupation_master")
+          .select("id, name_ko, emoji, legacy_occupation_id")
+          .eq("legacy_occupation_id", occupationId)
+          .eq("is_active", true)
+          .maybeSingle();
+
+        if (masterErr || !master) {
+          // DB에 없는 직업 → 정적 폴백
+          useStaticFallback();
+          return;
+        }
+
+        // Query 2, 3: 병렬 fetch
+        const [{ data: prepRows }, { data: actionRows }] = await Promise.all([
+          supabase
+            .from("occupation_preparations")
+            .select("id, prep_type, content, display_order")
+            .eq("occupation_id", master.id)
+            .eq("is_current", true)
+            .eq("status", "published")
+            .in("prep_type", ["mission_hint", "step_action"])
+            .order("display_order", { ascending: true }),
+          supabase
+            .from("occupation_student_actions")
+            .select("id, stage_number, stage_title, action_text, display_order")
+            .eq("occupation_id", master.id)
+            .eq("is_current", true)
+            .eq("status", "published")
+            .order("stage_number", { ascending: true })
+            .order("display_order", { ascending: true }),
+        ]);
+
+        if (cancelled) return;
+
+        const staticRoadmap = getRoadmap(occupationId);
+
+        // mission_hint
+        const hint = prepRows?.find((r) => r.prep_type === "mission_hint")?.content ?? null;
+
+        // Stage 1 미션: step_action(preparations) + student_actions(stage_number=1)
+        const stepActions = (prepRows ?? [])
+          .filter((r) => r.prep_type === "step_action")
+          .map((r) => ({ id: `prep-${r.id}`, text: r.content }));
+
+        const stage1Actions = (actionRows ?? [])
+          .filter((r) => r.stage_number === 1)
+          .map((r) => ({ id: `action-${r.id}`, text: r.action_text }));
+
+        const stage1Missions = [...stepActions, ...stage1Actions];
+
+        // Stage 1 카드 구성
+        const stage1: RoadmapStageType = {
+          id: staticRoadmap?.stages[0]?.id ?? "stage-current",
+          status: "current",
+          title: staticRoadmap?.stages[0]?.title ?? "탐색하기",
+          missions: stage1Missions.length > 0
+            ? stage1Missions
+            : (staticRoadmap?.stages[0]?.missions ?? []),  // DB 미션 없으면 정적 유지
+        };
+
+        // Stage 2, 3: 정적 ROADMAPS에서 그대로 사용
+        const stages2and3: RoadmapStageType[] = staticRoadmap?.stages.slice(1) ?? [
+          {
+            id: "stage-next",
+            status: "next",
+            title: "실력 키우기",
+            missions: [],
+          },
+          {
+            id: "stage-future",
+            status: "future",
+            title: "전문가 되기",
+            missions: [],
+          },
+        ];
+
+        const merged: RoadmapData = {
+          id: `${occupationId}-db-roadmap`,
+          occupationId,
+          occupationName: master.name_ko,
+          occupationEmoji: master.emoji,
+          grade: staticRoadmap?.grade ?? "중1",
+          stages: [stage1, ...stages2and3],
+        };
+
+        if (!cancelled) {
+          setMissionHint(hint);
+          setRoadmap(merged);
+          setRoadmapMode("db");
+        }
+      } catch {
+        // 예외 시 정적 폴백
+        useStaticFallback();
+      }
+    }
+
+    function useStaticFallback() {
+      const staticRoadmap = getRoadmap(occupationId);
+      if (staticRoadmap) {
+        setRoadmap(staticRoadmap);
+        setRoadmapMode("static");
+      } else {
+        setRoadmapMode("not-found");
+      }
     }
 
     function restoreFromLocalStorage() {
@@ -124,8 +251,20 @@ export default function RoadmapPage() {
     return () => { cancelled = true; };
   }, [occupationId, STORAGE_KEY]);
 
-  // ── 로드맵 없음 ───────────────────────────────────────
-  if (!roadmap) {
+  // ── 로딩 중 ─────────────────────────────────────────────
+  if (roadmapMode === "loading") {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-base-off">
+        <div className="text-center">
+          <p className="text-3xl mb-2">🗺️</p>
+          <p className="text-sm text-base-muted">로드맵 불러오는 중...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ── 로드맵 없음 ───────────────────────────────────────────
+  if (roadmapMode === "not-found" || !roadmap) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-off">
         <div className="text-center px-6">
@@ -144,10 +283,8 @@ export default function RoadmapPage() {
     );
   }
 
-  // ── unlock 판단 함수 (단일 기준) ─────────────────────
-  // 75% 이상 완료 시 해당 단계를 "완료로 간주" → 다음 단계 해제
-  // Math.ceil(4 * 0.75) = 3 → 미션 4개 기준 3개 완료 시 unlock
-  // 토스트·카드 unlock 모두 이 함수 하나로 판단한다.
+  // ── unlock 판단 함수 ──────────────────────────────────────
+  // 75% 이상 완료 시 해당 단계 "완료로 간주" → 다음 단계 해제
   const isStageCleared = (
     stageMissions: { id: string }[],
     completedSet: Set<string>
@@ -158,9 +295,9 @@ export default function RoadmapPage() {
     return done >= Math.ceil(total * 0.75);
   };
 
-  // ── 파생 값 ──────────────────────────────────────────
-  const currentStage = roadmap.stages.find((s) => s.status === "current")!;
-  const allMissions  = useMemo(
+  // ── 파생 값 ──────────────────────────────────────────────
+  const currentStage  = roadmap.stages.find((s) => s.status === "current")!;
+  const allMissions   = useMemo(
     () => roadmap.stages.flatMap((s) => s.missions),
     [roadmap]
   );
@@ -170,37 +307,31 @@ export default function RoadmapPage() {
     : 0;
 
   const todayMission = useMemo(
-    () => currentStage.missions.find((m) => !completedMissions.has(m.id)) ?? null,
-    [currentStage.missions, completedMissions]
+    () => currentStage?.missions.find((m) => !completedMissions.has(m.id)) ?? null,
+    [currentStage?.missions, completedMissions]
   );
 
-  // ── 단계별 실효 상태 (동적 계산) ──────────────────────
-  // stage.status는 정적 초기값. 실제 unlock 여부는
-  // isStageCleared (75% 기준) 로 동적으로 결정한다.
-  //   i=0 (current): 항상 "current"
-  //   i=1 (next)   : stage[0] 75% 이상 완료 시 → "current" (해제)
-  //   i=2 (future) : stage[1] 75% 이상 완료 시 → "next"   (해제)
+  // ── 단계별 실효 상태 (동적 계산) ─────────────────────────
   const effectiveStatuses = useMemo<StageStatus[]>(() => {
     const missions = hydrated ? completedMissions : new Set<string>();
     return roadmap.stages.map((stage, i) => {
       if (i === 0) return "current";
       const prevStage = roadmap.stages[i - 1];
       if (!isStageCleared(prevStage.missions, missions)) return stage.status;
-      // 이전 단계 75% 이상 완료 → 한 단계 승격
       if (stage.status === "next")   return "current";
       if (stage.status === "future") return "next";
       return stage.status;
     });
   }, [roadmap.stages, completedMissions, hydrated]);
 
-  // ── 토스트 ───────────────────────────────────────────
+  // ── 토스트 ───────────────────────────────────────────────
   const showToast = (msg: string) => {
     if (toastTimer.current) clearTimeout(toastTimer.current);
     setToast(msg);
     toastTimer.current = setTimeout(() => setToast(null), 3000);
   };
 
-  // ── 미션 토글 ────────────────────────────────────────
+  // ── 미션 토글 ────────────────────────────────────────────
   const handleToggle = async (id: string) => {
     const next    = new Set(completedMissions);
     const wasAdded = !next.has(id);
@@ -208,7 +339,6 @@ export default function RoadmapPage() {
     setCompleted(next);
 
     if (childId) {
-      // DB upsert — checked_missions: { [id]: true } のみ保存 (false は省く)
       const checkedObj: Record<string, boolean> = {};
       next.forEach((mid) => { checkedObj[mid] = true; });
 
@@ -217,42 +347,40 @@ export default function RoadmapPage() {
         .upsert(
           {
             child_id:         childId,
-            occupation_id:    occupationId,
+            occupation_id:    occupationId,     // legacy_occupation_id (text 키)
             checked_missions: checkedObj,
             last_visited_at:  new Date().toISOString(),
           },
           { onConflict: "child_id,occupation_id" }
         );
     } else {
-      // localStorage fallback
       localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
     }
 
-    if (wasAdded) {
-      // 토스트 기준도 isStageCleared (75%) 로 카드 unlock과 동일하게 판단
+    if (wasAdded && currentStage) {
       if (isStageCleared(currentStage.missions, next)) {
         showToast("NEXT 단계가 해제됐어요! 🎉");
       }
     }
   };
 
-  // ── 렌더 ─────────────────────────────────────────────
-  // hydrated 전: 진행률 0%로 고정 (SSR flicker 방지)
-  const displayProgress      = hydrated ? progress      : 0;
-  const displayCompleted     = hydrated ? completedCount : 0;
-  const displayMissions      = hydrated ? completedMissions : new Set<string>();
+  // ── 렌더 ─────────────────────────────────────────────────
+  const displayProgress  = hydrated ? progress      : 0;
+  const displayCompleted = hydrated ? completedCount : 0;
+  const displayMissions  = hydrated ? completedMissions : new Set<string>();
 
   return (
     <AppShell headerTitle="나의 로드맵">
 
-      {/* ── 토스트 (페이지 최상단 중앙, 카드와 겹치지 않음) ── */}
+      {/* ── 토스트 ── */}
       {toast && (
-        <div className="
-          fixed top-4 left-1/2 -translate-x-1/2 z-[500]
-          bg-base-text text-white text-sm font-semibold
-          px-5 py-3 rounded-full shadow-card
-          whitespace-nowrap
-        "
+        <div
+          className="
+            fixed top-4 left-1/2 -translate-x-1/2 z-[500]
+            bg-base-text text-white text-sm font-semibold
+            px-5 py-3 rounded-full shadow-card
+            whitespace-nowrap
+          "
           style={{ animation: "toast-in 0.25s ease-out both" }}
         >
           {toast}
@@ -309,7 +437,15 @@ export default function RoadmapPage() {
           </div>
         </div>
 
-        {/* ③ 3단계 타임라인 */}
+        {/* ③ 준비 힌트 (DB 모드에서만) */}
+        {roadmapMode === "db" && missionHint && (
+          <div className="rounded-card-lg border border-brand-red/20 bg-red-50 px-4 py-3 flex items-start gap-3 mb-3">
+            <span className="text-lg flex-shrink-0 mt-0.5">💡</span>
+            <p className="text-sm text-base-text leading-relaxed">{missionHint}</p>
+          </div>
+        )}
+
+        {/* ④ 3단계 타임라인 */}
         <div className="flex flex-col gap-3">
           {roadmap.stages.map((stage, i) => (
             <RoadmapStage
@@ -323,7 +459,7 @@ export default function RoadmapPage() {
         </div>
       </div>
 
-      {/* ④ 오늘의 미션 (하단 고정) */}
+      {/* ⑤ 오늘의 미션 (하단 고정) */}
       <TodayMission
         missionText={hydrated ? (todayMission?.text ?? null) : null}
         onComplete={() => todayMission && handleToggle(todayMission.id)}
