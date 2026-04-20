@@ -23,6 +23,8 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import Anthropic from "@anthropic-ai/sdk";
 import type { ManseryeokResult } from "@/lib/manseryeok";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rateLimit";
+import { validateName, validateUUID, validateGender } from "@/lib/validation";
 
 const PER_CHILD_YEARLY_LIMIT = 3;
 
@@ -63,6 +65,11 @@ function errRes(msg: string, code: string, status: number) {
 }
 
 export async function POST(req: NextRequest) {
+  // ── 0. Rate Limiting (3회/분 per IP) ──────────────
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`myeonddara:${ip}`, 3, 60_000);
+  if (!rl.allowed) return rateLimitResponse(rl.resetAfterMs);
+
   // ── 1. 요청 파싱 ──────────────────────────────────
   let body: {
     childId?:   string;
@@ -79,8 +86,25 @@ export async function POST(req: NextRequest) {
   }
 
   const { childId, name, saju, gender, birthDate, birthTime } = body;
-  if (!childId || !name || !saju) {
-    return errRes("필수 데이터가 없어요.", "BAD_REQUEST", 400);
+
+  // ── 입력값 서버 검증 ──────────────────────────────
+  const childIdResult = validateUUID(childId, "childId");
+  if (!childIdResult.ok) {
+    return errRes(childIdResult.error, "VALIDATION_ERROR", 400);
+  }
+
+  const nameResult = validateName(name);
+  if (!nameResult.ok) {
+    return errRes(nameResult.error, "VALIDATION_ERROR", 400);
+  }
+
+  const genderResult = validateGender(gender);
+  if (!genderResult.ok) {
+    return errRes(genderResult.error, "VALIDATION_ERROR", 400);
+  }
+
+  if (!saju) {
+    return errRes("사주 데이터가 없어요.", "BAD_REQUEST", 400);
   }
 
   // ── 2. Supabase 클라이언트 ────────────────────────
@@ -183,7 +207,7 @@ export async function POST(req: NextRequest) {
   // ── 8. Claude API 호출 ────────────────────────────
   const { hourPillar, yearPillar, monthPillar, dayPillar, ohaeng, ilgan } = saju;
 
-  const userMessage = `이름: ${name} (${gender ?? "성별 미상"})
+  const userMessage = `이름: ${nameResult.value} (${genderResult.value})
 생년월일: ${birthDate ?? ""} ${birthTime ?? ""}
 
 사주 4柱:

@@ -42,6 +42,8 @@ import {
   buildChildContext,
   AI_CONSULT_ERRORS,
 } from "@/lib/ai/systemPrompt";
+import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rateLimit";
+import { validateMessage, validateUUID } from "@/lib/validation";
 
 // ── 최대 컨텍스트 메시지 수 (유료 이어가기 시 최근 N개만 전송) ──
 const MAX_CONTEXT_MESSAGES = 20;
@@ -77,7 +79,12 @@ export async function POST(req: NextRequest) {
     return errRes("API_KEY_MISSING", 503);
   }
 
-  // ── 2. 요청 파싱 ────────────────────────────────────────
+  // ── 2. Rate Limiting (5회/분 per IP) ──────────────────────
+  const ip = getClientIp(req);
+  const rl = checkRateLimit(`ai-consult:${ip}`, 5, 60_000);
+  if (!rl.allowed) return rateLimitResponse(rl.resetAfterMs);
+
+  // ── 3. 요청 파싱 ────────────────────────────────────────
   let body: { childId?: string; sessionId?: string; message?: string };
   try {
     body = await req.json();
@@ -90,14 +97,36 @@ export async function POST(req: NextRequest) {
 
   const { childId, sessionId, message } = body;
 
-  if (!message || typeof message !== "string" || !message.trim()) {
+  // ── 입력값 서버 검증 ────────────────────────────────────
+  const msgResult = validateMessage(message);
+  if (!msgResult.ok) {
     return NextResponse.json(
-      { error: "메시지를 입력해주세요.", code: "SERVER_ERROR", status: 400 },
+      { error: msgResult.error, code: "VALIDATION_ERROR", status: 400 },
       { status: 400 }
     );
   }
 
-  // ── 3. Supabase 서버 클라이언트 (쿠키 기반 세션) ────────
+  if (childId !== undefined) {
+    const childIdResult = validateUUID(childId, "childId");
+    if (!childIdResult.ok) {
+      return NextResponse.json(
+        { error: childIdResult.error, code: "VALIDATION_ERROR", status: 400 },
+        { status: 400 }
+      );
+    }
+  }
+
+  if (sessionId !== undefined) {
+    const sessionIdResult = validateUUID(sessionId, "sessionId");
+    if (!sessionIdResult.ok) {
+      return NextResponse.json(
+        { error: sessionIdResult.error, code: "VALIDATION_ERROR", status: 400 },
+        { status: 400 }
+      );
+    }
+  }
+
+  // ── 4. Supabase 서버 클라이언트 (쿠키 기반 세션) ────────
   const cookieStore = cookies();
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -201,7 +230,7 @@ export async function POST(req: NextRequest) {
       role:    m.role,
       content: m.content,
     })),
-    { role: "user" as const, content: message.trim() },
+    { role: "user" as const, content: msgResult.value },
   ];
 
   let aiResponse: string;
@@ -242,7 +271,7 @@ export async function POST(req: NextRequest) {
   if (!isFree) {
     const updatedMessages: ChatMsg[] = [
       ...priorMessages,
-      { role: "user",      content: message.trim() },
+      { role: "user",      content: msgResult.value },
       { role: "assistant", content: aiResponse },
     ];
 
@@ -260,7 +289,7 @@ export async function POST(req: NextRequest) {
         .insert({
           parent_id: parentId,
           child_id:  childId ?? null,
-          title:     message.trim().slice(0, 50), // 첫 메시지 50자를 제목으로
+          title:     msgResult.value.slice(0, 50), // 첫 메시지 50자를 제목으로
           messages:  updatedMessages,
         })
         .select("id")

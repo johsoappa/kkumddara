@@ -13,7 +13,8 @@ import { ArrowLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import type { Grade, InterestField } from "@/types/family";
-import { SPROUT_GRADES, VALID_GRADES } from "@/types/family";
+import { SPROUT_GRADES } from "@/types/family";
+import { updateStudentProfile } from "./actions";
 
 const GRADE_GROUPS: { label: string; options: { value: Grade; label: string }[] }[] = [
   {
@@ -107,20 +108,23 @@ export default function StudentEditPage() {
       prev.includes(field) ? prev.filter((i) => i !== field) : [...prev, field]
     );
 
-  // ── 저장 ─────────────────────────────────────────────────
+  // ── 저장 (Server Action 경유 → 서버 검증 후 DB 업데이트) ──
   const handleSave = async () => {
-    if (!grade) { setError("학년을 선택해주세요."); return; }
-    if (!(VALID_GRADES as readonly string[]).includes(grade)) {
-      console.error("[student/edit] 유효하지 않은 grade 값:", grade);
-      setError("올바르지 않은 학년 값입니다.");
-      return;
-    }
-    if (interests.length === 0) { setError("관심 분야를 하나 이상 선택해주세요."); return; }
+    // 클라이언트 프리플라이트 (UX 빠른 피드백)
+    if (!grade)            { setError("학년을 선택해주세요."); return; }
+    if (!interests.length) { setError("관심 분야를 하나 이상 선택해주세요."); return; }
     setError(null);
     setSaving(true);
 
     try {
-      // 1. localStorage 업데이트 (구 아키텍처 호환)
+      // 1. Server Action 호출 (서버에서 재검증 + DB 업데이트)
+      const result = await updateStudentProfile(grade, interests);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+
+      // 2. localStorage 동기화 (구 아키텍처 호환 유지)
       const stored = localStorage.getItem("kkumddara_onboarding");
       const existing = stored ? JSON.parse(stored) : {};
       localStorage.setItem("kkumddara_onboarding", JSON.stringify({
@@ -129,21 +133,8 @@ export default function StudentEditPage() {
         interests,
       }));
 
-      // 2. Supabase child 테이블 업데이트
-      if (childId) {
-        const { error: dbError } = await supabase
-          .from("child")
-          .update({ school_grade: grade, interests })
-          .eq("id", childId);
-        if (dbError) throw dbError;
-      }
-
       // 3. 라우터 캐시 무효화 → 홈 컴포넌트 리마운트 보장
-      //    이 호출 없이는 Next.js가 캐시된 홈 컴포넌트를 그대로 표시하여
-      //    useEffect([])가 재실행되지 않아 구값이 남는다.
       router.refresh();
-
-      // 4. 홈으로 이동 (새 아키텍처는 항상 /student/home)
       router.replace("/student/home");
     } catch (e) {
       console.error("[student/edit] 저장 오류:", e);

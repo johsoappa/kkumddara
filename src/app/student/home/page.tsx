@@ -2,9 +2,21 @@
 
 // ====================================================
 // 학생 홈 (/student/home)
-// Must Have v1:
-//   섹션 1 — 오늘의 미션
-//   섹션 2 — 탐색 이어가기 / 추천 직업·활동
+//
+// 데이터 소스:
+//   - 추천 직업: occupation_master (is_active=true) + occupation_summary(one_liner)
+//   - 관심분야 매칭: occupation_master.interest_fields ∩ child.interests
+//   - 오늘의 미션: roadmap_progress (DB) 또는 localStorage → getRoadmap (정적)
+//   - 자녀 프로필: child 테이블 (학년/관심분야)
+//
+// 세션 처리:
+//   - getUser() null → router.replace('/') 리다이렉트
+//   - onAuthStateChange SIGNED_OUT → router.replace('/')
+//   - 세션 만료 시 무한 로딩 또는 화이트 스크린 없음
+//
+// [MVP 주의] 오늘의 미션 섹션은 정적 ROADMAPS 기반 미션 ID 사용
+//   DB 전환된 Stage 1 미션(prep-/action- UUID)과 ID 불일치 가능.
+//   추천 직업 섹션만 DB 전환 완료. 미션 섹션 DB 전환은 후속 작업 예정.
 // ====================================================
 
 import Image from "next/image";
@@ -14,28 +26,29 @@ import {
   Zap,
   Compass,
   ChevronRight,
-  CheckCircle2,
   Circle,
   LogOut,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { signOut } from "@/lib/auth";
-import { OCCUPATIONS } from "@/data/occupations";
 import { getRoadmap } from "@/data/roadmaps";
 import type { Child } from "@/types/family";
 import { GRADE_LABEL, INTEREST_LABEL } from "@/types/family";
 import type { Grade, InterestField } from "@/types/family";
 
-// 직업 카테고리 → InterestField 역매핑
-const CATEGORY_TO_INTEREST: Record<string, InterestField> = {
-  "IT·기술":    "it",
-  "예술·디자인": "art",
-  "의료·과학":  "medical",
-  "비즈니스·경영": "business",
-  "교육·사회":  "education",
-};
+// ── DB 직업 타입 ────────────────────────────────────────────
+interface DbOccupation {
+  id:                   string;
+  name_ko:              string;
+  emoji:                string;
+  category:             string;
+  interest_fields:      string[];
+  legacy_occupation_id: string | null;
+  priority:             number;
+  one_liner:            string | null;
+}
 
-// 카테고리별 추천 이유 (탐색 제안형 — "가장 맞는", "확실히" 금지)
+// ── 카테고리별 탐색 제안 문구 (fallback용) ──────────────────
 const CATEGORY_REASON: Record<string, string> = {
   "IT·기술":       "IT 관심사와 연결되는 직업이에요",
   "예술·디자인":   "예술·창작 관심사와 이어지는 직업이에요",
@@ -47,56 +60,68 @@ const CATEGORY_REASON: Record<string, string> = {
   "환경·미래산업": "미래 산업에 관심 있다면 주목할 직업이에요",
 };
 
-function getOccupationReason(category: string, interests: InterestField[]): string {
-  const mapped = CATEGORY_TO_INTEREST[category];
-  if (mapped && interests.includes(mapped)) {
-    return CATEGORY_REASON[category] ?? "관심 분야와 연결되는 직업이에요";
-  }
-  return CATEGORY_REASON[category] ?? "탐색해보면 의외로 잘 맞을 수 있어요";
-}
-
 export default function StudentHomePage() {
   const router = useRouter();
 
-  const [child, setChild]           = useState<Child | null>(null);
-  const [chosenRoadmapId, setChosen] = useState<string | null>(null);
+  const [child, setChild]               = useState<Child | null>(null);
+  const [dbOccupations, setDbOccs]      = useState<DbOccupation[]>([]);
+  const [chosenRoadmapId, setChosen]    = useState<string | null>(null);
   const [completedMissions, setCompleted] = useState<string[]>([]);
-  const [loading, setLoading]       = useState(true);
+  const [loading, setLoading]           = useState(true);
 
+  // ── 세션 만료 감지 리스너 ───────────────────────────────────
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "SIGNED_OUT" || (event === "TOKEN_REFRESHED" && !session)) {
+          router.replace("/");
+        }
+      }
+    );
+    return () => subscription.unsubscribe();
+  }, [router]);
+
+  // ── 데이터 로드 ───────────────────────────────────────────
   useEffect(() => {
     async function loadData() {
       try {
+        // 1. 인증 확인 — 세션 만료 시 랜딩 리다이렉트
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          router.replace("/");
+          return;
+        }
 
-        // student → child 로드
+        // 2. student → child 로드
         const { data: studentData } = await supabase
           .from("student")
           .select("child_id")
           .eq("user_id", user.id)
           .maybeSingle();
 
-        if (!studentData?.child_id) return;
+        if (studentData?.child_id) {
+          const { data: childData } = await supabase
+            .from("child")
+            .select("*")
+            .eq("id", studentData.child_id)
+            .maybeSingle();
 
-        const { data: childData } = await supabase
-          .from("child")
-          .select("*")
-          .eq("id", studentData.child_id)
-          .maybeSingle();
+          if (childData) setChild(childData as Child);
+        }
 
-        if (childData) setChild(childData as Child);
-
-        // 선택된 로드맵 & 완료 미션 (localStorage 캐시 우선, DB 폴백)
+        // 3. 선택된 로드맵 & 완료 미션 (localStorage 캐시 우선, DB 폴백)
         const localChosen = localStorage.getItem("kkumddara_chosen_roadmap");
         if (localChosen) {
           setChosen(localChosen);
           const localProgress = localStorage.getItem(`kkumddara_roadmap_${localChosen}`);
-          if (localProgress) setCompleted(JSON.parse(localProgress));
-        } else if (childData) {
+          if (localProgress) {
+            try { setCompleted(JSON.parse(localProgress)); } catch { /* 파싱 실패 무시 */ }
+          }
+        } else if (studentData?.child_id) {
           const { data: roadmapData } = await supabase
             .from("roadmap_progress")
             .select("occupation_id, checked_missions")
-            .eq("child_id", childData.id)
+            .eq("child_id", studentData.child_id)
             .eq("chosen", true)
             .maybeSingle();
 
@@ -106,41 +131,85 @@ export default function StudentHomePage() {
             setCompleted(Object.keys(missions).filter((k) => missions[k]));
           }
         }
+
+        // 4. 추천 직업 DB 로드 ────────────────────────────────
+        //    Query 1: occupation_master (is_active=true, priority DESC)
+        const { data: occRows, error: occErr } = await supabase
+          .from("occupation_master")
+          .select("id, name_ko, emoji, category, interest_fields, legacy_occupation_id, priority")
+          .eq("is_active", true)
+          .order("priority", { ascending: false });
+
+        if (occErr) {
+          console.warn("[student/home] occupation_master 조회 오류:", occErr.message);
+        }
+
+        if (occRows && occRows.length > 0) {
+          //    Query 2: occupation_summary (one_liner) — 직업 소개 1줄
+          const occIds = occRows.map((r) => r.id);
+          const { data: summaryRows } = await supabase
+            .from("occupation_summary")
+            .select("occupation_id, content")
+            .in("occupation_id", occIds)
+            .eq("content_type", "one_liner")
+            .eq("is_current", true)
+            .eq("status", "published");
+
+          const summaryMap: Record<string, string> = {};
+          (summaryRows ?? []).forEach((s) => {
+            summaryMap[s.occupation_id] = s.content;
+          });
+
+          setDbOccs(
+            occRows.map((o) => ({
+              id:                   o.id,
+              name_ko:              o.name_ko,
+              emoji:                o.emoji,
+              category:             o.category,
+              interest_fields:      (o.interest_fields ?? []) as string[],
+              legacy_occupation_id: o.legacy_occupation_id as string | null,
+              priority:             o.priority ?? 0,
+              one_liner:            summaryMap[o.id] ?? null,
+            }))
+          );
+        }
       } catch (err) {
         console.error("[student/home] loadData 오류:", err);
       } finally {
-        setLoading(false); // 성공/실패/예외 모두 로딩 종료 보장
+        setLoading(false);
       }
     }
 
     loadData();
-  }, []);
+  }, [router]);
 
-  // 오늘의 미션 — 선택된 로드맵의 미완료 미션 중 첫 3개
+  // ── 오늘의 미션 — 선택된 로드맵의 미완료 미션 중 첫 3개 ──────
+  // [주의] 정적 ROADMAPS 기준 미션 ID 사용. DB Stage 1 미션(prep-/action-UUID)과
+  //        ID 불일치 가능성 있음 (MVP 허용 리스크 — 후속 동기화 필요)
   const todayMissions = useMemo(() => {
     if (!chosenRoadmapId) return [];
     const roadmap = getRoadmap(chosenRoadmapId);
     if (!roadmap) return [];
-
     const allMissions = roadmap.stages.flatMap((s) =>
       s.missions.map((m) => ({ ...m, stageTitle: s.title }))
     );
-    const remaining = allMissions.filter((m) => !completedMissions.includes(m.id));
-    return remaining.slice(0, 3);
+    return allMissions.filter((m) => !completedMissions.includes(m.id)).slice(0, 3);
   }, [chosenRoadmapId, completedMissions]);
 
-  // 추천 직업 — 관심 분야 기반
-  const recommendedOccupations = useMemo(() => {
-    if (!child || !child.interests?.length) return OCCUPATIONS.slice(0, 3);
-    const interestCategories = child.interests.map((i) => {
-      const found = Object.entries(CATEGORY_TO_INTEREST).find(([, v]) => v === i);
-      return found ? found[0] : null;
-    }).filter(Boolean) as string[];
+  // ── 추천 직업 — 관심분야 교집합 매칭 ────────────────────────
+  const recommendedOccupations = useMemo((): DbOccupation[] => {
+    if (!dbOccupations.length) return [];
+    if (!child?.interests?.length) return dbOccupations.slice(0, 3);
 
-    const matched = OCCUPATIONS.filter((o) => interestCategories.includes(o.category));
-    return (matched.length > 0 ? matched : OCCUPATIONS).slice(0, 3);
-  }, [child]);
+    const interestSet = new Set(child.interests as string[]);
+    const matched = dbOccupations.filter((o) =>
+      o.interest_fields.some((f) => interestSet.has(f))
+    );
 
+    return (matched.length > 0 ? matched : dbOccupations).slice(0, 3);
+  }, [dbOccupations, child]);
+
+  // ── 로드맵 진행률 (정적 ROADMAPS 기반) ─────────────────────
   const chosenRoadmap = chosenRoadmapId ? getRoadmap(chosenRoadmapId) : null;
   const totalMissions = chosenRoadmap
     ? chosenRoadmap.stages.flatMap((s) => s.missions).length
@@ -202,7 +271,6 @@ export default function StudentHomePage() {
               <br />
               <span style={{ color: "#E84B2E" }}>꿈따라</span> 나아가요
             </h1>
-            {/* 학년 / 관심분야 수정 칩 — DB 최신값 기반 */}
             {child && (
               <button
                 onClick={() => router.push("/student/edit")}
@@ -235,16 +303,12 @@ export default function StudentHomePage() {
           </div>
 
           {/* ══════════════════════════════════════════
-              섹션 1 — 오늘의 미션
+              섹션 1 — 오늘의 미션 (정적 ROADMAPS 기반)
           ══════════════════════════════════════════ */}
           <section>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
-                <Zap
-                  size={15}
-                  strokeWidth={2}
-                  style={{ color: "#E84B2E" }}
-                />
+                <Zap size={15} strokeWidth={2} style={{ color: "#E84B2E" }} />
                 <h2 className="text-sm font-bold text-base-text">오늘의 미션</h2>
               </div>
               {chosenRoadmap && (
@@ -258,7 +322,6 @@ export default function StudentHomePage() {
             </div>
 
             <div className="bg-white rounded-card-lg shadow-card overflow-hidden">
-              {/* 로드맵 없음 */}
               {!chosenRoadmap ? (
                 <button
                   onClick={() => router.push("/explore")}
@@ -305,7 +368,6 @@ export default function StudentHomePage() {
                     </p>
                   </div>
 
-                  {/* 미션 목록 */}
                   {todayMissions.length === 0 ? (
                     <div className="px-4 py-5 text-center">
                       <p className="text-sm font-bold text-base-text">
@@ -326,10 +388,7 @@ export default function StudentHomePage() {
                           ${idx < todayMissions.length - 1 ? "border-b border-base-border" : ""}
                         `}
                       >
-                        <Circle
-                          size={18}
-                          className="text-base-border mt-0.5 shrink-0"
-                        />
+                        <Circle size={18} className="text-base-border mt-0.5 shrink-0" />
                         <div className="flex-1 min-w-0">
                           <p className="text-xs text-base-muted mb-0.5">
                             {mission.stageTitle}
@@ -348,16 +407,12 @@ export default function StudentHomePage() {
           </section>
 
           {/* ══════════════════════════════════════════
-              섹션 2 — 탐색 이어가기 / 추천 직업
+              섹션 2 — 추천 직업 (DB 기반)
           ══════════════════════════════════════════ */}
           <section>
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-1.5">
-                <Compass
-                  size={15}
-                  strokeWidth={2}
-                  style={{ color: "#E84B2E" }}
-                />
+                <Compass size={15} strokeWidth={2} style={{ color: "#E84B2E" }} />
                 <h2 className="text-sm font-bold text-base-text">
                   {child?.interests?.length ? "관심 분야 추천 직업" : "직업 탐색하기"}
                 </h2>
@@ -385,34 +440,51 @@ export default function StudentHomePage() {
               </div>
             ) : null}
 
-            <div className="flex flex-col gap-2.5">
-              {recommendedOccupations.map((occ) => (
+            {/* 추천 직업 카드 */}
+            {recommendedOccupations.length === 0 ? (
+              <div className="bg-white rounded-card-lg shadow-card px-4 py-5 text-center">
+                <p className="text-sm text-base-muted">
+                  추천 직업을 불러오는 중이에요
+                </p>
                 <button
-                  key={occ.id}
-                  onClick={() => router.push(`/roadmap/${occ.id}`)}
-                  className="
-                    bg-white rounded-card-lg shadow-card px-4 py-3.5
-                    flex items-start gap-3 text-left
-                    hover:shadow-card-hover active:scale-[0.99] transition-all
-                  "
+                  onClick={() => router.push("/explore")}
+                  className="mt-2 text-xs font-semibold"
+                  style={{ color: "#E84B2E" }}
                 >
-                  <span className="text-2xl leading-none shrink-0 mt-0.5">{occ.emoji}</span>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-base-text">{occ.name}</p>
-                    <p className="text-xs text-base-muted mt-0.5 leading-relaxed">
-                      {getOccupationReason(occ.category, child?.interests ?? [])}
-                    </p>
-                    {occ.preparations?.[0] && (
-                      <p className="text-[11px] mt-1.5 leading-relaxed truncate"
-                        style={{ color: "#E84B2E" }}>
-                        → {occ.preparations[0]}
-                      </p>
-                    )}
-                  </div>
-                  <ChevronRight size={15} className="text-base-muted shrink-0 mt-0.5" />
+                  직업 탐색하러 가기 →
                 </button>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2.5">
+                {recommendedOccupations.map((occ) => {
+                  // legacy_occupation_id가 있으면 라우팅 키로 사용, 없으면 slug로 fallback
+                  const roadmapKey = occ.legacy_occupation_id ?? occ.id;
+                  const description =
+                    occ.one_liner ?? CATEGORY_REASON[occ.category] ?? "탐색해보면 의외로 잘 맞을 수 있어요";
+
+                  return (
+                    <button
+                      key={occ.id}
+                      onClick={() => router.push(`/explore/${roadmapKey}`)}
+                      className="
+                        bg-white rounded-card-lg shadow-card px-4 py-3.5
+                        flex items-start gap-3 text-left
+                        hover:shadow-card-hover active:scale-[0.99] transition-all
+                      "
+                    >
+                      <span className="text-2xl leading-none shrink-0 mt-0.5">{occ.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-bold text-base-text">{occ.name_ko}</p>
+                        <p className="text-xs text-base-muted mt-0.5 leading-relaxed line-clamp-2">
+                          {description}
+                        </p>
+                      </div>
+                      <ChevronRight size={15} className="text-base-muted shrink-0 mt-0.5" />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
           </section>
 
         </div>
