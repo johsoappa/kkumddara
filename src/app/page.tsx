@@ -39,6 +39,25 @@ function LandingContent() {
   const initMode: AuthMode =
     searchParams.get("mode") === "signin" ? "signin" : "signup";
 
+  // ── OAuth 콜백 에러 파라미터 처리 ─────────────────────
+  // /auth/callback 에서 role 결정 실패 시 /?error=xxx 로 redirect됨
+  const AUTH_ERROR_MESSAGES: Record<string, { title: string; body: string }> = {
+    role_mismatch: {
+      title: "계정 역할이 일치하지 않아요",
+      body:  "이 카카오 계정은 이미 다른 역할(학생)로 가입되어 있어요. 학부모 카카오 로그인을 원하시면 운영팀에 문의해 주세요.",
+    },
+    role_required: {
+      title: "역할 정보를 확인할 수 없어요",
+      body:  "로그인 중 역할 정보를 가져오지 못했어요. 아래에서 역할을 다시 선택한 후 로그인해 주세요.",
+    },
+    auth_failed: {
+      title: "로그인 중 오류가 발생했어요",
+      body:  "잠시 후 다시 시도해 주세요. 문제가 계속되면 운영팀에 문의해 주세요.",
+    },
+  };
+  const authErrorCode  = searchParams.get("error") ?? "";
+  const authErrorInfo  = AUTH_ERROR_MESSAGES[authErrorCode] ?? null;
+
   const [step, setStep]             = useState<Step>(initStep);
   const [selectedRole, setRole]     = useState<Role | null>(initRole);
   const [authMode, setAuthMode]     = useState<AuthMode>(initMode);
@@ -144,6 +163,19 @@ function LandingContent() {
             >
               🧪 지금은 베타 운영 중이에요 — 피드백을 기다립니다
             </span>
+          </div>
+        )}
+
+        {/* ── OAuth 콜백 에러 배너 ─────────────────────── */}
+        {/* /auth/callback 에서 role 결정 실패 시 /?error=xxx 로 redirect됨 */}
+        {step === "role" && authErrorInfo && (
+          <div className="mx-6 mt-3 rounded-card border border-red-200 bg-red-50 px-4 py-3">
+            <p className="text-sm font-bold text-red-700 mb-0.5">
+              {authErrorInfo.title}
+            </p>
+            <p className="text-xs text-red-600 leading-relaxed">
+              {authErrorInfo.body}
+            </p>
           </div>
         )}
 
