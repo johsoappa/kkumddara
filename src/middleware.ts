@@ -52,11 +52,12 @@ export async function middleware(request: NextRequest) {
     NextResponse.redirect(new URL(path, request.url));
 
   // ── / (랜딩) ──────────────────────────────────────
-  // 인증 완료 + 온보딩 완료 → role-home으로 이동
+  // 인증 완료 + 온보딩 완료 + role 확정 → role-home으로 이동
   if (pathname === "/") {
-    if (user && onboardingCompleted) {
+    if (user && onboardingCompleted && role) {
       return redirectTo(role === "parent" ? "/parent/home" : "/student/home");
     }
+    // role 미설정 사용자는 랜딩 유지 (student fallback 금지)
     return response;
   }
 
@@ -64,12 +65,19 @@ export async function middleware(request: NextRequest) {
   // role 기반 redirect
   if (pathname === "/home") {
     if (!user) return redirectTo("/");
+    // role 미설정 시 랜딩으로 (student fallback 하드코딩 금지)
+    if (!role) {
+      console.error("[middleware] /home — role 미설정, userId:", user.id);
+      return redirectTo("/");
+    }
     return redirectTo(role === "parent" ? "/parent/home" : "/student/home");
   }
 
   // ── /onboarding (구 경로, 상태 분기 redirect) ───────
   if (pathname === "/onboarding") {
     if (!user) return redirectTo("/");
+    // role 미설정 시 랜딩으로 (student fallback 금지)
+    if (!role) return redirectTo("/");
     return redirectTo(
       role === "parent" ? "/onboarding/parent" : "/onboarding/student"
     );

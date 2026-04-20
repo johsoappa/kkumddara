@@ -4,10 +4,18 @@
 //
 // 흐름:
 //   1. ?code → exchangeCodeForSession (세션 쿠키 발급)
-//   2. 신규 OAuth 사용자 + role 없음 → ?role 파라미터로 설정
+//   2. ?role(URL param) 우선으로 finalRole 결정
+//      - requestedRole(URL) vs existingRole(DB) 불일치 → 명시적 에러 redirect
+//      - role 확정 불가 → /?error=role_required redirect (조용한 student fallback 금지)
 //   3. role=parent → parent + subscription_plan 레코드 생성 (없을 때만)
 //   4. role=student → student 레코드 생성 (없을 때만)
 //   5. /home redirect → 미들웨어가 role/onboarding 기반 최종 분기
+//
+// [보안]
+//   requestedRole(URL param) 우선 정책:
+//   - 학부모가 "학부모로 시작하기" → signInWithKakao("parent") →
+//     ?role=parent가 끝까지 유지되어야 한다.
+//   - existingRole이 다른 값이면 role_mismatch 에러로 차단.
 //
 // [수정] response 객체를 먼저 생성 후 setAll에서 response.cookies에도 세팅
 //        → 세션 쿠키가 redirect 응답에 포함되어 미들웨어 정상 인식
@@ -60,11 +68,38 @@ export async function GET(request: NextRequest) {
 
   const userId = session.user.id;
   const existingRole = session.user.user_metadata?.role as "parent" | "student" | undefined;
-  const finalRole = existingRole || (role as "parent" | "student") || undefined;
 
-  // 2. 신규 OAuth 사용자 — role 설정
-  if (!existingRole && finalRole) {
-    await supabase.auth.updateUser({ data: { role: finalRole } });
+  // 2. role 결정 — URL param 우선, fallback existingRole
+  //    [원칙] "학부모로 시작하기" 클릭 시 requestedRole=parent 가 끝까지 유지되어야 함.
+  //    existingRole || role (이전 방식) → existingRole 이 항상 우선되어 URL param 무시됨 → BUG
+  const requestedRole = (role === "parent" || role === "student") ? role : undefined;
+  const finalRole = requestedRole ?? existingRole;
+
+  // role 확정 불가: 명시적 에러 redirect (조용한 student fallback 금지)
+  if (!finalRole) {
+    console.error("[auth/callback] role 결정 실패 — requestedRole:", requestedRole,
+      "existingRole:", existingRole, "userId:", userId);
+    return NextResponse.redirect(new URL("/?error=role_required", requestUrl.origin));
+  }
+
+  // role 불일치 감지 (정책 위반): 기존 role ≠ 요청 role → 에러 redirect
+  // 예: 이전에 student 로 가입된 카카오 계정으로 parent 로그인 시도
+  if (requestedRole && existingRole && requestedRole !== existingRole) {
+    console.error(
+      `[auth/callback] role 불일치 — existingRole=${existingRole}, requestedRole=${requestedRole}, userId=${userId}`
+    );
+    return NextResponse.redirect(
+      new URL(`/?error=role_mismatch&existingRole=${existingRole}`, requestUrl.origin)
+    );
+  }
+
+  // role 저장: 신규 사용자이거나 기존 role과 다를 경우 (정상적인 교정 포함)
+  if (finalRole !== existingRole) {
+    const { error: updateErr } = await supabase.auth.updateUser({ data: { role: finalRole } });
+    if (updateErr) {
+      console.error("[auth/callback] updateUser 실패:", updateErr.message, "userId:", userId);
+      return NextResponse.redirect(new URL("/?error=auth_failed", requestUrl.origin));
+    }
   }
 
   // 3. parent 레코드 + subscription_plan 생성
