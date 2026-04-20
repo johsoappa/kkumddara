@@ -153,10 +153,20 @@ export async function signInWithKakao(role: "parent" | "student") {
     process.env.NEXT_PUBLIC_SITE_URL ??
     (typeof window !== "undefined" ? window.location.origin : "");
 
+  const redirectTo = `${origin}/auth/callback?role=${role}`;
+
+  // ── [ROLE-TRACE] 브라우저 콘솔 로그 — 진단 후 제거 ──
+  // Vercel 서버 로그에는 안 남음. 브라우저 DevTools Console 탭에서 확인.
+  console.log("[ROLE-TRACE] signInWithKakao 호출");
+  console.log("[ROLE-TRACE]   role       :", role);
+  console.log("[ROLE-TRACE]   origin     :", origin);
+  console.log("[ROLE-TRACE]   redirectTo :", redirectTo);
+  // ────────────────────────────────────────────────────
+
   return supabase.auth.signInWithOAuth({
     provider: "kakao",
     options: {
-      redirectTo: `${origin}/auth/callback?role=${role}`,
+      redirectTo,
       // account_email 권한 없음(KOE205) → scopes 명시로 Supabase 기본값 덮어씀
       // Supabase Kakao 기본 scope: "profile_nickname account_email" → account_email 제거
       // Supabase Dashboard: Authentication → Providers → Kakao → Allow users without email ON 필요

@@ -31,7 +31,15 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get("code");
   const role = (requestUrl.searchParams.get("role") ?? "") as "parent" | "student" | "";
 
+  // ── [ROLE-TRACE] 진단 로그 — Vercel 로그에서 확인 후 제거 ──
+  console.log("[ROLE-TRACE] ① callback 진입");
+  console.log("[ROLE-TRACE]   full URL   :", requestUrl.toString());
+  console.log("[ROLE-TRACE]   code 존재  :", !!code);
+  console.log("[ROLE-TRACE]   role param :", JSON.stringify(role)); // ""·"parent"·"student" 구분
+  // ─────────────────────────────────────────────────────────────
+
   if (!code) {
+    console.log("[ROLE-TRACE] ❌ code 없음 → / redirect");
     return NextResponse.redirect(new URL("/", requestUrl.origin));
   }
 
@@ -63,6 +71,7 @@ export async function GET(request: NextRequest) {
 
   if (error || !session?.user) {
     console.error("[auth/callback] exchangeCodeForSession 실패:", error?.message);
+    console.log("[ROLE-TRACE] ❌ 세션 교환 실패 → / redirect");
     return NextResponse.redirect(new URL("/", requestUrl.origin));
   }
 
@@ -75,10 +84,20 @@ export async function GET(request: NextRequest) {
   const requestedRole = (role === "parent" || role === "student") ? role : undefined;
   const finalRole = requestedRole ?? existingRole;
 
+  // ── [ROLE-TRACE] 핵심 값 출력 ──────────────────────────────
+  console.log("[ROLE-TRACE] ② role 결정");
+  console.log("[ROLE-TRACE]   userId        :", userId);
+  console.log("[ROLE-TRACE]   existingRole  :", JSON.stringify(existingRole));  // DB metadata 값
+  console.log("[ROLE-TRACE]   requestedRole :", JSON.stringify(requestedRole)); // URL param 값
+  console.log("[ROLE-TRACE]   finalRole     :", JSON.stringify(finalRole));     // 최종 결정값
+  console.log("[ROLE-TRACE]   user_metadata :", JSON.stringify(session.user.user_metadata));
+  // ─────────────────────────────────────────────────────────────
+
   // role 확정 불가: 명시적 에러 redirect (조용한 student fallback 금지)
   if (!finalRole) {
     console.error("[auth/callback] role 결정 실패 — requestedRole:", requestedRole,
       "existingRole:", existingRole, "userId:", userId);
+    console.log("[ROLE-TRACE] ❌ finalRole 없음 → /?error=role_required");
     return NextResponse.redirect(new URL("/?error=role_required", requestUrl.origin));
   }
 
@@ -88,6 +107,7 @@ export async function GET(request: NextRequest) {
     console.error(
       `[auth/callback] role 불일치 — existingRole=${existingRole}, requestedRole=${requestedRole}, userId=${userId}`
     );
+    console.log("[ROLE-TRACE] ❌ role 불일치 → /?error=role_mismatch");
     return NextResponse.redirect(
       new URL(`/?error=role_mismatch&existingRole=${existingRole}`, requestUrl.origin)
     );
@@ -95,14 +115,20 @@ export async function GET(request: NextRequest) {
 
   // role 저장: 신규 사용자이거나 기존 role과 다를 경우 (정상적인 교정 포함)
   if (finalRole !== existingRole) {
+    console.log("[ROLE-TRACE] ③ updateUser 호출 — role:", finalRole);
     const { error: updateErr } = await supabase.auth.updateUser({ data: { role: finalRole } });
     if (updateErr) {
       console.error("[auth/callback] updateUser 실패:", updateErr.message, "userId:", userId);
+      console.log("[ROLE-TRACE] ❌ updateUser 실패 → /?error=auth_failed");
       return NextResponse.redirect(new URL("/?error=auth_failed", requestUrl.origin));
     }
+    console.log("[ROLE-TRACE] ③ updateUser 성공");
+  } else {
+    console.log("[ROLE-TRACE] ③ updateUser 생략 (role 동일)");
   }
 
   // 3. parent 레코드 + subscription_plan 생성
+  console.log("[ROLE-TRACE] ④ DB row 분기 — finalRole:", finalRole);
   if (finalRole === "parent") {
     const { data: existingParent } = await supabase
       .from("parent")
@@ -162,5 +188,6 @@ export async function GET(request: NextRequest) {
   }
 
   // 5. ✅ 수정: 쿠키가 실린 response 반환
+  console.log("[ROLE-TRACE] ⑤ 최종 → /home redirect (finalRole:", finalRole, ")");
   return response;
 }
