@@ -54,6 +54,10 @@ function LandingContent() {
       title: "로그인 중 오류가 발생했어요",
       body:  "잠시 후 다시 시도해 주세요. 문제가 계속되면 운영팀에 문의해 주세요.",
     },
+    profile_setup_failed: {
+      title: "학부모 프로필 생성에 실패했어요",
+      body:  "로그인은 됐지만 학부모 프로필 설정 중 오류가 발생했어요. 운영팀에 문의해 주세요.",
+    },
   };
   const authErrorCode  = searchParams.get("error") ?? "";
   const authErrorInfo  = AUTH_ERROR_MESSAGES[authErrorCode] ?? null;

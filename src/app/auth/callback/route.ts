@@ -130,11 +130,14 @@ export async function GET(request: NextRequest) {
   // 3. parent 레코드 + subscription_plan 생성
   console.log("[ROLE-TRACE] ④ DB row 분기 — finalRole:", finalRole);
   if (finalRole === "parent") {
-    const { data: existingParent } = await supabase
+    const { data: existingParent, error: parentSelectErr } = await supabase
       .from("parent")
       .select("id")
       .eq("user_id", userId)
       .maybeSingle();
+
+    console.log("[ROLE-TRACE]   existingParent:", existingParent?.id ?? "없음",
+      parentSelectErr ? `(조회 오류: ${parentSelectErr.message})` : "");
 
     if (!existingParent) {
       const kakaoName = (
@@ -150,14 +153,41 @@ export async function GET(request: NextRequest) {
         .maybeSingle();
 
       if (parentErr) {
-        console.error("[auth/callback] parent INSERT 실패:", parentErr.message);
+        console.error("[auth/callback] parent INSERT 실패:", parentErr.message, "code:", parentErr.code);
+        console.log("[ROLE-TRACE] ❌ parent row 생성 실패 → /home redirect (빈 상태 위험)");
+        // parent row 없이 진행하면 parent/home 빈 화면 — 명시적 에러 redirect
+        return NextResponse.redirect(new URL("/?error=profile_setup_failed", requestUrl.origin));
       } else if (newParent) {
+        console.log("[ROLE-TRACE]   parent row 생성 완료 id:", newParent.id);
         const { error: planErr } = await supabase
           .from("subscription_plan")
           .insert({ parent_id: newParent.id, plan_name: "basic", child_limit: 1 });
         if (planErr) {
           console.error("[auth/callback] subscription_plan INSERT 실패:", planErr.message);
+          // subscription_plan 없어도 parent/home 접근은 가능 — 계속 진행
+        } else {
+          console.log("[ROLE-TRACE]   subscription_plan 생성 완료");
         }
+
+        // ── onboarding_completed 리셋 ──────────────────────────────
+        // 신규 parent row 생성 = 이 유저는 아직 parent 온보딩 미완료.
+        // 이전에 student 온보딩을 완료해 onboarding_completed=true가 남아 있으면
+        // parent 온보딩을 스킵하여 자녀 없는 빈 홈으로 바로 진입하게 됨.
+        // → 명시적으로 false 로 리셋해 /onboarding/parent 을 통과하도록 강제.
+        const prevOnboarding = session.user.user_metadata?.onboarding_completed;
+        if (prevOnboarding === true) {
+          console.log("[ROLE-TRACE]   onboarding_completed=true 잔존 감지 → false 리셋");
+          const { error: resetErr } = await supabase.auth.updateUser({
+            data: { onboarding_completed: false },
+          });
+          if (resetErr) {
+            console.error("[auth/callback] onboarding_completed 리셋 실패:", resetErr.message);
+            // 리셋 실패는 치명적이지 않음 — 계속 진행 (parent/home에서 빈 화면 될 수 있음)
+          } else {
+            console.log("[ROLE-TRACE]   onboarding_completed 리셋 완료");
+          }
+        }
+        // ──────────────────────────────────────────────────────────
       }
     }
   }
