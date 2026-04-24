@@ -41,7 +41,7 @@ export default function OnboardingStudentPage() {
         .from("student")
         .select("id")
         .eq("user_id", user.id)
-        .single()
+        .maybeSingle()
         .then(({ data }) => {
           if (data) setStudentId(data.id);
         });

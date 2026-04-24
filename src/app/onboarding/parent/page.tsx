@@ -56,7 +56,7 @@ export default function OnboardingParentPage() {
         .from("parent")
         .select("id")
         .eq("user_id", user.id)
-        .single()
+        .maybeSingle()
         .then(({ data }) => {
           if (data) setParentId(data.id);
         });
