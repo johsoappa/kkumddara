@@ -7,11 +7,40 @@
 //   - 자녀별 보호자 초대코드 발급/확인
 //   - 플랜 max_guardians 기준으로 발급 가능 여부 표시
 //   - 초대 상태: pending / accepted / expired
+//
+// 공유 방식:
+//   1순위: Kakao JavaScript SDK sendDefault (직접 카카오톡 공유)
+//   2순위: 클립보드 복사 fallback (SDK 미지원/실패 시)
+//
+// 환경변수:
+//   NEXT_PUBLIC_KAKAO_JS_KEY — 카카오 JS 앱 키 (필수)
+//   미설정 시 자동으로 클립보드 복사 fallback 동작
+//
+// 전제:
+//   카카오 개발자 콘솔 > 플랫폼 > Web 에 배포 도메인이 등록되어야 함
 // ====================================================
+
+// ── Kakao SDK 전역 타입 ──────────────────────────────────────
+declare global {
+  interface Window {
+    Kakao?: {
+      init: (key: string) => void;
+      isInitialized: () => boolean;
+      Share: {
+        sendDefault: (options: {
+          objectType: string;
+          text?: string;
+          link?: { mobileWebUrl?: string; webUrl?: string };
+          buttonTitle?: string;
+        }) => void;
+      };
+    };
+  }
+}
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, Plus, Copy, Check, Clock, UserCheck, RefreshCw, Share2 } from "lucide-react";
+import { ChevronLeft, Plus, Copy, Check, Clock, UserCheck, RefreshCw } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Child } from "@/types/family";
 import { GRADE_LEVEL_LABEL, GRADE_LABEL } from "@/types/family";
@@ -32,6 +61,36 @@ interface ChildWithInvites extends Child {
   invites: CaregiverInvite[];
 }
 
+// ── Kakao SDK 로더 ──────────────────────────────────────────
+// SDK 스크립트를 동적으로 삽입하고 앱 키로 초기화한다.
+// 이미 로드된 경우 재삽입 없이 초기화 여부만 확인한다.
+async function loadKakaoSDK(): Promise<boolean> {
+  const appKey = process.env.NEXT_PUBLIC_KAKAO_JS_KEY;
+  if (!appKey || typeof window === "undefined") return false;
+
+  // 이미 초기화 완료
+  if (window.Kakao?.isInitialized?.()) return true;
+
+  // 스크립트가 아직 없으면 삽입
+  if (!window.Kakao) {
+    await new Promise<void>((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src   = "https://developers.kakao.com/sdk/js/kakao.min.js";
+      script.async = true;
+      script.onload  = () => resolve();
+      script.onerror = () => reject(new Error("Kakao SDK load failed"));
+      document.head.appendChild(script);
+    });
+  }
+
+  // 초기화 (중복 호출 방지)
+  if (window.Kakao && !window.Kakao.isInitialized()) {
+    window.Kakao.init(appKey);
+  }
+
+  return window.Kakao?.isInitialized?.() ?? false;
+}
+
 export default function FamilyPage() {
   const router = useRouter();
 
@@ -41,7 +100,13 @@ export default function FamilyPage() {
   const [loading, setLoading]           = useState(true);
   const [generating, setGenerating]     = useState<string | null>(null); // child_id
   const [copiedCode, setCopiedCode]     = useState<string | null>(null);
+  const [shareNote, setShareNote]       = useState<string | null>(null);
   const [error, setError]               = useState<string | null>(null);
+
+  // ── Kakao SDK 사전 로드 (버튼 클릭 시 지연 없애기) ────────────
+  useEffect(() => {
+    loadKakaoSDK().catch(() => {/* SDK 없어도 fallback으로 동작 */});
+  }, []);
 
   // ── 초기 로드 ──────────────────────────────────────────
   useEffect(() => {
@@ -163,33 +228,67 @@ export default function FamilyPage() {
     setTimeout(() => setCopiedCode(null), 2000);
   };
 
-  // ── 초대 공유 (Web Share API → 시스템 공유 시트) ─────────
-  // 모바일에서 카카오톡·문자 등 선택 가능.
-  // Web Share API 미지원 환경(PC 등)은 클립보드 텍스트 복사로 대체.
-  const shareInvite = async (childName: string, code: string) => {
+  // ── 클립보드 fallback (Kakao 공유 실패 시) ─────────────
+  const clipboardFallback = async (childName: string, code: string) => {
     const joinUrl = `${window.location.origin}/join/caregiver`;
     const text = [
       `${childName}의 보호자로 초대합니다.`,
       ``,
       `초대코드: ${code}`,
-      `꿈따라에서 코드를 입력하면 연결돼요.`,
+      `꿈따라 앱에서 코드를 입력하면 연결돼요.`,
       joinUrl,
       ``,
       `코드는 7일간 유효합니다.`,
     ].join("\n");
 
-    if (typeof navigator !== "undefined" && navigator.share) {
-      try {
-        await navigator.share({ title: "꿈따라 보호자 초대", text });
-      } catch {
-        // 사용자가 공유 취소한 경우 — no-op
-      }
-    } else {
-      // 시스템 공유 미지원 → 클립보드 복사
+    try {
       await navigator.clipboard.writeText(text);
       setCopiedCode(code);
-      setTimeout(() => setCopiedCode(null), 2000);
+      setShareNote("카카오 공유가 어려워 초대 코드를 복사했어요. 붙여넣어 전달해 주세요.");
+    } catch {
+      setShareNote("공유에 실패했어요. 복사하기 버튼을 이용해 주세요.");
     }
+    setTimeout(() => { setCopiedCode(null); setShareNote(null); }, 3500);
+  };
+
+  // ── 카카오톡 직접 공유 ─────────────────────────────────
+  // Kakao JavaScript SDK sendDefault 호출.
+  // SDK 미준비·실패 시 클립보드 복사 fallback 자동 적용.
+  const shareViaKakao = async (childName: string, code: string) => {
+    const joinUrl = `${window.location.origin}/join/caregiver`;
+
+    let sdkReady = false;
+    try {
+      sdkReady = await loadKakaoSDK();
+    } catch {
+      // SDK 로드 실패 — fallback으로 진행
+    }
+
+    if (sdkReady && window.Kakao) {
+      try {
+        window.Kakao.Share.sendDefault({
+          objectType: "text",
+          text: [
+            `${childName}의 보호자로 초대합니다.`,
+            ``,
+            `초대코드: ${code}`,
+            `꿈따라 앱에서 코드를 입력하면 연결돼요.`,
+            `코드는 7일간 유효합니다.`,
+          ].join("\n"),
+          link: {
+            mobileWebUrl: joinUrl,
+            webUrl:       joinUrl,
+          },
+          buttonTitle: "꿈따라 열기",
+        });
+        return; // 공유창 정상 오픈 — UI 추가 피드백 불필요
+      } catch (e) {
+        console.warn("[family] Kakao.Share.sendDefault 실패:", e);
+      }
+    }
+
+    // Kakao 공유 불가 → 클립보드 복사
+    await clipboardFallback(childName, code);
   };
 
   // ── 학년 표시 ──────────────────────────────────────────
@@ -264,10 +363,10 @@ export default function FamilyPage() {
 
           {/* 자녀별 보호자 초대 카드 */}
           {children.map((child) => {
-            const pendingInvite  = child.invites.find((i) => i.invite_status === "pending");
+            const pendingInvite   = child.invites.find((i) => i.invite_status === "pending");
             const acceptedInvites = child.invites.filter((i) => i.invite_status === "accepted");
-            const isGenerating   = generating === child.id;
-            const canInvite      = maxGuardians > 0 && acceptedInvites.length < maxGuardians;
+            const isGenerating    = generating === child.id;
+            const canInvite       = maxGuardians > 0 && acceptedInvites.length < maxGuardians;
 
             return (
               <div key={child.id} className="bg-white border border-base-border rounded-card-lg p-4 flex flex-col gap-3">
@@ -330,9 +429,10 @@ export default function FamilyPage() {
                       </button>
                     </div>
 
-                    {/* Row 3: 복사 + 공유 버튼 */}
+                    {/* Row 3: 복사 + 카카오 공유 버튼 */}
                     <div className="flex gap-2">
-                      {/* 복사 */}
+
+                      {/* 복사하기 */}
                       <button
                         onClick={() => copyCode(pendingInvite.invite_code!)}
                         className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-button transition-all"
@@ -347,23 +447,32 @@ export default function FamilyPage() {
                           : <><Copy size={13} /> 복사하기</>}
                       </button>
 
-                      {/* 공유하기 (Web Share API → 시스템 공유 시트)
-                          모바일: 카카오톡·문자·이메일 등 선택 가능
-                          PC 미지원 시: 클립보드 자동 복사 */}
+                      {/* 카카오톡으로 공유
+                          Kakao JS SDK sendDefault 호출 → 직접 카카오 공유창
+                          SDK 실패 시 클립보드 복사 자동 fallback */}
                       <button
-                        onClick={() => shareInvite(child.name, pendingInvite.invite_code!)}
+                        onClick={() => shareViaKakao(child.name, pendingInvite.invite_code!)}
                         className="flex-1 flex items-center justify-center gap-1.5 text-xs font-semibold py-2.5 rounded-button transition-all active:opacity-80"
                         style={{ background: "#FEE500", color: "#3C1E1E" }}
                       >
-                        <Share2 size={13} />
-                        공유하기
+                        {/* KakaoTalk 스타일 아이콘 */}
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <path d="M12 3C6.48 3 2 6.35 2 10.5c0 2.64 1.58 4.97 4 6.43L5 21l4.18-2.5c.91.16 1.86.25 2.82.25 5.52 0 10-3.35 10-7.25S17.52 3 12 3z" />
+                        </svg>
+                        카카오톡으로 공유
                       </button>
                     </div>
 
-                    {/* Row 4: 안내 문구 */}
-                    <p className="text-[10px] text-base-muted text-center leading-relaxed">
-                      공유 후 보호자가 앱에서 코드를 입력하면 연결돼요
-                    </p>
+                    {/* Row 4: 공유 결과 안내 / 기본 안내 */}
+                    {shareNote ? (
+                      <p className="text-[10px] text-amber-600 text-center leading-relaxed">
+                        {shareNote}
+                      </p>
+                    ) : (
+                      <p className="text-[10px] text-base-muted text-center leading-relaxed">
+                        공유 후 보호자가 앱에서 코드를 입력하면 연결돼요
+                      </p>
+                    )}
                   </div>
                 )}
 
