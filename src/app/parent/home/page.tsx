@@ -28,6 +28,20 @@ import type { Child, SubscriptionPlan } from "@/types/family";
 import { GRADE_LABEL, GRADE_LEVEL_LABEL, INTEREST_LABEL, PLAN_LABEL } from "@/types/family";
 import type { Grade, GradeLevel, InterestField } from "@/types/family";
 
+// ── 한국어 조사 헬퍼 ──────────────────────────────────────
+// 이름 마지막 글자 종성 여부에 따라 "와/과", "은/는" 등 분기
+// 예: "러블리한" → 종성 ㄴ → "과"
+//     "다나"    → 종성 없음 → "와"
+function pickParticle(name: string, vowelForm: string, consonantForm: string): string {
+  if (!name) return consonantForm;
+  const last = name[name.length - 1];
+  const code = last.charCodeAt(0);
+  // 한글 완성형 유니코드: 0xAC00 ~ 0xD7A3
+  if (code < 0xAC00 || code > 0xD7A3) return vowelForm;
+  const hasJongseong = (code - 0xAC00) % 28 !== 0;
+  return hasJongseong ? consonantForm : vowelForm;
+}
+
 // ── 대화 주제 반개인화 ─────────────────────────────────────
 // 규칙 기반 (AI 없음): 관심분야 2개 + 학년단계 1개 조합
 const INTEREST_QUESTIONS: Partial<Record<InterestField, string[]>> = {
@@ -198,7 +212,7 @@ export default function ParentHomePage() {
         ]);
 
         const fetchedChildren = (childrenRes.data ?? []) as Child[];
-        if (fetchedChildren.length > 0) setChildren(fetchedChildren);
+        setChildren(fetchedChildren);   // 0명도 포함 — 항상 최신 상태 반영
         if (planRes.data) setPlan(planRes.data as SubscriptionPlan);
 
         // ── 학생 연결 여부 조회 ────────────────────────────────
@@ -339,7 +353,8 @@ export default function ParentHomePage() {
           {children.length > 0 && (
             <section>
               <h2 className="text-sm font-bold text-base-text mb-3">
-                {children[0].name}와 해볼 대화 💬
+                {children[0].name}
+                {pickParticle(children[0].name, "와", "과")} 해볼 대화 💬
               </h2>
               <div className="bg-white rounded-card-lg shadow-card p-4">
                 <div className="flex flex-col gap-3">
