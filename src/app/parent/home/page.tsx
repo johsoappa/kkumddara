@@ -127,6 +127,7 @@ const PARENT_FEATURES: ParentFeature[] = [
     label:       "주간 리포트",
     description: "아이의 이번 주 진로 탐색 현황을 확인해요.",
     href:        "/report",
+    badge:       "베타",   // 실제 데이터 연동 전 미리보기 상태
   },
   {
     id:          "counseling",
@@ -154,11 +155,17 @@ const PARENT_FEATURES: ParentFeature[] = [
   },
 ];
 
+// ── 학생 연결 정보 (child_id → 연결된 학생 닉네임) ─────────
+// child.invite_code로 학생이 연결하면 student.child_id가 설정됨.
+// 연결 여부를 부모 홈에서 표시해 초대코드 공유 필요 여부를 명확하게 안내.
+type StudentMap = Record<string, string | null>; // child_id → nickname
+
 export default function ParentHomePage() {
   const router = useRouter();
 
   const [children, setChildren]   = useState<Child[]>([]);
   const [plan, setPlan]           = useState<SubscriptionPlan | null>(null);
+  const [studentMap, setStudentMap] = useState<StudentMap>({});
   const [loading, setLoading]     = useState(true);
   const [copiedId, setCopiedId]   = useState<string | null>(null);
 
@@ -190,8 +197,27 @@ export default function ParentHomePage() {
             .maybeSingle(),
         ]);
 
-        if (childrenRes.data) setChildren(childrenRes.data as Child[]);
+        const fetchedChildren = (childrenRes.data ?? []) as Child[];
+        if (fetchedChildren.length > 0) setChildren(fetchedChildren);
         if (planRes.data) setPlan(planRes.data as SubscriptionPlan);
+
+        // ── 학생 연결 여부 조회 ────────────────────────────────
+        // child.id 목록으로 연결된 student를 한 번에 조회 (N+1 방지)
+        // student.child_id IS NOT NULL + onboarding_status = 'completed'인 경우만
+        if (fetchedChildren.length > 0) {
+          const childIds = fetchedChildren.map((c) => c.id);
+          const { data: connectedStudents } = await supabase
+            .from("student")
+            .select("child_id, nickname")
+            .in("child_id", childIds);
+
+          // child_id → nickname(없으면 null) 맵 생성
+          const map: StudentMap = {};
+          for (const s of connectedStudents ?? []) {
+            if (s.child_id) map[s.child_id] = s.nickname ?? null;
+          }
+          setStudentMap(map);
+        }
       } catch (err) {
         console.error("[parent/home] loadData 오류:", err);
       } finally {
@@ -294,6 +320,8 @@ export default function ParentHomePage() {
                   <ChildSummaryCard
                     key={child.id}
                     child={child}
+                    studentNickname={studentMap[child.id] ?? null}
+                    isStudentConnected={child.id in studentMap}
                     copied={copiedId === child.id}
                     onCopy={() =>
                       child.invite_code && copyInviteCode(child.invite_code, child.id)
@@ -361,12 +389,16 @@ export default function ParentHomePage() {
 // ── 자녀 요약 카드 ──────────────────────────────────────────
 function ChildSummaryCard({
   child,
+  studentNickname,
+  isStudentConnected,
   copied,
   onCopy,
 }: {
-  child:   Child;
-  copied:  boolean;
-  onCopy:  () => void;
+  child:               Child;
+  studentNickname:     string | null; // 연결된 학생 닉네임 (없으면 null)
+  isStudentConnected:  boolean;       // student.child_id에 이 child가 연결됐는지
+  copied:              boolean;
+  onCopy:              () => void;
 }) {
   const router = useRouter();
 
@@ -427,7 +459,26 @@ function ChildSummaryCard({
         </div>
       </div>
 
-      {/* 초대 코드 */}
+      {/* 학생 연결 상태 */}
+      <div className="mb-2.5">
+        {isStudentConnected ? (
+          <div
+            className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-button w-fit"
+            style={{ background: "#F0FDF4", color: "#16A34A" }}
+          >
+            <Check size={11} />
+            {studentNickname
+              ? `${studentNickname} 연결됨`
+              : "학생 계정 연결됨"}
+          </div>
+        ) : (
+          <p className="text-[11px] text-base-muted">
+            학생 계정 미연결 — 초대 코드를 공유해 주세요
+          </p>
+        )}
+      </div>
+
+      {/* 초대 코드 — 미연결이거나 항상 표시 (재공유 가능) */}
       {child.invite_code && (
         <div className="flex items-center justify-between bg-base-off rounded-button px-3 py-2.5">
           <div>
