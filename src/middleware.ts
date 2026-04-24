@@ -48,16 +48,6 @@ export async function middleware(request: NextRequest) {
   const onboardingCompleted = user?.user_metadata?.onboarding_completed === true;
   const { pathname } = request.nextUrl;
 
-  // ── [ROLE-TRACE] 진단 로그 — 확인 후 제거 ──────────────────
-  if (pathname === "/home" || pathname === "/") {
-    console.log("[ROLE-TRACE] middleware 진입 — pathname:", pathname);
-    console.log("[ROLE-TRACE]   userId            :", user?.id ?? "없음");
-    console.log("[ROLE-TRACE]   role              :", JSON.stringify(role));
-    console.log("[ROLE-TRACE]   onboardingCompleted:", onboardingCompleted);
-    console.log("[ROLE-TRACE]   user_metadata     :", JSON.stringify(user?.user_metadata));
-  }
-  // ──────────────────────────────────────────────────────────
-
   const redirectTo = (path: string) =>
     NextResponse.redirect(new URL(path, request.url));
 
@@ -81,7 +71,6 @@ export async function middleware(request: NextRequest) {
       return redirectTo("/");
     }
     const dest = role === "parent" ? "/parent/home" : "/student/home";
-    console.log("[ROLE-TRACE] middleware /home → redirect:", dest);
     return redirectTo(dest);
   }
 
