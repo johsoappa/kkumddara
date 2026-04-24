@@ -13,6 +13,7 @@ import { ArrowLeft, Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
   GRADE_LEVEL_LABEL,
+  GRADE_LEVEL_TO_SCHOOL_GRADE,
   INTEREST_LABEL,
   VALID_GRADE_LEVELS,
 } from "@/types/family";
@@ -110,10 +111,15 @@ export default function ChildEditPage({
     setSaving(true);
     setSaveError(null);
 
+    // grade_level: source of truth (초1~고3 전체)
+    // school_grade: 하위호환 병행 저장 (초1·초2는 매핑 없음 → null)
+    const schoolGrade = GRADE_LEVEL_TO_SCHOOL_GRADE[gradeLevel] ?? null;
+
     const { error } = await supabase
       .from("child")
       .update({
         grade_level:  gradeLevel,
+        school_grade: schoolGrade,
         interests:    interests,
         updated_at:   new Date().toISOString(),
       })
