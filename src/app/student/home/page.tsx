@@ -33,8 +33,8 @@ import { supabase } from "@/lib/supabase";
 import { signOut } from "@/lib/auth";
 import { getRoadmap } from "@/data/roadmaps";
 import type { Child } from "@/types/family";
-import { GRADE_LABEL, INTEREST_LABEL } from "@/types/family";
-import type { Grade, InterestField } from "@/types/family";
+import { GRADE_LABEL, GRADE_LEVEL_LABEL, INTEREST_LABEL } from "@/types/family";
+import type { Grade, GradeLevel, InterestField } from "@/types/family";
 
 // ── DB 직업 타입 ────────────────────────────────────────────
 interface DbOccupation {
@@ -231,9 +231,12 @@ export default function StudentHomePage() {
     );
   }
 
-  const gradeLabel = child?.school_grade
-    ? GRADE_LABEL[child.school_grade as Grade]
-    : null;
+  // grade_level(초1~고3) 우선, school_grade(초3~고3) fallback
+  // 초1·초2 자녀는 grade_level에만 값이 있으므로 반드시 grade_level을 먼저 확인
+  const gradeLabel =
+    (child?.grade_level && GRADE_LEVEL_LABEL[child.grade_level as GradeLevel])
+    ?? (child?.school_grade ? GRADE_LABEL[child.school_grade as Grade] : null)
+    ?? null;
 
   return (
     <div className="min-h-screen bg-base-off flex justify-center">

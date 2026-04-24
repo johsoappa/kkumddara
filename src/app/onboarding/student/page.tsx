@@ -12,13 +12,14 @@ import { useRouter } from "next/navigation";
 import { Link2, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { verifyInviteCode, completeStudentOnboarding, flushPendingProfile } from "@/lib/auth";
-import { GRADE_LABEL } from "@/types/family";
-import type { Grade } from "@/types/family";
+import { GRADE_LABEL, GRADE_LEVEL_LABEL } from "@/types/family";
+import type { Grade, GradeLevel } from "@/types/family";
 
 type VerifiedChild = {
-  child_id:    string;
-  child_name:  string;
-  school_grade: string;
+  child_id:     string;
+  child_name:   string;
+  school_grade: string | null;
+  grade_level?: string | null;  // 016 migration 적용 후 RPC가 반환, 이전엔 undefined
 };
 
 export default function OnboardingStudentPage() {
@@ -91,8 +92,14 @@ export default function OnboardingStudentPage() {
     router.replace("/student/home");
   };
 
+  // grade_level(초1~고3) 우선, school_grade(초3~고3) fallback
+  // 초1·초2는 grade_level에만 값이 있으므로 반드시 grade_level을 먼저 확인
   const gradeLabel = verified
-    ? (GRADE_LABEL[verified.school_grade as Grade] ?? verified.school_grade)
+    ? (
+        (verified.grade_level && GRADE_LEVEL_LABEL[verified.grade_level as GradeLevel])
+        ?? (verified.school_grade && GRADE_LABEL[verified.school_grade as Grade])
+        ?? ""
+      )
     : "";
 
   return (

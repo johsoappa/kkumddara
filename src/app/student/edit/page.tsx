@@ -12,37 +12,48 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
-import type { Grade, InterestField } from "@/types/family";
-import { SPROUT_GRADES } from "@/types/family";
+import type { GradeLevel, Grade, InterestField } from "@/types/family";
+import { GRADE_LEVEL_TO_SCHOOL_GRADE } from "@/types/family";
 import { updateStudentProfile } from "./actions";
 
-const GRADE_GROUPS: { label: string; options: { value: Grade; label: string }[] }[] = [
+// ── 학년 그룹 (grade_level 기준, 초1~고3 전체) ──────────────
+// 005_add_grade_level 이후 child.grade_level이 source of truth.
+// 기존 school_grade(초3~고3)만 지원하던 한계를 초1~고3으로 확장.
+const GRADE_GROUPS: { label: string; options: { value: GradeLevel; label: string }[] }[] = [
   {
     label: "초등학생",
     options: [
-      { value: "elementary3", label: "초3" },
-      { value: "elementary4", label: "초4" },
-      { value: "elementary5", label: "초5" },
-      { value: "elementary6", label: "초6" },
+      { value: "elem_1", label: "초1" },
+      { value: "elem_2", label: "초2" },
+      { value: "elem_3", label: "초3" },
+      { value: "elem_4", label: "초4" },
+      { value: "elem_5", label: "초5" },
+      { value: "elem_6", label: "초6" },
     ],
   },
   {
     label: "중학생",
     options: [
-      { value: "middle1", label: "중1" },
-      { value: "middle2", label: "중2" },
-      { value: "middle3", label: "중3" },
+      { value: "middle_1", label: "중1" },
+      { value: "middle_2", label: "중2" },
+      { value: "middle_3", label: "중3" },
     ],
   },
   {
     label: "고등학생",
     options: [
-      { value: "high1", label: "고1" },
-      { value: "high2", label: "고2" },
-      { value: "high3", label: "고3" },
+      { value: "high_1", label: "고1" },
+      { value: "high_2", label: "고2" },
+      { value: "high_3", label: "고3" },
     ],
   },
 ];
+
+// ── school_grade → grade_level 역방향 매핑 (로드 시 fallback용) ─
+// 기존에 school_grade만 저장된 레코드를 grade_level UI에서 초기화할 때 사용.
+const SCHOOL_GRADE_TO_GRADE_LEVEL: Partial<Record<Grade, GradeLevel>> = Object.fromEntries(
+  Object.entries(GRADE_LEVEL_TO_SCHOOL_GRADE).map(([gl, sg]) => [sg, gl])
+) as Partial<Record<Grade, GradeLevel>>;
 
 const INTEREST_OPTIONS: { value: InterestField; label: string; emoji: string }[] = [
   { value: "it",        label: "IT·기술",      emoji: "💻" },
@@ -55,7 +66,7 @@ const INTEREST_OPTIONS: { value: InterestField; label: string; emoji: string }[]
 export default function StudentEditPage() {
   const router = useRouter();
 
-  const [grade, setGrade]         = useState<Grade | null>(null);
+  const [grade, setGrade]         = useState<GradeLevel | null>(null);
   const [interests, setInterests] = useState<InterestField[]>([]);
   const [childId, setChildId]     = useState<string | null>(null);
   const [loading, setLoading]     = useState(true);
@@ -76,13 +87,19 @@ export default function StudentEditPage() {
         if (studentData?.child_id) {
           const { data: childData } = await supabase
             .from("child")
-            .select("id, school_grade, interests")
+            .select("id, grade_level, school_grade, interests")
             .eq("id", studentData.child_id)
             .maybeSingle(); // child가 삭제됐을 경우 null 반환
 
           if (childData) {
             setChildId(childData.id);
-            setGrade(childData.school_grade as Grade);
+            // grade_level 우선, 없으면 school_grade → grade_level 역방향 매핑으로 초기화
+            const gl =
+              (childData.grade_level as GradeLevel | null) ??
+              (childData.school_grade
+                ? SCHOOL_GRADE_TO_GRADE_LEVEL[childData.school_grade as Grade] ?? null
+                : null);
+            setGrade(gl);
             setInterests((childData.interests ?? []) as InterestField[]);
             setLoading(false);
             return;

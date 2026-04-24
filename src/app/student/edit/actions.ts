@@ -3,17 +3,23 @@
 // — 서버에서 입력값 검증 후 DB 업데이트
 //
 // 보안:
-//   1. validateGrade / validateInterests 로 허용값 범위 검증 (DB 반영 전)
+//   1. validateGradeLevel / validateInterests 로 허용값 범위 검증 (DB 반영 전)
 //   2. supabase.auth.getUser() 로 인증 확인
 //   3. student.child_id 경유 → 자신의 child만 업데이트 가능
 //   4. role !== "student" 접근 차단
+//
+// 저장 정책 (grade_level source of truth):
+//   - child.grade_level: 항상 저장 (초1~고3 전체 지원)
+//   - child.school_grade: grade_level → school_grade 매핑이 있으면 동시 저장
+//     (초1·초2는 school_grade 없음 → null 저장)
 // ====================================================
 
 "use server";
 
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
-import { validateGrade, validateInterests } from "@/lib/validation";
+import { validateGradeLevel, validateInterests } from "@/lib/validation";
+import { GRADE_LEVEL_TO_SCHOOL_GRADE } from "@/types/family";
 
 export type UpdateProfileResult =
   | { ok: true }
@@ -25,7 +31,8 @@ export async function updateStudentProfile(
 ): Promise<UpdateProfileResult> {
 
   // ── 1. 서버 입력값 검증 ─────────────────────────────
-  const gradeResult = validateGrade(grade);
+  // grade_level(elem_1~high_3) 기준으로 검증 — 초1·초2 포함 전체 범위
+  const gradeResult = validateGradeLevel(grade);
   if (!gradeResult.ok) return { ok: false, error: gradeResult.error };
 
   const interestsResult = validateInterests(interests);
@@ -71,10 +78,16 @@ export async function updateStudentProfile(
   }
 
   // ── 4. DB 업데이트 ───────────────────────────────────
+  // grade_level: source of truth (초1~고3 전체)
+  // school_grade: 하위호환 병행 저장 (초1·초2는 매핑 없음 → null)
+  const gradeLevel   = gradeResult.value;
+  const schoolGrade  = GRADE_LEVEL_TO_SCHOOL_GRADE[gradeLevel] ?? null;
+
   const { error: dbError } = await supabase
     .from("child")
     .update({
-      school_grade: gradeResult.value,
+      grade_level:  gradeLevel,
+      school_grade: schoolGrade,
       interests:    interestsResult.value,
     })
     .eq("id", studentData.child_id);

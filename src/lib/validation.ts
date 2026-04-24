@@ -12,7 +12,8 @@
 //   if (!r.ok) return badRequest(r.error);
 // ====================================================
 
-import type { Grade, InterestField } from "@/types/family";
+import type { Grade, GradeLevel, InterestField } from "@/types/family";
+import { VALID_GRADE_LEVELS } from "@/types/family";
 
 // ── 결과 타입 ─────────────────────────────────────────────────
 
@@ -37,7 +38,18 @@ export type ValidRole = typeof VALID_ROLES[number];
 
 // ── 검증 함수 ────────────────────────────────────────────────
 
-/** grade: DB child.school_grade 허용값 검증 */
+/** gradeLevel: DB child.grade_level 허용값 검증 (초1~고3 전체) */
+export function validateGradeLevel(v: unknown): ValidationResult<GradeLevel> {
+  if (typeof v !== "string" || !v.trim()) {
+    return { ok: false, error: "학년을 선택해주세요." };
+  }
+  if (!VALID_GRADE_LEVELS.includes(v as GradeLevel)) {
+    return { ok: false, error: "허용되지 않는 학년 값이에요." };
+  }
+  return { ok: true, value: v as GradeLevel };
+}
+
+/** grade: DB child.school_grade 허용값 검증 (초3~고3 — 하위호환용) */
 export function validateGrade(v: unknown): ValidationResult<Grade> {
   if (typeof v !== "string" || !v.trim()) {
     return { ok: false, error: "학년을 선택해주세요." };
