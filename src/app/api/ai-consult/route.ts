@@ -246,7 +246,25 @@ export async function POST(req: NextRequest) {
     aiResponse =
       firstBlock.type === "text" ? firstBlock.text : "[응답을 불러올 수 없어요]";
   } catch (apiErr) {
-    console.error("[ai-consult] Claude API 오류:", apiErr);
+    // Anthropic SDK APIError 유형별 구분 로깅 (API key 값 자체는 절대 출력하지 않음)
+    if (apiErr instanceof Anthropic.APIError) {
+      const s = apiErr.status;
+      if (s === 401) {
+        console.error("[ai-consult] Anthropic 인증 실패(401): ANTHROPIC_API_KEY가 유효하지 않거나 만료됨");
+      } else if (s === 403) {
+        console.error("[ai-consult] Anthropic 접근 거부(403): billing/크레딧 소진 또는 권한 문제");
+      } else if (s === 404) {
+        console.error(`[ai-consult] Anthropic 모델 없음(404): model="${CLAUDE_MODEL}" — 모델명 확인 필요`);
+      } else if (s === 429) {
+        console.error("[ai-consult] Anthropic rate limit(429): Anthropic 계정 분당 한도 초과");
+      } else {
+        console.error(`[ai-consult] Anthropic API 오류(${s}): ${apiErr.message}`);
+      }
+    } else {
+      // 네트워크 오류 / SDK 외 예외
+      const msg = apiErr instanceof Error ? apiErr.message : String(apiErr);
+      console.error("[ai-consult] Anthropic 네트워크/기타 오류:", msg);
+    }
     return errRes("SERVER_ERROR", 502);
   }
 
