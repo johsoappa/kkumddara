@@ -23,5 +23,5 @@ export const FEATURE_FLAGS = {
    *   3. parent/home 카드에서 badge 제거 (또는 이 플래그로 자동 반영)
    *   4. 배포 후 /parent/counseling 흐름 실 동작 확인
    */
-  AI_CONSULT_ENABLED: false,
+  AI_CONSULT_ENABLED: true,
 } as const;
