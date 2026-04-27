@@ -6,8 +6,14 @@
 // 데이터 소스:
 //   - 추천 직업: occupation_master (is_active=true) + occupation_summary(one_liner)
 //   - 관심분야 매칭: occupation_master.interest_fields ∩ child.interests
-//   - 오늘의 미션: roadmap_progress (DB) 또는 localStorage → getRoadmap (정적)
+//   - 오늘의 미션: occupation_student_actions(stage_number=1, DB 우선)
+//                  → DB 데이터 없으면 정적 ROADMAPS fallback
 //   - 자녀 프로필: child 테이블 (학년/관심분야)
+//
+// [미션 DB 전환 범위]
+//   occupation_master.legacy_occupation_id → occupation_student_actions 연결
+//   grade_target(all/elementary/middle/high) 기준 학년 필터링
+//   완료 추적은 localStorage 기반 유지 (UUID ↔ 레거시 ID 혼용 — /roadmap/[id] 에서 처리)
 //
 // 세션 처리:
 //   - getUser() null → router.replace('/') 리다이렉트
@@ -35,6 +41,25 @@ import { getRoadmap } from "@/data/roadmaps";
 import type { Child } from "@/types/family";
 import { GRADE_LABEL, GRADE_LEVEL_LABEL, INTEREST_LABEL } from "@/types/family";
 import type { Grade, GradeLevel, InterestField } from "@/types/family";
+
+// ── DB 미션 타입 (occupation_student_actions) ────────────────
+interface DbMission {
+  id:         string;
+  text:       string;
+  stageTitle: string;
+}
+
+// ── grade_level → DB grade_group 변환 ────────────────────────
+// occupation_student_actions.grade_target 기준: elementary|middle|high|all
+function gradeGroupFromGradeLevel(
+  gradeLevel: string | null | undefined
+): "elementary" | "middle" | "high" | "all" {
+  if (!gradeLevel) return "all";
+  if (gradeLevel.startsWith("elementary")) return "elementary";
+  if (gradeLevel.startsWith("middle"))     return "middle";
+  if (gradeLevel.startsWith("high"))       return "high";
+  return "all";
+}
 
 // ── DB 직업 타입 ────────────────────────────────────────────
 interface DbOccupation {
@@ -64,10 +89,11 @@ export default function StudentHomePage() {
   const router = useRouter();
 
   const [child, setChild]               = useState<Child | null>(null);
-  const [dbOccupations, setDbOccs]      = useState<DbOccupation[]>([]);
-  const [chosenRoadmapId, setChosen]    = useState<string | null>(null);
+  const [dbOccupations, setDbOccs]        = useState<DbOccupation[]>([]);
+  const [dbMissions, setDbMissions]       = useState<DbMission[]>([]);
+  const [chosenRoadmapId, setChosen]      = useState<string | null>(null);
   const [completedMissions, setCompleted] = useState<string[]>([]);
-  const [loading, setLoading]           = useState(true);
+  const [loading, setLoading]             = useState(true);
 
   // ── 세션 만료 감지 리스너 ───────────────────────────────────
   useEffect(() => {
@@ -99,6 +125,9 @@ export default function StudentHomePage() {
           .eq("user_id", user.id)
           .maybeSingle();
 
+        // 로컬 변수로 child 추적 (step 5 DB 미션 조회에 사용)
+        let resolvedChild: Child | null = null;
+
         if (studentData?.child_id) {
           const { data: childData } = await supabase
             .from("child")
@@ -106,12 +135,19 @@ export default function StudentHomePage() {
             .eq("id", studentData.child_id)
             .maybeSingle();
 
-          if (childData) setChild(childData as Child);
+          if (childData) {
+            resolvedChild = childData as Child;
+            setChild(resolvedChild);
+          }
         }
 
         // 3. 선택된 로드맵 & 완료 미션 (localStorage 캐시 우선, DB 폴백)
+        // 로컬 변수로 roadmapId 추적 (step 5 DB 미션 조회에 사용)
+        let resolvedRoadmapId: string | null = null;
+
         const localChosen = localStorage.getItem("kkumddara_chosen_roadmap");
         if (localChosen) {
+          resolvedRoadmapId = localChosen;
           setChosen(localChosen);
           const localProgress = localStorage.getItem(`kkumddara_roadmap_${localChosen}`);
           if (localProgress) {
@@ -126,13 +162,60 @@ export default function StudentHomePage() {
             .maybeSingle();
 
           if (roadmapData) {
+            resolvedRoadmapId = roadmapData.occupation_id;
             setChosen(roadmapData.occupation_id);
             const missions = roadmapData.checked_missions as Record<string, boolean>;
             setCompleted(Object.keys(missions).filter((k) => missions[k]));
           }
         }
 
-        // 4. 추천 직업 DB 로드 ────────────────────────────────
+        // 5. DB 미션 로드 (occupation_student_actions stage 1) ──────────────
+        //    legacy_occupation_id → occupation_master.id → student_actions
+        //    조회 실패 or 데이터 없으면 정적 ROADMAPS fallback 자동 적용
+        if (resolvedRoadmapId) {
+          try {
+            const gradeGroup = gradeGroupFromGradeLevel(resolvedChild?.grade_level);
+
+            const { data: masterRow } = await supabase
+              .from("occupation_master")
+              .select("id")
+              .eq("legacy_occupation_id", resolvedRoadmapId)
+              .eq("is_active", true)
+              .maybeSingle();
+
+            if (masterRow) {
+              const { data: actionRows } = await supabase
+                .from("occupation_student_actions")
+                .select("id, stage_title, action_text")
+                .eq("occupation_id", masterRow.id)
+                .eq("stage_number", 1)
+                .in("grade_target", [gradeGroup, "all"])
+                .eq("is_current", true)
+                .eq("is_active", true)
+                .eq("status", "published")
+                .order("display_order", { ascending: true })
+                .limit(5);
+
+              if (actionRows && actionRows.length > 0) {
+                setDbMissions(
+                  actionRows.map((a) => ({
+                    id:         a.id,
+                    text:       a.action_text,
+                    stageTitle: a.stage_title,
+                  }))
+                );
+              }
+            }
+          } catch (err) {
+            // DB 미션 로드 실패 시 정적 ROADMAPS fallback 자동 적용 — 사용자 영향 없음
+            console.warn(
+              "[student/home] DB 미션 조회 오류 (정적 fallback 적용):",
+              err instanceof Error ? err.message : String(err)
+            );
+          }
+        }
+
+        // 6. 추천 직업 DB 로드 ────────────────────────────────
         //    Query 1: occupation_master (is_active=true, priority DESC)
         const { data: occRows, error: occErr } = await supabase
           .from("occupation_master")
@@ -183,10 +266,16 @@ export default function StudentHomePage() {
     loadData();
   }, [router]);
 
-  // ── 오늘의 미션 — 선택된 로드맵의 미완료 미션 중 첫 3개 ──────
-  // [주의] 정적 ROADMAPS 기준 미션 ID 사용. DB Stage 1 미션(prep-/action-UUID)과
-  //        ID 불일치 가능성 있음 (MVP 허용 리스크 — 후속 동기화 필요)
+  // ── 오늘의 미션 — DB(occupation_student_actions) 우선, 정적 ROADMAPS fallback ──
+  // DB 미션: UUID ID → completedMissions(레거시 "m1" 등)와 불일치 → 항상 미완료로 표시
+  //          (클릭 시 /roadmap/[id]로 이동하며 static 완료 추적 계속 동작)
+  // Fallback: DB 데이터 없는 직업이거나 조회 실패 시 정적 ROADMAPS 사용
   const todayMissions = useMemo(() => {
+    // DB 미션 우선
+    if (dbMissions.length > 0) {
+      return dbMissions.filter((m) => !completedMissions.includes(m.id)).slice(0, 3);
+    }
+    // fallback: 정적 ROADMAPS
     if (!chosenRoadmapId) return [];
     const roadmap = getRoadmap(chosenRoadmapId);
     if (!roadmap) return [];
@@ -194,7 +283,7 @@ export default function StudentHomePage() {
       s.missions.map((m) => ({ ...m, stageTitle: s.title }))
     );
     return allMissions.filter((m) => !completedMissions.includes(m.id)).slice(0, 3);
-  }, [chosenRoadmapId, completedMissions]);
+  }, [chosenRoadmapId, completedMissions, dbMissions]);
 
   // ── 추천 직업 — 관심분야 교집합 매칭 ────────────────────────
   const recommendedOccupations = useMemo((): DbOccupation[] => {
