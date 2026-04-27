@@ -198,17 +198,20 @@ function CounselingPageImpl() {
       const data = await res.json();
 
       if (!res.ok) {
-        // 한도 초과
         if (res.status === 429) {
-          setLimitReached(true);
-          setRemaining(0);
+          // 월 한도 초과: 이달 상담 불가 → 입력창 영구 비활성
+          if (data.code === "LIMIT_EXCEEDED") {
+            setLimitReached(true);
+            setRemaining(0);
+          }
+          // RATE_LIMITED(분당 5회 초과): 메시지만 표시, 입력창 유지
           setMessages((prev) => [
             ...prev,
-            { role: "system", content: data.error },
+            { role: "system", content: data.error ?? "잠시 후 다시 시도해주세요." },
           ]);
           return;
         }
-        // 기타 에러
+        // 기타 에러 (503 API key 없음, 502 Anthropic 오류 등)
         setMessages((prev) => [
           ...prev,
           { role: "system", content: data.error ?? "오류가 발생했어요. 다시 시도해주세요." },
