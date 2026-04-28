@@ -28,6 +28,7 @@
 import Image from "next/image";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
+import GuideModal from "@/components/common/GuideModal";
 import {
   Zap,
   Compass,
@@ -329,6 +330,23 @@ export default function StudentHomePage() {
 
   return (
     <div className="min-h-screen bg-base-off flex justify-center">
+      {/* ── 첫 방문 가이드 팝업 ─────────────────────────────────
+          localStorage key: "kkumddara_student_guide_seen"
+          최초 진입 시 1회만 노출. 닫으면 이후 미노출. */}
+      <GuideModal
+        storageKey="kkumddara_student_guide_seen"
+        title="꿈따라에 온 걸 환영해요"
+        intro="꿈따라는 네가 좋아하는 것에서부터 미래의 일을 찾아보는 공간이에요."
+        introSub="정답을 고르는 곳이 아니라, 내가 어떤 걸 좋아하는지 알아가는 곳이에요."
+        stepsIntro="처음에는 이렇게 해보세요."
+        steps={[
+          { num: 1, heading: "내가 좋아하는 것을 골라요" },
+          { num: 2, heading: "궁금한 직업을 눌러봐요" },
+          { num: 3, heading: "마음에 드는 직업은 저장해요" },
+        ]}
+        ctaLabel="시작하기"
+      />
+
       <div className="w-full max-w-mobile bg-base-off">
 
         {/* ── 헤더 ─────────────────────────────────── */}

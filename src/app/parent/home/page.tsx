@@ -10,6 +10,7 @@
 import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import GuideModal from "@/components/common/GuideModal";
 import {
   FileText,
   MessageSquare,
@@ -263,6 +264,34 @@ export default function ParentHomePage() {
 
   return (
     <div className="min-h-screen bg-base-off flex justify-center">
+      {/* ── 첫 방문 가이드 팝업 ─────────────────────────────────
+          localStorage key: "kkumddara_parent_guide_seen"
+          최초 진입 시 1회만 노출. 닫으면 이후 미노출. */}
+      <GuideModal
+        storageKey="kkumddara_parent_guide_seen"
+        title="꿈따라를 처음 시작하는 부모님께"
+        intro="꿈따라는 아이에게 직업을 정해주는 서비스가 아닙니다. 아이의 관심사와 성향을 바탕으로, 부모가 함께 진로 이야기를 시작할 수 있도록 돕는 진로 탐색 도구입니다."
+        stepsIntro="처음에는 아래 3가지만 해보세요."
+        steps={[
+          {
+            num:     1,
+            heading: "아이 정보 확인하기",
+            body:    "학년, 관심사, 좋아하는 활동을 기준으로 진로 탐색이 시작됩니다.",
+          },
+          {
+            num:     2,
+            heading: "관심 직업 살펴보기",
+            body:    "아이와 연결될 수 있는 직업을 보고, 마음에 드는 직업을 저장해보세요.",
+          },
+          {
+            num:     3,
+            heading: "대화 질문 활용하기",
+            body:    "아이의 생각을 끌어내는 질문으로 진로 대화를 시작해보세요.",
+          },
+        ]}
+        ctaLabel="시작해볼게요"
+      />
+
       <div className="w-full max-w-mobile bg-base-off">
 
         {/* ── 앱 헤더 ──────────────────────────────── */}
