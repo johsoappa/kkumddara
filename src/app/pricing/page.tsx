@@ -3,24 +3,18 @@
 // ====================================================
 // 요금제 페이지 (/pricing)
 // [2차 개편] UI/UX — 아이의 변화 중심 구조 개편
+// [3차-A] family_plus 카드 추가 (019 migration 적용 후 활성)
 //
-// [변경 내용]
-//   - 카드 순서: 베이직 → 프리미엄(추천·강조) → 패밀리
-//   - 무료 플랜: 보조 카드(FreePlanBox)로 분리
-//   - Plan 인터페이스: desc → subtitle, highlight 유지
-//   - Feature 인터페이스: subLabel 추가 (AI 설명 보조)
-//   - 상단 헤드라인: 아이의 변화 중심 문구
-//   - CTA: "내 아이 진로 지도 만들기"
-//   - AI 베타 안내 박스 추가
-//   - FAQ 현실화 (베타·결제 준비 중 안내)
+// [카드 순서] 베이직 → 프리미엄(추천·강조) → 패밀리 → 패밀리 플러스
+// [무료 플랜] FreePlanBox 보조 카드
 //
 // [정책 준수]
-//   - family_plus 미추가 (3차 작업 예정)
-//   - "자녀당 월 60회" 문구 미사용 (ai_consult_usage가 parent 기준)
+//   - family "자녀당 월 60회" 문구 미사용 (ai_consult_usage가 parent 기준)
+//   - family_plus child_limit=3 (int not null 구조). "3명 이상"은 UI 문구만.
+//   - 4명↑ 지원: child_limit null 구조 전환 시 별도 작업 필요
 //   - "7일 무료 체험" / "첫 달 1,000원" / "000명 부모님" 미사용
 //   - "주간 정밀 리포트" 핵심 기능 과장 미사용
 //   - AI_CONSULT_ENABLED 변경 없음
-//   - DB / 타입 / migration 수정 없음
 // ====================================================
 
 import { useRouter } from "next/navigation";
@@ -52,14 +46,14 @@ interface Plan {
 }
 
 // ─── 메인 요금제 카드 데이터 ──────────────────────────
-// [카드 순서] 베이직 → 프리미엄(추천) → 패밀리
+// [카드 순서] 베이직 → 프리미엄(추천) → 패밀리 → 패밀리 플러스
 // [무료 플랜] 별도 FreePlanBox 컴포넌트로 처리
 //
-// [AI 한도 기준 - 018 migration]
-//   free=3 / basic=30 / premium=100 / family=60(가구 기준)
-//   가격: basic=9,900 / premium=14,900 / family=19,900
-//   family "자녀당" 표현 금지 — ai_consult_usage가 parent+month 기준
-//   family_plus: 미구현, 이번 작업 제외
+// [AI 한도 기준 - 018/019 migration]
+//   free=3 / basic=30 / premium=100 / family=60 / family_plus=200 (모두 가구 기준)
+//   가격: basic=9,900 / premium=14,900 / family=19,900 / family_plus=24,900
+//   family / family_plus "자녀당" 표현 금지 — ai_consult_usage가 parent+month 기준
+//   family_plus child_limit=3 (int not null). "3명 이상"은 UI 문구. 4명↑ 별도 작업 필요.
 const PLANS: Plan[] = [
   // ── 베이직 ───────────────────────────────────────────
   {
@@ -146,6 +140,35 @@ const PLANS: Plan[] = [
       { label: "대화 히스토리 저장",     included: true },
     ],
   },
+
+  // ── 패밀리 플러스 (019 신규) ───────────────────────────
+  {
+    name:      "패밀리 플러스",
+    badge:     "3명 이상",
+    price:     "24,900원",
+    period:    "월",
+    target:    "자녀 3명",
+    highlight: false,
+    subtitle:  "세 자녀의 진로 흐름까지 함께 관리하는 확장형 선택",
+    features: [
+      {
+        label:    "AI 진로 코칭 솔루션 가구 월 200회",
+        included: true,
+        badge:    "✨",
+        subLabel: "질문 생성, 부모 대화 가이드, 관심사 기반 활동 추천 포함",
+      },
+      { label: "자녀 3명 관리",                            included: true },
+      { label: "세 자녀의 관심사와 진로 흐름 관리",        included: true },
+      {
+        label:    "명따라 정밀 진로 성향 리포트",
+        included: true,
+        badge:    "✨",
+        subLabel: "각 연 3회 제공 (1학기·2학기·연말)",
+      },
+      { label: "공동 양육자 초대 (1명)", included: true },
+      { label: "대화 히스토리 저장",     included: true },
+    ],
+  },
 ];
 
 // ─── FAQ 데이터 ────────────────────────────────────────
@@ -161,6 +184,10 @@ const FAQ_ITEMS = [
   {
     q: "패밀리 플랜은 어떤 가정에 적합한가요?",
     a: "두 자녀의 관심사와 진로 탐색 흐름을 함께 관리하고 싶은 가정에 적합합니다.",
+  },
+  {
+    q: "패밀리 플러스는 패밀리와 어떻게 다른가요?",
+    a: "패밀리 플러스는 자녀 3명까지 관리하며, AI 진로 코칭 횟수가 가구 월 200회로 더 넉넉합니다.\n세 자녀의 관심사와 진로 흐름을 한 번에 관리하고 싶은 가정에 적합합니다.",
   },
   {
     q: "무료로 먼저 써볼 수 있나요?",

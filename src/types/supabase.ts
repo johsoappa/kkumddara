@@ -126,11 +126,12 @@ export interface Database {
       // ─── subscription_plan ───────────────────────────
       // 006: plan_name → free/basic/family/premium 4종
       //      신규 컬럼 추가 (ai_consult, myeonddara, guardians, roadmap)
+      // 019: family_plus 추가 → 5종
       subscription_plan: {
         Row: {
           id:                       string;
           parent_id:                string;
-          plan_name:                "free" | "basic" | "family" | "premium";
+          plan_name:                "free" | "basic" | "family" | "premium" | "family_plus";
           child_limit:              number;
           ai_consult_monthly_limit: number;
           myeonddara_yearly_limit:  number;
@@ -144,7 +145,7 @@ export interface Database {
         Insert: {
           id?:                        string;
           parent_id:                  string;
-          plan_name?:                 "free" | "basic" | "family" | "premium";
+          plan_name?:                 "free" | "basic" | "family" | "premium" | "family_plus";
           child_limit?:               number;
           ai_consult_monthly_limit?:  number;
           myeonddara_yearly_limit?:   number;
@@ -156,7 +157,7 @@ export interface Database {
           updated_at?:                string;
         };
         Update: {
-          plan_name?:                 "free" | "basic" | "family" | "premium";
+          plan_name?:                 "free" | "basic" | "family" | "premium" | "family_plus";
           child_limit?:               number;
           ai_consult_monthly_limit?:  number;
           myeonddara_yearly_limit?:   number;

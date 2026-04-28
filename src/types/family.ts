@@ -18,8 +18,8 @@ export type InterestField = "it" | "art" | "medical" | "business" | "education";
 
 export type UserRole = "parent" | "student";
 
-/** 006: free 추가, family_plus 제거 → 4종 확정 */
-export type PlanName = "free" | "basic" | "family" | "premium";
+/** 006: free 추가, family_plus 제거 → 4종 확정 / 019: family_plus 재추가 → 5종 */
+export type PlanName = "free" | "basic" | "family" | "premium" | "family_plus";
 
 // ────────────────────────────────────────────────────────────
 // Parent — 학부모 프로필
@@ -109,6 +109,10 @@ export interface PlanEntitlement {
 //   제공 시점: 1학기(3월) · 2학기(9월) · 연말(12월)
 //   basic: 0→3 / premium: 12→9 / family: 6 유지
 //   child_limit: family 3→2, premium 1→3 (확정 요금제 기준)
+// [019 추가] family_plus: 5종 확정
+//   child_limit=3 (int not null 구조 유지)
+//   "3명 이상"은 UI 문구로 처리
+//   4명 이상 지원: child_limit null 구조 전환 시 별도 migration 필요
 export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
   // 무료: 기본 탐색, AI 코치 메시지 월 3개 (018: 1→3), 명따라 없음
   free: {
@@ -137,11 +141,21 @@ export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
     roadmapFullAccess:     true,
     hasAdvancedReport:     true,
   },
-  // 프리미엄 (14,900원): 자녀 3명, 명따라 아이당 연 3회 (총 9회), AI 코치 메시지 월 100개, 보호자 2명
+  // 프리미엄 (14,900원): 자녀 1명 집중, AI 코치 메시지 월 100개, 명따라 연 3회, 보호자 2명
   premium: {
-    maxChildren:           3,
+    maxChildren:           1,
     maxGuardians:          1,   // 추가 초대 1명 = 보호자 2명
     aiConsultMonthlyLimit: 100, // 018 최신화: 15→100
+    myeonddraYearlyLimit:  3,   // 아이 1명 × 3회
+    roadmapFullAccess:     true,
+    hasAdvancedReport:     true,
+  },
+  // 패밀리 플러스 (24,900원): 자녀 3명, AI 코치 메시지 가구 월 200개, 명따라 아이당 연 3회 (총 9회), 보호자 2명
+  // [주의] child_limit=3 (int not null 구조). "3명 이상" 표현은 UI 문구만. 4명↑ 지원 별도 작업 필요.
+  family_plus: {
+    maxChildren:           3,
+    maxGuardians:          1,   // 추가 초대 1명 = 보호자 2명
+    aiConsultMonthlyLimit: 200, // 019 신규: 가구 월 200회
     myeonddraYearlyLimit:  9,   // 아이 3명 × 3회
     roadmapFullAccess:     true,
     hasAdvancedReport:     true,
@@ -150,10 +164,11 @@ export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
 
 /** UI 표시용 한글 플랜 라벨 */
 export const PLAN_LABEL: Record<PlanName, string> = {
-  free:    "무료",
-  basic:   "베이직",
-  premium: "프리미엄",
-  family:  "패밀리",
+  free:        "무료",
+  basic:       "베이직",
+  premium:     "프리미엄",
+  family:      "패밀리",
+  family_plus: "패밀리 플러스",  // 019 신규
 };
 
 // ────────────────────────────────────────────────────────────
