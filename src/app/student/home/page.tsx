@@ -29,6 +29,7 @@ import Image from "next/image";
 import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import GuideModal from "@/components/common/GuideModal";
+import StudentStartChecklistCard from "@/components/student/StudentStartChecklistCard";
 import {
   Zap,
   Compass,
@@ -414,6 +415,13 @@ export default function StudentHomePage() {
               </button>
             )}
           </div>
+
+          {/* ══════════════════════════════════════════
+              처음 하기 좋은 것 안내 카드
+              - 단순 안내 카드 (체크 상태 저장 없음)
+              - 추후 사용자 행동 데이터와 연결 예정
+          ══════════════════════════════════════════ */}
+          <StudentStartChecklistCard />
 
           {/* ══════════════════════════════════════════
               섹션 1 — 오늘의 미션 (정적 ROADMAPS 기반)
