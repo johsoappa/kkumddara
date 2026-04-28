@@ -6,7 +6,7 @@
 // [3차-A] family_plus 카드 추가 (019 migration 적용 후 활성)
 //
 // [카드 순서] 베이직 → 프리미엄(추천·강조) → 패밀리 → 패밀리 플러스
-// [무료 플랜] FreePlanBox 보조 카드
+// [베타 체험] FreePlanBox 보조 카드 (베타 기간 무료 체험 안내)
 //
 // [정책 준수]
 //   - family "자녀당 월 60회" 문구 미사용 (ai_consult_usage가 parent 기준)
@@ -47,7 +47,7 @@ interface Plan {
 
 // ─── 메인 요금제 카드 데이터 ──────────────────────────
 // [카드 순서] 베이직 → 프리미엄(추천) → 패밀리 → 패밀리 플러스
-// [무료 플랜] 별도 FreePlanBox 컴포넌트로 처리
+// [베타 체험] 별도 FreePlanBox 컴포넌트로 처리 (베타 기간 무료 체험)
 //
 // [AI 한도 기준 - 018/019 migration]
 //   free=3 / basic=30 / premium=100 / family=60 / family_plus=200 (모두 가구 기준)
@@ -351,7 +351,12 @@ function PlanCard({ plan, onStart }: { plan: Plan; onStart: () => void }) {
   );
 }
 
-// ─── 무료 플랜 보조 카드 ──────────────────────────────
+// ─── 베타 무료 체험 안내 카드 ────────────────────────────
+//
+// [정책]
+//   - 신규 가입자 실제 plan_name = "basic" (auth/callback 기준)
+//   - "무료 플랜" 표현 금지 — 베타 기간 체험 맥락으로만 안내
+//   - 결제 연동 전 free/basic 정책 재검토 예정 (별도 작업)
 function FreePlanBox({ onStart }: { onStart: () => void }) {
   return (
     <div
@@ -360,30 +365,23 @@ function FreePlanBox({ onStart }: { onStart: () => void }) {
     >
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
-          <span className="text-sm font-bold text-base-text">무료 플랜</span>
-          <span
-            className="text-[11px] font-semibold px-2 py-0.5 rounded-full"
-            style={{ backgroundColor: "#F3F4F6", color: "#6B7280" }}
-          >
-            베타 기간 무료
-          </span>
-        </div>
+        <span className="text-sm font-bold text-base-text">베타 기간 무료 체험</span>
         <span className="text-lg font-bold text-base-text">0원</span>
       </div>
 
       {/* 부제목 */}
       <p className="text-xs text-base-muted leading-relaxed mb-3">
-        부담 없이 먼저 경험하는 진로 탐색 시작점
+        정식 결제 전까지 꿈따라의 핵심 기능을 무료로 먼저 경험해볼 수 있어요.<br />
+        현재 신규 가입자는 베이직 수준의 진로 탐색 흐름을 체험할 수 있습니다.
       </p>
 
-      {/* 혜택 */}
+      {/* 체험 항목 */}
       <ul className="flex flex-col gap-1.5 mb-4">
         {[
-          "AI 진로 코칭 맛보기 월 3회",
-          "자녀 1명 등록",
-          "기본 진로 탐색 흐름 체험",
-          "베타 기간 무료 이용",
+          "베이직 수준의 핵심 기능 체험",
+          "자녀 1명 진로 탐색 관리",
+          "진로 탐색 50개 직업 전체 열람",
+          "명따라 정밀 진로 성향 리포트 연 3회",
         ].map((item) => (
           <li key={item} className="flex items-center gap-2">
             <span className="text-xs text-base-muted">•</span>
@@ -400,6 +398,11 @@ function FreePlanBox({ onStart }: { onStart: () => void }) {
       >
         무료로 먼저 시작하기
       </button>
+
+      {/* 보조 안내 */}
+      <p className="text-center text-[11px] text-base-muted mt-2">
+        가입 후 베타 기간 동안 기본 진로 탐색 흐름을 경험할 수 있어요.
+      </p>
     </div>
   );
 }
@@ -415,7 +418,7 @@ export default function PricingPage() {
     );
   };
 
-  // 무료 플랜 CTA — 홈(/)으로 이동
+  // 베타 무료 체험 CTA — 홈(/)으로 이동
   const handleFreeStart = () => {
     router.push("/");
   };
@@ -451,7 +454,7 @@ export default function PricingPage() {
           />
         ))}
 
-        {/* ── 무료 플랜 보조 카드 ── */}
+        {/* ── 베타 무료 체험 안내 카드 ── */}
         <FreePlanBox onStart={handleFreeStart} />
 
         {/* ── AI 베타 안내 박스 ── */}
@@ -474,8 +477,8 @@ export default function PricingPage() {
           style={{ backgroundColor: "#F9FAFB" }}
         >
           <p className="text-xs text-base-muted leading-relaxed">
-            언제든 부담 없이 시작할 수 있도록<br />
-            결제 전 체험 흐름을 먼저 제공합니다.
+            현재는 베타 기간으로, 정식 결제 기능은 추후 안내됩니다.<br />
+            정식 유료화 전까지 요금제와 제공 범위는 조정될 수 있습니다.
           </p>
         </div>
 
