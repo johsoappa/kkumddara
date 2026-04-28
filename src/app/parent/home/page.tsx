@@ -11,6 +11,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import GuideModal from "@/components/common/GuideModal";
+import ParentStartChecklistCard from "@/components/parent/ParentStartChecklistCard";
 import {
   FileText,
   MessageSquare,
@@ -326,6 +327,13 @@ export default function ParentHomePage() {
               <span style={{ color: "#E84B2E" }}> 꿈을 설계</span>해요
             </h1>
           </div>
+
+          {/* ══════════════════════════════════════════
+              시작 체크리스트 카드
+              - 단순 안내 카드 (체크 상태 저장 없음)
+              - 추후 사용자 행동 데이터와 연결 예정
+          ══════════════════════════════════════════ */}
+          <ParentStartChecklistCard />
 
           {/* ══════════════════════════════════════════
               섹션 1 — 자녀 요약 카드
