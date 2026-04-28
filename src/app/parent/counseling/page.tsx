@@ -5,7 +5,7 @@
 //
 // 설계 원칙:
 //   - 결과 보장형 표현 금지, 준비·설계형 표현 유지
-//   - 무료: 월 1회, 저장 없음, remainingCount = 0 되면 업그레이드 안내
+//   - 무료: 월 3개, 저장 없음, remainingCount = 0 되면 업그레이드 안내
 //   - 유료: 남은 횟수 표시, 이어가기(sessionId) 지원
 //   - 자녀 프로필이 있으면 childId 자동 연동
 // ====================================================
@@ -323,7 +323,7 @@ function CounselingPageImpl() {
           <div className="mx-4 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-button flex gap-2 text-xs text-amber-700">
             <Info size={14} className="mt-0.5 shrink-0" />
             <span>
-              무료 플랜은 매달 1회 상담을 탐색해볼 수 있어요.
+              무료 플랜은 매달 3개 메시지를 이용할 수 있어요.
               더 많은 상담이 필요하다면 베이직 이상 플랜을 고려해 보세요.
             </span>
           </div>

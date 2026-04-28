@@ -19,8 +19,8 @@
 //   status:  number — HTTP 상태 코드
 //
 // [한도 정책]
-//   무료 (ai_consult_monthly_limit = 0):
-//     - 월 1회 (FREE_PLAN_MONTHLY_LIMIT)
+//   무료 (plan_name = 'free'):
+//     - 월 3개 (018 최신화)
 //     - 세션 저장 없음, usage만 기록
 //   유료 (ai_consult_monthly_limit > 0):
 //     - DB 한도 적용
@@ -170,7 +170,7 @@ export async function POST(req: NextRequest) {
   // [009 보정] 무료 여부: plan_name 기준. "limit=0 → 무료" 암묵 규칙 제거.
   // plan row 없으면 free로 취급 (fallback).
   const isFree       = !plan || plan.plan_name === "free";
-  const monthlyLimit = plan?.ai_consult_monthly_limit ?? 1; // DB 값 그대로 사용
+  const monthlyLimit = plan?.ai_consult_monthly_limit ?? 3; // DB 값 그대로 사용 (018: fallback 1→3)
 
   // ── 7. 이번 달 사용량 확인 ──────────────────────────────
   const usedMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'

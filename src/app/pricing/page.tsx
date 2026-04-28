@@ -27,10 +27,11 @@ interface Plan {
   highlight: boolean;   // 레드오렌지 보더 강조
 }
 
-// ─── 요금제 데이터 (012 확정 기준) ──────────────────────
+// ─── 요금제 데이터 (018 최신화 기준) ──────────────────────
 // max_guardians 의미: 추가 초대 가능한 공동양육자 수 (부모 미포함)
 //   free=0(보호자1=부모만) / basic,family,premium=1(보호자2명)
-// AI 상담: free=1, basic=5, family=10, premium=15
+// AI 코치 메시지: free=3, basic=30, family=60, premium=100
+// 가격: basic=9,900 / family=19,900 / premium=14,900
 // 명따라: 아이당 연 3회 (1학기·2학기·연말)
 const PLANS: Plan[] = [
   {
@@ -41,14 +42,14 @@ const PLANS: Plan[] = [
     highlight: false,
     desc:      "꿈따라를 먼저 경험해보세요",
     features: [
-      { label: "아이 1명 관리",           included: true  },
-      { label: "직업 탐색 50개",          included: true  },
-      { label: "로드맵 미리보기 1개",     included: true  },
-      { label: "AI 상담 월 1회",          included: true  },
-      { label: "보호자 1명 (부모 본인)",  included: true  },
-      { label: "명따라",                  included: false },
-      { label: "주간 리포트",             included: false },
-      { label: "공동 양육자 초대",        included: false },
+      { label: "아이 1명 관리",                  included: true  },
+      { label: "직업 탐색 50개",                 included: true  },
+      { label: "로드맵 미리보기 1개",            included: true  },
+      { label: "AI 코치 메시지 월 3개",          included: true  },
+      { label: "보호자 1명 (부모 본인)",         included: true  },
+      { label: "명따라",                         included: false },
+      { label: "주간 리포트",                    included: false },
+      { label: "공동 양육자 초대",               included: false },
     ],
   },
   {
@@ -62,7 +63,7 @@ const PLANS: Plan[] = [
       { label: "아이 1명 관리",                                    included: true  },
       { label: "직업 탐색 50개",                                   included: true  },
       { label: "로드맵 전체 열람",                                 included: true  },
-      { label: "AI 상담 월 5회",                                   included: true  },
+      { label: "AI 코치 메시지 월 30개",                           included: true  },
       { label: "히스토리 저장",                                    included: true  },
       { label: "명따라 연 3회 (1학기·2학기·연말)", included: true, badge: "✨" },
       { label: "주간 리포트",                                      included: true  },
@@ -72,7 +73,7 @@ const PLANS: Plan[] = [
   {
     name:      "패밀리",
     badge:     "인기",
-    price:     "14,900원",
+    price:     "19,900원",
     period:    "월",
     target:    "자녀 2명",
     highlight: true,
@@ -81,7 +82,7 @@ const PLANS: Plan[] = [
       { label: "아이 2명 동시 관리",                                         included: true },
       { label: "직업 탐색 50개",                                             included: true },
       { label: "로드맵 전체 열람",                                           included: true },
-      { label: "AI 상담 월 10회",                                            included: true },
+      { label: "AI 코치 메시지 월 60개",                                     included: true },
       { label: "히스토리 저장",                                              included: true },
       { label: "명따라 아이당 연 3회 (총 6회)", included: true, badge: "✨" },
       { label: "주간 리포트",                                                included: true },
@@ -90,7 +91,7 @@ const PLANS: Plan[] = [
   },
   {
     name:      "프리미엄",
-    price:     "19,900원",
+    price:     "14,900원",
     period:    "월",
     target:    "자녀 3명",
     highlight: false,
@@ -99,7 +100,7 @@ const PLANS: Plan[] = [
       { label: "아이 3명 동시 관리",                                         included: true },
       { label: "직업 탐색 50개",                                             included: true },
       { label: "로드맵 전체 열람",                                           included: true },
-      { label: "AI 상담 월 15회",                                            included: true },
+      { label: "AI 코치 메시지 월 100개",                                    included: true },
       { label: "히스토리 저장",                                              included: true },
       { label: "명따라 아이당 연 3회 (총 9회)", included: true, badge: "✨" },
       { label: "주간 리포트",                                                included: true },
