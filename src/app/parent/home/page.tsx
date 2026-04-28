@@ -183,6 +183,8 @@ export default function ParentHomePage() {
   const [studentMap, setStudentMap] = useState<StudentMap>({});
   const [loading, setLoading]     = useState(true);
   const [copiedId, setCopiedId]   = useState<string | null>(null);
+  /** GuideModal remount 트리거 — 증가 시 GuideModal 재마운트 → useEffect 재실행 */
+  const [guideModalKey, setGuideModalKey] = useState(0);
 
   useEffect(() => {
     async function loadData() {
@@ -268,6 +270,7 @@ export default function ParentHomePage() {
           localStorage key: "kkumddara_parent_guide_seen"
           최초 진입 시 1회만 노출. 닫으면 이후 미노출. */}
       <GuideModal
+        key={guideModalKey}
         storageKey="kkumddara_parent_guide_seen"
         title="꿈따라를 처음 시작하는 부모님께"
         intro="꿈따라는 아이에게 직업을 정해주는 서비스가 아닙니다. 아이의 관심사와 성향을 바탕으로, 부모가 함께 진로 이야기를 시작할 수 있도록 돕는 진로 탐색 도구입니다."
@@ -423,6 +426,19 @@ export default function ParentHomePage() {
               ))}
             </div>
           </section>
+
+          {/* ── 사용 가이드 다시 보기 ── */}
+          <div className="flex justify-center py-1">
+            <button
+              onClick={() => {
+                localStorage.removeItem("kkumddara_parent_guide_seen");
+                setGuideModalKey((k) => k + 1);
+              }}
+              className="text-xs text-base-muted underline active:opacity-60 transition-opacity py-2 px-3"
+            >
+              사용 가이드 다시 보기
+            </button>
+          </div>
 
         </div>
       </div>

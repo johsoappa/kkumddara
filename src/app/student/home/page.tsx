@@ -95,6 +95,8 @@ export default function StudentHomePage() {
   const [chosenRoadmapId, setChosen]      = useState<string | null>(null);
   const [completedMissions, setCompleted] = useState<string[]>([]);
   const [loading, setLoading]             = useState(true);
+  /** GuideModal remount 트리거 — 증가 시 GuideModal 재마운트 → useEffect 재실행 */
+  const [guideModalKey, setGuideModalKey] = useState(0);
 
   // ── 세션 만료 감지 리스너 ───────────────────────────────────
   useEffect(() => {
@@ -334,6 +336,7 @@ export default function StudentHomePage() {
           localStorage key: "kkumddara_student_guide_seen"
           최초 진입 시 1회만 노출. 닫으면 이후 미노출. */}
       <GuideModal
+        key={guideModalKey}
         storageKey="kkumddara_student_guide_seen"
         title="꿈따라에 온 걸 환영해요"
         intro="꿈따라는 네가 좋아하는 것에서부터 미래의 일을 찾아보는 공간이에요."
@@ -596,6 +599,19 @@ export default function StudentHomePage() {
               </div>
             )}
           </section>
+
+          {/* ── 사용 가이드 다시 보기 ── */}
+          <div className="flex justify-center py-1">
+            <button
+              onClick={() => {
+                localStorage.removeItem("kkumddara_student_guide_seen");
+                setGuideModalKey((k) => k + 1);
+              }}
+              className="text-xs text-base-muted underline active:opacity-60 transition-opacity py-2 px-3"
+            >
+              사용 가이드 다시 보기
+            </button>
+          </div>
 
         </div>
       </div>
