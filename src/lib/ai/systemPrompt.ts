@@ -117,11 +117,14 @@ ${childSection}
 //   "0이면 무료" 암묵 규칙 완전 제거
 // ────────────────────────────────────────────────────────────
 export const AI_CONSULT_ERRORS = {
-  LIMIT_EXCEEDED:  "이번 달 AI 코치 메시지를 모두 사용했어요.\n다음 달 1일에 초기화되거나 플랜을 업그레이드해 보세요.",
-  AUTH_REQUIRED:   "로그인이 필요한 기능이에요.",
-  PARENT_ONLY:     "AI 진로 상담은 학부모 계정에서만 이용할 수 있어요.",
-  SERVER_ERROR:    "일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
-  API_KEY_MISSING: "AI 상담 서비스 설정이 완료되지 않았어요. 운영팀에 문의해주세요.",
+  LIMIT_EXCEEDED:       "이번 달 AI 코치 메시지를 모두 사용했어요.\n다음 달 1일에 초기화되거나 플랜을 업그레이드해 보세요.",
+  AUTH_REQUIRED:        "로그인이 필요한 기능이에요.",
+  PARENT_ONLY:          "AI 진로 상담은 학부모 계정에서만 이용할 수 있어요.",
+  SERVER_ERROR:         "일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
+  API_KEY_MISSING:      "AI 상담 서비스 설정이 완료되지 않았어요. 운영팀에 문의해주세요.",
+  // [022 안전장치] AI 응답 timeout / usage 저장 실패
+  AI_TIMEOUT:           "AI 응답 시간이 길어져 요청을 완료하지 못했습니다. 잠시 후 다시 시도해주세요.",
+  USAGE_UPDATE_FAILED:  "상담 사용량 저장 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
 } as const;
 
 export type AiConsultErrorCode = keyof typeof AI_CONSULT_ERRORS;

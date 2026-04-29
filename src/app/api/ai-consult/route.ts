@@ -51,6 +51,10 @@ const MAX_CONTEXT_MESSAGES = 20;
 // ── Claude 모델 ──
 const CLAUDE_MODEL = "claude-3-5-haiku-20241022";
 
+// ── Anthropic API 응답 timeout (ms) ──
+// [022 안전장치] 25초 초과 시 AI_TIMEOUT 반환, usage count 증가 안 함
+const AI_TIMEOUT_MS = 25_000;
+
 // ── 에러 응답 헬퍼 ──
 function errRes(
   code: keyof typeof AI_CONSULT_ERRORS,
@@ -222,6 +226,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 10. Claude API 호출 ──────────────────────────────────
+  // [022 안전장치] AI_TIMEOUT_MS(25s) 초과 시 AI_TIMEOUT 반환, count 증가 안 함
   const anthropic = new Anthropic({ apiKey });
   const systemPrompt = buildSystemPrompt(childCtx);
 
@@ -233,19 +238,36 @@ export async function POST(req: NextRequest) {
     { role: "user" as const, content: msgResult.value },
   ];
 
+  // timeout 프로미스 — AI_TIMEOUT_MS 초과 시 reject
+  const timeoutPromise = new Promise<never>((_, reject) =>
+    setTimeout(
+      () => reject(new Error("AI_TIMEOUT")),
+      AI_TIMEOUT_MS
+    )
+  );
+
   let aiResponse: string;
   try {
-    const completion = await anthropic.messages.create({
-      model:      CLAUDE_MODEL,
-      max_tokens: 1024,
-      system:     systemPrompt,
-      messages:   apiMessages,
-    });
+    const completion = await Promise.race([
+      anthropic.messages.create({
+        model:      CLAUDE_MODEL,
+        max_tokens: 1024,
+        system:     systemPrompt,
+        messages:   apiMessages,
+      }),
+      timeoutPromise,
+    ]);
 
     const firstBlock = completion.content[0];
     aiResponse =
       firstBlock.type === "text" ? firstBlock.text : "[응답을 불러올 수 없어요]";
   } catch (apiErr) {
+    // [022 안전장치] timeout 분기 — count 증가 없이 즉시 반환
+    if (apiErr instanceof Error && apiErr.message === "AI_TIMEOUT") {
+      console.error(`[ai-consult] Anthropic API 응답 시간 초과 (${AI_TIMEOUT_MS}ms 초과)`);
+      return errRes("AI_TIMEOUT", 504);
+    }
+
     // Anthropic SDK APIError 유형별 구분 로깅 (API key 값 자체는 절대 출력하지 않음)
     if (apiErr instanceof Anthropic.APIError) {
       const s = apiErr.status;
@@ -269,6 +291,8 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 11. 사용량 증가 (upsert) ────────────────────────────
+  // [022 안전장치] usage 저장 실패 시 AI 응답 반환 금지 (한도 우회 방지)
+  // Anthropic API 성공 + usage upsert 성공 시에만 응답 반환
   const { error: usageErr } = await supabase
     .from("ai_consult_usage")
     .upsert(
@@ -281,8 +305,10 @@ export async function POST(req: NextRequest) {
     );
 
   if (usageErr) {
-    // usage 기록 실패는 치명적이지 않으므로 경고만 남기고 계속
-    console.warn("[ai-consult] usage upsert 실패:", usageErr);
+    // usage 저장 실패 → AI 응답을 사용자에게 반환하지 않음
+    // 이유: 사용량이 기록되지 않으면 한도 우회 가능
+    console.error("[ai-consult] usage upsert 실패 — 응답 차단 (한도 우회 방지):", usageErr);
+    return errRes("USAGE_UPDATE_FAILED", 500);
   }
 
   // ── 12. 세션 저장 (유료만) ──────────────────────────────
