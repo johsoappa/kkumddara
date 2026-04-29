@@ -132,11 +132,11 @@ export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
     roadmapFullAccess:     true,
     hasAdvancedReport:     false,
   },
-  // 패밀리 (19,900원): 자녀 2명, 명따라 아이당 연 3회 (총 6회), AI 코치 메시지 월 60개, 보호자 2명
+  // 패밀리 (19,900원): 자녀 2명, 명따라 아이당 연 3회 (총 6회), AI 코치 메시지 가구 월 120개 (자녀 2명 × 60회), 보호자 2명
   family: {
     maxChildren:           2,
     maxGuardians:          1,   // 추가 초대 1명 = 보호자 2명
-    aiConsultMonthlyLimit: 60,  // 018 최신화: 10→60
+    aiConsultMonthlyLimit: 120, // 021 보정: 60→120 (자녀 2명 × 60회, parent 기준 가구 집계)
     myeonddraYearlyLimit:  6,   // 아이 2명 × 3회
     roadmapFullAccess:     true,
     hasAdvancedReport:     true,

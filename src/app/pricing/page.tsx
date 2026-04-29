@@ -123,10 +123,10 @@ const PLANS: Plan[] = [
     subtitle:  "두 자녀의 꿈을 함께 키우는 경제적인 선택",
     features: [
       {
-        label:    "AI 진로 코칭 솔루션 가구 월 60회",
+        label:    "AI 진로 코칭 솔루션 가구 월 120회",
         included: true,
         badge:    "✨",
-        subLabel: "질문 생성, 부모 대화 가이드 포함",
+        subLabel: "두 자녀 기준 각 60회, 질문 생성·부모 대화 가이드 포함",
       },
       { label: "자녀 2명 관리",                        included: true },
       { label: "두 자녀의 관심사와 진로 흐름 관리",    included: true },
