@@ -1,21 +1,22 @@
 "use client";
 
 // ====================================================
-// Goyo24InfoSection — 고용24 직업 참고 정보 섹션
+// Goyo24InfoSection — 미래를 그리는 참고 지표
 //
 // [표시 조건]
 //   - occupation_goyo24_profile row가 있는 경우에만 표시
 //   - 데이터가 없으면 섹션 자체 null 반환 (화면 깨짐 없음)
 //
-// [표시 항목]
-//   ① 임금 참고 정보 (salary_median 있을 때)
-//   ② 고용 전망 (prospect_label 또는 prospect_raw 있을 때)
-//   ③ 관련 학과 예시 (related_majors 1개 이상)
-//   ④ 출처: 고용24 (항상 표시)
+// [표시 항목 순서]
+//   ① 고용 전망 (prospect_label 또는 prospect_raw 있을 때)
+//   ② 관련 학과 예시 (related_majors 1개 이상)
+//   ③ 임금 참고 정보 (salary_median 있을 때)
+//   ④ 공통 안내 문구 (항상 표시)
+//   ⑤ 출처: 고용24 (항상 표시)
 //
 // [금지 문구]
 //   추천 대학 / 추천 학과 / 상위 대학 / 인기 대학 / 합격 가능 대학
-//   취업 보장 / 고소득 보장 / 미래 보장
+//   취업 보장 / 고소득 보장 / 미래 보장 / 평균 연봉 / 평균 임금
 // ====================================================
 
 import type { OccupationGoyo24Profile } from "@/types/goyo24";
@@ -36,13 +37,17 @@ const PROSPECT_EMOJI: Record<string, string> = {
   "감소":     "📉",
 };
 
-/** prospect_label → 자연스러운 한국어 표현 */
+/**
+ * prospect_label → 설명 문구
+ * [2026-05-10 보정] 단정적 표현 → 예측 기반 표현으로 변경
+ * 금지: "반드시 늘어난다", "취업 보장", "미래 보장"
+ */
 const PROSPECT_DESC: Record<string, string> = {
-  "증가":     "앞으로 이 분야의 일자리가 늘어날 것으로 전망돼요.",
-  "다소 증가": "앞으로 이 분야의 일자리가 다소 늘어날 것으로 전망돼요.",
-  "유지":     "현재 수준을 유지할 것으로 전망돼요.",
-  "다소 감소": "일자리 수가 다소 줄어들 수 있다는 전망도 있어요.",
-  "감소":     "일자리 수가 감소할 수 있다는 전망도 있어요.",
+  "증가":     "향후 인력 수요가 활발할 것으로 예측되는 분야예요.",
+  "다소 증가": "향후 인력 수요가 활발할 것으로 예측되는 분야예요.",
+  "유지":     "현재 수준의 일자리 수요가 이어질 것으로 예측되는 분야예요.",
+  "다소 감소": "일자리 수요가 줄어들 수 있어, 관련 역량을 넓게 준비하는 것이 중요해요.",
+  "감소":     "일자리 수요가 줄어들 수 있어, 관련 역량을 넓게 준비하는 것이 중요해요.",
 };
 
 // ─── 컴포넌트 ─────────────────────────────────────────────────
@@ -65,10 +70,12 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
   // 관련 학과 최대 5개 표시
   const displayMajors = profile.related_majors.slice(0, 5);
 
-  // 출처 날짜 문자열 생성
-  const surveyYearStr  = profile.salary_survey_year
-    ? `${profile.salary_survey_year}년 기준`
+  // 출처 연도 문자열
+  const surveyYearStr = profile.salary_survey_year
+    ? `${profile.salary_survey_year}년 고용24 조사 기준`
     : null;
+
+  // 최근 동기화 날짜 문자열
   const syncedAtStr = profile.synced_at
     ? (() => {
         const d = new Date(profile.synced_at);
@@ -77,10 +84,10 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
     : null;
 
   return (
-    <section className="card" aria-label="고용24 직업 참고 정보">
+    <section className="card" aria-label="미래를 그리는 참고 지표">
       {/* 섹션 헤더 */}
       <div className="flex items-center gap-2 mb-4">
-        <h3 className="text-sm font-bold text-base-text">직업 참고 정보</h3>
+        <h3 className="text-sm font-bold text-base-text">미래를 그리는 참고 지표</h3>
         <span className="text-[10px] text-base-muted bg-base-card px-2 py-0.5 rounded-full">
           고용24 제공
         </span>
@@ -88,34 +95,7 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
 
       <div className="flex flex-col gap-4">
 
-        {/* ① 임금 참고 정보 */}
-        {hasSalary && (
-          <div>
-            <p className="text-xs font-semibold text-base-text mb-1.5 flex items-center gap-1.5">
-              💰 임금 참고 정보
-            </p>
-            <div className="bg-base-card rounded-lg px-4 py-3">
-              <p className="text-sm text-base-text leading-snug">
-                고용24 기준 중위 임금은 연 약{" "}
-                <span className="font-bold text-brand-red">
-                  {formatManwon(profile.salary_median!)}만 원
-                </span>
-                입니다.
-              </p>
-              {profile.salary_lower != null && profile.salary_upper != null && (
-                <p className="text-xs text-base-muted mt-1">
-                  하위 25% {formatManwon(profile.salary_lower)}만 원 ·
-                  상위 25% {formatManwon(profile.salary_upper)}만 원
-                </p>
-              )}
-              <p className="text-[11px] text-base-muted mt-2 leading-relaxed">
-                실제 임금은 경력, 지역, 회사 규모에 따라 달라질 수 있습니다.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ② 고용 전망 */}
+        {/* ① 고용 전망 */}
         {hasProspect && (
           <div>
             <p className="text-xs font-semibold text-base-text mb-1.5">
@@ -129,28 +109,28 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
                   </p>
                   <p className="text-xs text-base-muted mt-1 leading-relaxed">
                     {PROSPECT_DESC[profile.prospect_label] ??
-                      "고용24 기준으로 이 직업의 일자리 전망을 참고할 수 있어요."}
+                      "고용24 조사 기준으로 이 직업의 일자리 흐름을 참고할 수 있어요."}
                   </p>
                 </>
               ) : (
                 <p className="text-xs text-base-muted leading-relaxed">
-                  고용24 기준으로 이 직업의 일자리 전망을 참고할 수 있어요.
+                  고용24 조사 기준으로 이 직업의 일자리 흐름을 참고할 수 있어요.
                 </p>
               )}
             </div>
           </div>
         )}
 
-        {/* ③ 관련 학과 예시 */}
+        {/* ② 관련 학과 예시 */}
         {hasMajors && (
           <div>
             <p className="text-xs font-semibold text-base-text mb-1.5">
               🎓 관련 학과 예시
             </p>
             <p className="text-[11px] text-base-muted mb-2">
-              이 분야와 연결되는 학과 예시입니다.
+              이 직업과 맞닿아 있는 전공들이에요.
             </p>
-            <div className="flex flex-wrap gap-1.5">
+            <div className="flex flex-wrap gap-1.5 mb-2">
               {displayMajors.map((major) => (
                 <span
                   key={major}
@@ -160,13 +140,61 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
                 </span>
               ))}
             </div>
+            <p className="text-[11px] text-base-muted leading-relaxed">
+              꼭 이 전공만 선택해야 하는 것은 아니며, 관심 분야를 넓혀보는 참고 정보로 활용해보세요.
+            </p>
+          </div>
+        )}
+
+        {/* ③ 임금 참고 정보 */}
+        {hasSalary && (
+          <div>
+            {/* 제목 + 정보 아이콘 (title 툴팁) */}
+            <p
+              className="text-xs font-semibold text-base-text mb-1.5 flex items-center gap-1.5"
+            >
+              💰 임금 참고 정보
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 rounded-full border border-base-muted text-[9px] text-base-muted cursor-default select-none"
+                title="정기 통계 조사 결과로, 실제 시장 임금과 차이가 있을 수 있습니다."
+                aria-label="임금 정보 안내"
+              >
+                i
+              </span>
+            </p>
+            <div className="bg-base-card rounded-lg px-4 py-3">
+              {/* 레이블 */}
+              <p className="text-[11px] text-base-muted mb-0.5">중위 임금</p>
+              {/* 금액 강조 */}
+              <p className="text-lg font-bold text-brand-red leading-snug">
+                연 약 {formatManwon(profile.salary_median!)}만 원
+              </p>
+              {/* 하위/상위 보조 정보 */}
+              {profile.salary_lower != null && profile.salary_upper != null && (
+                <p className="text-xs text-base-muted mt-1.5">
+                  하위 25% {formatManwon(profile.salary_lower)}만 원 ·{" "}
+                  상위 25% {formatManwon(profile.salary_upper)}만 원
+                </p>
+              )}
+              {/* 기준연도 안내 */}
+              <p className="text-[11px] text-base-muted mt-2 leading-relaxed">
+                {surveyYearStr
+                  ? `${surveyYearStr} 참고값입니다.`
+                  : "고용24 조사 기준 참고값입니다."}
+              </p>
+            </div>
           </div>
         )}
 
       </div>
 
-      {/* ④ 출처 */}
-      <div className="mt-4 pt-3 border-t border-base-border">
+      {/* ④ 공통 안내 문구 */}
+      <p className="text-xs text-base-muted mt-4 leading-relaxed">
+        실제 임금 및 고용 상황은 경력, 지역, 경제 상황에 따라 달라질 수 있습니다.
+      </p>
+
+      {/* ⑤ 출처 */}
+      <div className="mt-2 pt-3 border-t border-base-border">
         <p className="text-[10px] text-base-muted">
           출처: 고용24
           {surveyYearStr && ` · ${surveyYearStr}`}
