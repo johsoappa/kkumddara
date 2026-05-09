@@ -24,11 +24,12 @@
 //
 // [흐름]
 //   1. occupation_master에서 is_active=true 직업 목록 조회
-//   2. name_ko 기준으로 고용24 L01 목록 API 검색
-//   3. K-prefix jobCd 후보 추출 + 최적 매핑 선택
-//   4. D01 상세 API 호출
-//   5. sal/jobSatis/jobProspect/relMajorList 파싱
-//   6. occupation_goyo24_profile upsert
+//   2. MANUAL_MAPPING 에 직업명이 있으면 해당 jobCd를 L01 검색 없이 우선 사용
+//   3. 없으면 name_ko 기준으로 고용24 L01 목록 API 검색
+//   4. K-prefix jobCd 후보 추출 + 최적 매핑 선택
+//   5. D01 상세 API 호출
+//   6. sal/jobSatis/jobProspect/relMajorList 파싱
+//   7. occupation_goyo24_profile upsert
 // ====================================================
 
 import { createClient }                                      from "@supabase/supabase-js";
@@ -91,6 +92,37 @@ const IS_DRY_RUN  = process.argv.includes("--dry-run");
 const API_BASE    = "https://www.work24.go.kr/cm/openApi/call/wk";
 const REQUEST_DELAY_MS = 500;  // API 요청 간 지연 (과부하 방지)
 const MAX_MAJORS  = 10;        // 저장할 관련학과 최대 개수
+
+// ─── 수동 매핑 테이블 ────────────────────────────────────────
+// L01 자동 검색으로 찾지 못하거나 오매핑된 직업을 jobCd로 직접 지정.
+// 여기 등록된 직업은 L01 API를 호출하지 않고 바로 D01 상세를 가져온다.
+//
+// [추가 이력]
+//   2026-05-10 1차: dry-run 실패 4건 중 3건 수동 확정 반영
+//     - 데이터 분석가    → K000001080 (데이터분석가(빅데이터분석가))
+//     - 영상콘텐츠 제작자 → K000001025 (미디어콘텐츠창작자(크리에이터))
+//     - 심리상담사       → K000001049 (심리상담전문가)
+//   2026-05-10 2차: L01 오매핑 3건 수동 보정
+//     - 소프트웨어 개발자  → K000001176 (응용소프트웨어개발자) — 시스템(K000000853) 오매핑 보정
+//     - 교사             → K000001065 (중·고등학교교사) — 보조교사(K000000849) 오매핑 보정
+//     - 마케터            → K000000872 (광고·홍보·마케팅전문가) — 텔레마케터(K000007451) 오매핑 보정
+//   2026-05-10: 생명과학 연구원 — D01 비교 후 K000001048 권장
+//     OZ.대표 최종 승인 시 아래 주석 해제
+const MANUAL_MAPPING: Record<string, string> = {
+  // ── 오매핑 보정 (L01 자동 검색이 엉뚱한 직업을 선택) ──────
+  "소프트웨어 개발자":  "K000001176", // 응용소프트웨어개발자 (vs 시스템 K000000853 오매핑 보정)
+  "교사":              "K000001065", // 중·고등학교교사 (vs 보조교사 K000000849 오매핑 보정)
+  "마케터":            "K000000872", // 광고·홍보·마케팅전문가 (vs 텔레마케터 K000007451 오매핑 보정)
+  // ── 검색 불가 직업 수동 확정 ───────────────────────────────
+  "데이터 분석가":      "K000001080", // 데이터분석가(빅데이터분석가)
+  "영상콘텐츠 제작자":  "K000001025", // 미디어콘텐츠창작자(크리에이터)
+  "심리상담사":         "K000001049", // 심리상담전문가
+  // ── OZ.대표 결정 대기 ──────────────────────────────────────
+  // 생명과학 연구원: K000001048 권장 (생물학연구원, 직접 연구 수행 / 전망 유지)
+  // 대안:            K000000852   (생명과학시험원, 생명과학 분류 직접 대응 / 관련학과 10개)
+  // [확정 2026-05-10] OZ.대표 결정: K000001048 (생물학연구원) 사용
+  "생명과학 연구원":   "K000001048", // 생물학연구원 (직접 연구 수행 / 전망 유지)
+};
 
 // ─── Supabase 클라이언트 (service_role) ─────────────────────
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
@@ -326,46 +358,62 @@ async function main(): Promise<void> {
     console.log(`${progress} ${master.name_ko}`);
 
     try {
-      // 2. L01 목록 API 검색
-      await sleep(REQUEST_DELAY_MS);
-      let candidates: Goyo24JobListItem[] = [];
-      try {
-        candidates = await fetchJobList(master.name_ko);
-      } catch (e) {
-        // 검색 실패 시 더 짧은 키워드로 재시도
-        const shortKeyword = master.name_ko.replace(/\s*(개발자|엔지니어|전문가|관리자)$/, "").trim();
-        if (shortKeyword !== master.name_ko) {
-          await sleep(REQUEST_DELAY_MS);
-          candidates = await fetchJobList(shortKeyword);
-        } else {
-          throw e;
+      // 2-A. MANUAL_MAPPING 우선 확인 (L01 API 호출 없이 바로 D01)
+      let resolvedJobCd: string | null = MANUAL_MAPPING[master.name_ko] ?? null;
+      let resolvedJobNm: string | null = null;
+      let isManual = false;
+
+      if (resolvedJobCd) {
+        console.log(`  → 수동 매핑 적용: ${resolvedJobCd} (L01 검색 생략)`);
+        isManual = true;
+      } else {
+        // 2-B. L01 목록 API 자동 검색
+        await sleep(REQUEST_DELAY_MS);
+        let candidates: Goyo24JobListItem[] = [];
+        try {
+          candidates = await fetchJobList(master.name_ko);
+        } catch (e) {
+          // 검색 실패 시 더 짧은 키워드로 재시도
+          const shortKeyword = master.name_ko.replace(/\s*(개발자|엔지니어|전문가|관리자)$/, "").trim();
+          if (shortKeyword !== master.name_ko) {
+            await sleep(REQUEST_DELAY_MS);
+            candidates = await fetchJobList(shortKeyword);
+          } else {
+            throw e;
+          }
         }
+
+        // 3. 최적 후보 선택
+        const best = selectBestJobCd(master.name_ko, candidates);
+
+        if (!best) {
+          console.log(`  ⏭️  매핑 실패 — 고용24 검색 결과 없음`);
+          results.push({
+            occupationId: master.id,
+            nameKo:       master.name_ko,
+            status:       "skipped",
+            reason:       "고용24 검색 결과 없음",
+          });
+          continue;
+        }
+
+        resolvedJobCd = best.jobCd;
+        resolvedJobNm = best.jobNm;
+
+        // 후보가 여럿이면 수동 검수 필요 표시
+        const needsReview = candidates.length > 1;
+        console.log(
+          `  → 자동 매핑: ${best.jobNm} (${best.jobCd})` +
+          (needsReview ? ` ⚠️  후보 ${candidates.length}개 — 수동 검수 권장` : "")
+        );
       }
-
-      // 3. 최적 후보 선택
-      const best = selectBestJobCd(master.name_ko, candidates);
-
-      if (!best) {
-        console.log(`  ⏭️  매핑 실패 — 고용24 검색 결과 없음`);
-        results.push({
-          occupationId: master.id,
-          nameKo:       master.name_ko,
-          status:       "skipped",
-          reason:       "고용24 검색 결과 없음",
-        });
-        continue;
-      }
-
-      // 후보가 여럿이면 수동 검수 필요 표시
-      const needsReview = candidates.length > 1;
-      console.log(
-        `  → 매핑: ${best.jobNm} (${best.jobCd})` +
-        (needsReview ? ` ⚠️  후보 ${candidates.length}개 — 수동 검수 권장` : "")
-      );
 
       // 4. D01 상세 API 호출
+      // resolvedJobCd는 이 지점에서 반드시 non-null
+      // (MANUAL_MAPPING 또는 L01 자동 매핑 중 하나에서 설정됨.
+      //  best === null인 경우 위에서 continue로 처리됨)
       await sleep(REQUEST_DELAY_MS);
-      const detail = await fetchJobDetail(best.jobCd);
+      const detail = await fetchJobDetail(resolvedJobCd!);
 
       // 5. 파싱
       const salary         = parseSalary(detail.sal);
@@ -387,9 +435,9 @@ async function main(): Promise<void> {
           occupationId:   master.id,
           nameKo:         master.name_ko,
           status:         "success",
-          goyo24JobCd:    best.jobCd,
-          goyo24JobName:  detail.jobSmclNm ?? best.jobNm,
-          reason:         "dry-run — upsert 건너뜀",
+          goyo24JobCd:    resolvedJobCd,
+          goyo24JobName:  detail.jobSmclNm ?? resolvedJobNm ?? resolvedJobCd,
+          reason:         `dry-run — upsert 건너뜀${isManual ? " (수동 매핑)" : ""}`,
         });
         continue;
       }
@@ -397,8 +445,8 @@ async function main(): Promise<void> {
       // 7. upsert
       const upsertData: OccupationGoyo24ProfileUpsert = {
         occupation_id:     master.id,
-        goyo24_occ_code:   best.jobCd,
-        goyo24_job_name:   detail.jobSmclNm ?? best.jobNm,
+        goyo24_occ_code:   resolvedJobCd,
+        goyo24_job_name:   detail.jobSmclNm ?? resolvedJobNm ?? resolvedJobCd,
         salary_raw:        detail.sal        ?? null,
         salary_lower:      salary.lower,
         salary_median:     salary.median,
@@ -425,8 +473,8 @@ async function main(): Promise<void> {
         occupationId:   master.id,
         nameKo:         master.name_ko,
         status:         "success",
-        goyo24JobCd:    best.jobCd,
-        goyo24JobName:  detail.jobSmclNm ?? best.jobNm,
+        goyo24JobCd:    resolvedJobCd,
+        goyo24JobName:  detail.jobSmclNm ?? resolvedJobNm ?? resolvedJobCd,
       });
 
     } catch (err) {
