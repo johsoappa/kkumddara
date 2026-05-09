@@ -17,6 +17,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Users, BookOpen, Eye, EyeOff, ArrowLeft, ChevronRight } from "lucide-react";
 import { signUpParent, signUpStudent, signIn, signInWithKakao } from "@/lib/auth";
 import PasswordConditions, { isPasswordValid } from "@/components/PasswordConditions";
+import PwaInstallBanner from "@/components/common/PwaInstallBanner";
 
 type Role = "parent" | "student";
 type Step = "role" | "auth";
@@ -303,6 +304,9 @@ function LandingContent() {
                 로그인
               </button>
             </p>
+
+            {/* ── PWA 홈 화면 추가 안내 (모바일 전용) ── */}
+            <PwaInstallBanner />
           </div>
         )}
 

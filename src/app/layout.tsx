@@ -7,8 +7,15 @@ import "./globals.css";
 // ====================================================
 
 export const metadata: Metadata = {
-  title: "꿈따라 - 꿈을 찾고, 길을 만든다",
-  description: "부모와 아이가 함께 만드는 진로 설계 앱",
+  title:           "꿈따라 - 꿈을 찾고, 길을 만든다",
+  description:     "부모와 아이가 함께 만드는 진로 설계 앱",
+  applicationName: "꿈따라",
+  // PWA: iOS 홈 화면 추가 지원 (manifest.ts와 연동)
+  appleWebApp: {
+    capable:         true,
+    title:           "꿈따라",
+    statusBarStyle:  "default",
+  },
   icons: {
     icon: [
       { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
@@ -17,11 +24,11 @@ export const metadata: Metadata = {
     apple: "/icon-192x192.png",
   },
   openGraph: {
-    title: "꿈따라 - 꿈을 찾고, 길을 만든다",
+    title:       "꿈따라 - 꿈을 찾고, 길을 만든다",
     description: "부모와 아이가 함께 만드는 진로 설계 앱",
-    images: [{ url: "/og-image.png", width: 1200, height: 630 }],
-    locale: "ko_KR",
-    type: "website",
+    images:      [{ url: "/og-image.png", width: 1200, height: 630 }],
+    locale:      "ko_KR",
+    type:        "website",
   },
 };
 
