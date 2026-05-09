@@ -197,7 +197,6 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
       <div className="mt-2 pt-3 border-t border-base-border">
         <p className="text-[10px] text-base-muted">
           출처: 고용24
-          {surveyYearStr && ` · ${surveyYearStr}`}
         </p>
         {syncedAtStr && (
           <p className="text-[10px] text-base-muted mt-0.5">{syncedAtStr}</p>
