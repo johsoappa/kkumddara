@@ -32,8 +32,10 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { OCCUPATIONS } from "@/data/occupations";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
+import Goyo24InfoSection from "@/components/explore/Goyo24InfoSection";
 import { QUIZ_DATA } from "@/data/quizData";
 import type { Occupation } from "@/types/occupation";
+import type { OccupationGoyo24Profile } from "@/types/goyo24";
 
 // ── 상수 ────────────────────────────────────────────────
 const LIKED_KEY    = "kkumddara_liked";
@@ -63,10 +65,11 @@ type PageState =
   | { mode: "loading" }
   | {
       mode: "db";
-      master:      DbMaster;
-      summaries:   Record<string, string>; // content_type → content
-      missionHint: string | null;
-      stepActions: string[];
+      master:        DbMaster;
+      summaries:     Record<string, string>; // content_type → content
+      missionHint:   string | null;
+      stepActions:   string[];
+      goyo24Profile: OccupationGoyo24Profile | null;
     }
   | { mode: "static"; occupation: Occupation }
   | { mode: "not-found" };
@@ -165,8 +168,24 @@ export default function OccupationDetailPage() {
             ?.filter((p) => p.prep_type === "step_action")
             .map((p) => p.content) ?? [];
 
+        // 4단계: occupation_goyo24_profile (참고 정보 — 없으면 null)
+        const { data: goyo24Row } = await supabase
+          .from("occupation_goyo24_profile")
+          .select("*")
+          .eq("occupation_id", master.id)
+          .maybeSingle();
+
+        const goyo24Profile = goyo24Row ?? null;
+
         if (!cancelled) {
-          setPageState({ mode: "db", master, summaries, missionHint, stepActions });
+          setPageState({
+            mode: "db",
+            master,
+            summaries,
+            missionHint,
+            stepActions,
+            goyo24Profile,
+          });
         }
       } catch (err) {
         console.error("[explore/[id]] detail fetch 실패:", err);
@@ -239,7 +258,7 @@ export default function OccupationDetailPage() {
   // ── DB 모드 렌더 ─────────────────────────────────────
   // ====================================================
   if (pageState.mode === "db") {
-    const { master, summaries, missionHint, stepActions } = pageState;
+    const { master, summaries, missionHint, stepActions, goyo24Profile } = pageState;
 
     return (
       <div className="min-h-screen bg-base-off flex justify-center">
@@ -387,7 +406,10 @@ export default function OccupationDetailPage() {
               </section>
             )}
 
-            {/* ⑤ 퀴즈 (정적 QUIZ_DATA 유지) */}
+            {/* ⑤ 고용24 직업 참고 정보 (데이터 있을 때만 표시) */}
+            <Goyo24InfoSection profile={goyo24Profile} />
+
+            {/* ⑥ 퀴즈 (정적 QUIZ_DATA 유지) */}
             {quizData && (
               <section>
                 <OccupationQuiz quizData={quizData} />
