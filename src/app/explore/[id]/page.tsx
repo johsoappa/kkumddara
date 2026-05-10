@@ -43,11 +43,12 @@ const SALARY_MAX_REF = 10000; // 연봉 바 기준 (만원)
 
 // interest_fields 코드 → 한국어 레이블 매핑
 const INTEREST_LABELS: Record<string, string> = {
-  it:        "IT·기술",
-  art:       "예술·창작",
-  medical:   "의료·과학",
-  business:  "경영·비즈니스",
-  education: "교육·사람",
+  it:            "IT·기술",
+  art:           "예술·창작",
+  medical:       "의료·과학",
+  business:      "경영·비즈니스",
+  education:     "교육·사람",
+  public_safety: "공공·안전",
 };
 
 // ── 타입 ────────────────────────────────────────────────
