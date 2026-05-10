@@ -40,7 +40,7 @@ WHERE  occupation_id  = '78616092-8993-4aad-9ce5-f62d6988b55d'
 
 -- 4. 경찰관 interest_fields 변경
 UPDATE public.occupation_master
-SET    interest_fields = '["public_safety"]'
+SET    interest_fields = ARRAY['public_safety']::text[]
 WHERE  id = 'cb790f47-4a48-4544-bba8-968dd0fd4114';
 
 -- ── 검증 로그 ─────────────────────────────────────────────────
