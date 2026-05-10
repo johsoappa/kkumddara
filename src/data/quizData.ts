@@ -86,9 +86,9 @@ export const QUIZ_DATA: OccupationQuizData[] = [
     ],
   },
 
-  // ── 소프트웨어 개발자 (software-developer) ───────────────────
+  // ── 소프트웨어 개발자 (software-engineer) ────────────────────
   {
-    occupationId:   "software-developer",
+    occupationId:   "software-engineer",
     occupationName: "소프트웨어 개발자",
     questions: [
       {
@@ -184,9 +184,9 @@ export const QUIZ_DATA: OccupationQuizData[] = [
     ],
   },
 
-  // ── 시각 디자이너 (visual-designer) ──────────────────────────
+  // ── 시각 디자이너 (graphic-designer) ─────────────────────────
   {
-    occupationId:   "visual-designer",
+    occupationId:   "graphic-designer",
     occupationName: "시각 디자이너",
     questions: [
       {
@@ -234,9 +234,9 @@ export const QUIZ_DATA: OccupationQuizData[] = [
     ],
   },
 
-  // ── 영상콘텐츠 제작자 (video-content-creator) ────────────────
+  // ── 영상콘텐츠 제작자 (video-content-editor) ─────────────────
   {
-    occupationId:   "video-content-creator",
+    occupationId:   "video-content-editor",
     occupationName: "영상콘텐츠 제작자",
     questions: [
       {
@@ -434,9 +434,9 @@ export const QUIZ_DATA: OccupationQuizData[] = [
     ],
   },
 
-  // ── 심리상담사 (counselor) ────────────────────────────────────
+  // ── 심리상담사 (psychologist) ─────────────────────────────────
   {
-    occupationId:   "counselor",
+    occupationId:   "psychologist",
     occupationName: "심리상담사",
     questions: [
       {
