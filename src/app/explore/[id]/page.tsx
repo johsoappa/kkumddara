@@ -49,6 +49,8 @@ const INTEREST_LABELS: Record<string, string> = {
   business:      "경영·비즈니스",
   education:     "교육·사람",
   public_safety: "공공·안전",
+  media:         "콘텐츠·미디어",
+  environment:   "환경·미래산업",
 };
 
 // ── 타입 ────────────────────────────────────────────────
