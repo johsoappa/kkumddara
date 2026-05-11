@@ -109,16 +109,23 @@ export default function RoadmapStage({
         ) : (
           /* CURRENT / NEXT: 미션 리스트 */
           <div className="flex flex-col gap-3">
-            {stage.missions.map((mission) => (
-              <MissionItem
-                key={mission.id}
-                mission={mission}
-                completed={completedMissions.has(mission.id)}
-                disabled={isNext}
-                onToggle={onToggle}
-              />
-            ))}
-            {isNext && (
+            {stage.missions.length === 0 ? (
+              /* 미션 데이터 미준비 — 빈 카드 대신 안내 문구 표시 */
+              <p className="text-xs text-base-muted text-center py-4">
+                다음 단계 미션은 준비 중이에요.
+              </p>
+            ) : (
+              stage.missions.map((mission) => (
+                <MissionItem
+                  key={mission.id}
+                  mission={mission}
+                  completed={completedMissions.has(mission.id)}
+                  disabled={isNext}
+                  onToggle={onToggle}
+                />
+              ))
+            )}
+            {isNext && stage.missions.length > 0 && (
               <p className="text-xs text-blue-400 mt-1">
                 CURRENT 완료 후 해제됩니다
               </p>

@@ -274,6 +274,27 @@ export default function StudentHomePage() {
   // DB 미션: UUID ID → completedMissions(레거시 "m1" 등)와 불일치 → 항상 미완료로 표시
   //          (클릭 시 /roadmap/[id]로 이동하며 static 완료 추적 계속 동작)
   // Fallback: DB 데이터 없는 직업이거나 조회 실패 시 정적 ROADMAPS 사용
+
+  /**
+   * hasMissionData — 미션 원본 데이터가 존재하는지 여부
+   *
+   * [판정 기준]
+   *   DB 미션이 1건이라도 있으면 true
+   *   DB 없고 ROADMAPS에 해당 직업 + 미션이 1건이라도 있으면 true
+   *   둘 다 없으면 false (데이터 미준비 상태)
+   *
+   * [사용 목적]
+   *   todayMissions === [] 일 때 "완료 상태"와 "데이터 미준비 상태"를 구분해
+   *   잘못된 "모든 미션을 완료했어요!" 표시를 방지한다.
+   */
+  const hasMissionData = useMemo(() => {
+    if (dbMissions.length > 0) return true;
+    if (!chosenRoadmapId) return false;
+    const roadmap = getRoadmap(chosenRoadmapId);
+    if (!roadmap) return false;
+    return roadmap.stages.flatMap((s) => s.missions).length > 0;
+  }, [chosenRoadmapId, dbMissions]);
+
   const todayMissions = useMemo(() => {
     // DB 미션 우선
     if (dbMissions.length > 0) {
@@ -490,14 +511,27 @@ export default function StudentHomePage() {
                   </div>
 
                   {todayMissions.length === 0 ? (
-                    <div className="px-4 py-5 text-center">
-                      <p className="text-sm font-bold text-base-text">
-                        모든 미션을 완료했어요!
-                      </p>
-                      <p className="text-xs text-base-muted mt-1">
-                        정말 대단해요. 다음 목표를 찾아볼까요?
-                      </p>
-                    </div>
+                    hasMissionData ? (
+                      /* 미션 데이터는 있으나 모두 완료한 경우 */
+                      <div className="px-4 py-5 text-center">
+                        <p className="text-sm font-bold text-base-text">
+                          모든 미션을 완료했어요!
+                        </p>
+                        <p className="text-xs text-base-muted mt-1">
+                          정말 대단해요. 다음 목표를 찾아볼까요?
+                        </p>
+                      </div>
+                    ) : (
+                      /* 미션 데이터 자체가 없는 경우 (데이터 미준비) */
+                      <div className="px-4 py-5 text-center">
+                        <p className="text-sm font-bold text-base-text">
+                          아직 오늘의 미션을 준비 중이에요.
+                        </p>
+                        <p className="text-xs text-base-muted mt-1">
+                          지금은 직업 탐색과 로드맵 확인을 먼저 진행해 주세요.
+                        </p>
+                      </div>
+                    )
                   ) : (
                     todayMissions.map((mission, idx) => (
                       <button

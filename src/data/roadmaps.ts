@@ -2036,9 +2036,10 @@ export const ROADMAPS: Record<string, RoadmapData> = {
     ],
   },
 
-  "carbon-neutral-specialist": {
-    id: "carbon-neutral-specialist-roadmap",
-    occupationId: "carbon-neutral-specialist",
+  // ⚠️ key: DB slug = 'carbon-neutrality-specialist' 기준 (이전 key: carbon-neutral-specialist)
+  "carbon-neutrality-specialist": {
+    id: "carbon-neutrality-specialist-roadmap",
+    occupationId: "carbon-neutrality-specialist",
     occupationName: "탄소중립전문가",
     occupationEmoji: "🌿",
     grade: "중1",
@@ -2122,9 +2123,10 @@ export const ROADMAPS: Record<string, RoadmapData> = {
     ],
   },
 
-  "renewable-energy-engineer": {
-    id: "renewable-energy-engineer-roadmap",
-    occupationId: "renewable-energy-engineer",
+  // ⚠️ key: DB slug = 'renewable-energy-specialist' 기준 (이전 key: renewable-energy-engineer)
+  "renewable-energy-specialist": {
+    id: "renewable-energy-specialist-roadmap",
+    occupationId: "renewable-energy-specialist",
     occupationName: "신재생에너지 전문가",
     occupationEmoji: "⚡",
     grade: "중1",
