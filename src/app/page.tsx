@@ -242,7 +242,7 @@ function LandingContent() {
                 icon={<Users size={26} strokeWidth={1.8} />}
                 title="학부모로 시작하기"
                 description="자녀의 관심사를 파악하고, 이번 주 나눠볼 대화 주제와 진로 방향을 확인해요."
-                buttonLabel="내 아이의 진로 현황 확인하기"
+                buttonLabel="진로 현황 확인하기"
                 onSelect={handleRoleSelect}
               />
 
@@ -252,7 +252,7 @@ function LandingContent() {
                 icon={<BookOpen size={26} strokeWidth={1.8} />}
                 title="학생으로 시작하기"
                 description="오늘의 미션을 완료하고, 관심 직업을 탐색하며 내 꿈을 찾아가요."
-                buttonLabel="나만의 직업 지도 그리기"
+                buttonLabel="직업 지도 그리기"
                 onSelect={handleRoleSelect}
               />
             </div>
