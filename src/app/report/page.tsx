@@ -10,14 +10,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import AppShell from "@/components/layout/AppShell";
-import WeeklySummary from "@/components/report/WeeklySummary";
-import TopOccupations from "@/components/report/TopOccupations";
-import StrengthCards from "@/components/report/StrengthCards";
 import MissionStatus from "@/components/report/MissionStatus";
-import GrowthChart from "@/components/report/GrowthChart";
-import ActivitySuggestions from "@/components/report/ActivitySuggestions";
 import { getRoadmap } from "@/data/roadmaps";
-import { REPORT_DUMMY } from "@/data/reports";
 import type { MissionItem } from "@/types/report";
 
 // ----------------------------------------
@@ -79,7 +73,6 @@ export default function ReportPage() {
 
   const [userType, setUserType] = useState<"parent" | "student" | null>(null);
   const [missions, setMissions] = useState<MissionItem[]>([]);
-  const [missionRate, setMissionRate] = useState(0);
   const [occupationName, setOccupationName] = useState<string | null>(null);
 
   useEffect(() => {
@@ -109,22 +102,10 @@ export default function ReportPage() {
             completed: completedIds.includes(m.id),
           }));
           setMissions(items);
-
-          const done = items.filter((m) => m.completed).length;
-          setMissionRate(
-            items.length > 0 ? Math.round((done / items.length) * 100) : 0
-          );
         }
       }
     }
   }, []);
-
-  // 성장 추이: 마지막 주차를 실제 완료율로 업데이트
-  const growthData = REPORT_DUMMY.growthData.map((d, idx) =>
-    idx === REPORT_DUMMY.growthData.length - 1 && missionRate > 0
-      ? { ...d, rate: missionRate }
-      : d
-  );
 
   const subtitlePrefix = userType === "parent" ? "자녀의" : "나의";
 
@@ -152,27 +133,8 @@ export default function ReportPage() {
           </div>
         </FadeInSection>
 
-        {/* ② 주간 요약 카드 3개 */}
+        {/* ② 이번 주 미션 현황 (실제 데이터 연동) */}
         <FadeInSection delay={60}>
-          <WeeklySummary
-            exploredCount={REPORT_DUMMY.exploredCount}
-            missionRate={missionRate > 0 ? missionRate : 75}
-            streakDays={REPORT_DUMMY.streakDays}
-          />
-        </FadeInSection>
-
-        {/* ③ 관심 직업 Top 3 */}
-        <FadeInSection delay={0}>
-          <TopOccupations occupations={REPORT_DUMMY.topOccupations} />
-        </FadeInSection>
-
-        {/* ④ 발견된 강점 */}
-        <FadeInSection delay={0}>
-          <StrengthCards strengths={REPORT_DUMMY.strengths} />
-        </FadeInSection>
-
-        {/* ⑤ 이번 주 미션 현황 (실제 데이터 연동) */}
-        <FadeInSection delay={0}>
           {missions.length > 0 ? (
             <MissionStatus missions={missions} />
           ) : (
@@ -191,35 +153,24 @@ export default function ReportPage() {
           )}
         </FadeInSection>
 
-        {/* ⑥ 성장 추이 */}
+        {/* ③ 베타 안내 — 주간 요약·Top3·강점·성장추이·활동 제안은 데이터 준비 중 */}
         <FadeInSection delay={0}>
-          <GrowthChart data={growthData} />
-        </FadeInSection>
-
-        {/* ⑦ 부족한 준비 영역 */}
-        <FadeInSection delay={0}>
-          <div
-            className="rounded-card-lg p-4 border border-yellow-200"
-            style={{ backgroundColor: "#FFFDE7" }}
-          >
-            <div className="flex items-start gap-2 mb-2">
-              <span className="text-lg leading-none mt-0.5">⚠️</span>
-              <div>
-                <p className="text-sm font-bold text-base-text">함께 보완해요</p>
-                <p className="text-xs font-semibold text-yellow-700 mt-0.5">
-                  {REPORT_DUMMY.weakArea.title}
-                </p>
-              </div>
-            </div>
-            <p className="text-xs text-base-muted leading-relaxed pl-7">
-              {REPORT_DUMMY.weakArea.description}
+          <div className="card text-center py-8 px-4">
+            <p className="text-3xl mb-3">📊</p>
+            <p className="text-sm font-bold text-base-text mb-2">
+              주간 리포트를 준비 중이에요
+            </p>
+            <p className="text-xs text-base-muted leading-relaxed">
+              아직 리포트를 만들 만큼의 활동 데이터가 쌓이지 않았어요.
+              <br />
+              직업 탐색과 로드맵 미션을 진행하면
+              <br />
+              이곳에 주간 리포트가 표시됩니다.
+            </p>
+            <p className="text-[11px] text-base-muted mt-3 opacity-60">
+              현재 화면은 베타 기간 중 준비 중인 리포트 영역입니다.
             </p>
           </div>
-        </FadeInSection>
-
-        {/* ⑧ 함께 해보세요 */}
-        <FadeInSection delay={0}>
-          <ActivitySuggestions activities={REPORT_DUMMY.activities} />
         </FadeInSection>
 
         {/* ⑨ 명따라 유도 버튼 — 학부모/비로그인만 표시, 학생은 숨김 */}
