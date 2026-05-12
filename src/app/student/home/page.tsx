@@ -44,25 +44,6 @@ import type { Child } from "@/types/family";
 import { GRADE_LABEL, GRADE_LEVEL_LABEL, INTEREST_LABEL } from "@/types/family";
 import type { Grade, GradeLevel, InterestField } from "@/types/family";
 
-// ── DB 미션 타입 (occupation_student_actions) ────────────────
-interface DbMission {
-  id:         string;
-  text:       string;
-  stageTitle: string;
-}
-
-// ── grade_level → DB grade_group 변환 ────────────────────────
-// occupation_student_actions.grade_target 기준: elementary|middle|high|all
-function gradeGroupFromGradeLevel(
-  gradeLevel: string | null | undefined
-): "elementary" | "middle" | "high" | "all" {
-  if (!gradeLevel) return "all";
-  if (gradeLevel.startsWith("elementary")) return "elementary";
-  if (gradeLevel.startsWith("middle"))     return "middle";
-  if (gradeLevel.startsWith("high"))       return "high";
-  return "all";
-}
-
 // ── DB 직업 타입 ────────────────────────────────────────────
 interface DbOccupation {
   id:                   string;
@@ -92,7 +73,6 @@ export default function StudentHomePage() {
 
   const [child, setChild]               = useState<Child | null>(null);
   const [dbOccupations, setDbOccs]        = useState<DbOccupation[]>([]);
-  const [dbMissions, setDbMissions]       = useState<DbMission[]>([]);
   const [chosenRoadmapId, setChosen]      = useState<string | null>(null);
   const [completedMissions, setCompleted] = useState<string[]>([]);
   const [loading, setLoading]             = useState(true);
@@ -151,8 +131,18 @@ export default function StudentHomePage() {
         let resolvedRoadmapId: string | null = null;
 
         if (studentData?.child_id) {
-          // DB 우선 조회: chosen DESC → last_visited_at DESC 순으로 최신 선택 직업 결정
-          const { data: roadmapData } = await supabase
+          // DB 우선: chosen DESC → last_visited_at DESC 순으로 최신 선택 직업 결정
+          // chosen 컬럼이 없으면 에러 → last_visited_at DESC 만으로 재시도
+          const applyRoadmapData = (row: { occupation_id: string; checked_missions: unknown }) => {
+            resolvedRoadmapId = row.occupation_id;
+            setChosen(row.occupation_id);
+            // localStorage를 DB 값으로 동기화 (stale 값 교정)
+            localStorage.setItem("kkumddara_chosen_roadmap", row.occupation_id);
+            const m = (row.checked_missions ?? {}) as Record<string, boolean>;
+            setCompleted(Object.keys(m).filter((k) => m[k]));
+          };
+
+          const { data: chosenData, error: chosenErr } = await supabase
             .from("roadmap_progress")
             .select("occupation_id, checked_missions")
             .eq("child_id", studentData.child_id)
@@ -161,17 +151,24 @@ export default function StudentHomePage() {
             .limit(1)
             .maybeSingle();
 
-          if (roadmapData) {
-            resolvedRoadmapId = roadmapData.occupation_id;
-            setChosen(roadmapData.occupation_id);
-            // localStorage도 DB 값으로 동기화 (stale 값 교정)
-            localStorage.setItem("kkumddara_chosen_roadmap", roadmapData.occupation_id);
-            const missions = roadmapData.checked_missions as Record<string, boolean>;
-            setCompleted(Object.keys(missions).filter((k) => missions[k]));
+          if (!chosenErr && chosenData) {
+            applyRoadmapData(chosenData);
+          } else if (chosenErr) {
+            // chosen 컬럼 미존재 등 쿼리 오류 → last_visited_at DESC 로 재시도
+            console.warn("[student/home] chosen 정렬 오류, last_visited_at fallback:", chosenErr.message);
+            const { data: fallbackData } = await supabase
+              .from("roadmap_progress")
+              .select("occupation_id, checked_missions")
+              .eq("child_id", studentData.child_id)
+              .order("last_visited_at", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+            if (fallbackData) applyRoadmapData(fallbackData);
           }
         }
 
         // localStorage fallback: DB에 로드맵 기록이 전혀 없을 때만 사용
+        // 로그인 사용자의 최우선 값으로 쓰지 않음
         if (!resolvedRoadmapId) {
           const localChosen = localStorage.getItem("kkumddara_chosen_roadmap");
           if (localChosen) {
@@ -184,51 +181,10 @@ export default function StudentHomePage() {
           }
         }
 
-        // 5. DB 미션 로드 (occupation_student_actions stage 1) ──────────────
-        //    legacy_occupation_id → occupation_master.id → student_actions
-        //    조회 실패 or 데이터 없으면 정적 ROADMAPS fallback 자동 적용
-        if (resolvedRoadmapId) {
-          try {
-            const gradeGroup = gradeGroupFromGradeLevel(resolvedChild?.grade_level);
-
-            const { data: masterRow } = await supabase
-              .from("occupation_master")
-              .select("id")
-              .eq("legacy_occupation_id", resolvedRoadmapId)
-              .eq("is_active", true)
-              .maybeSingle();
-
-            if (masterRow) {
-              const { data: actionRows } = await supabase
-                .from("occupation_student_actions")
-                .select("id, stage_title, action_text")
-                .eq("occupation_id", masterRow.id)
-                .eq("stage_number", 1)
-                .in("grade_target", [gradeGroup, "all"])
-                .eq("is_current", true)
-                .eq("is_active", true)
-                .eq("status", "published")
-                .order("display_order", { ascending: true })
-                .limit(5);
-
-              if (actionRows && actionRows.length > 0) {
-                setDbMissions(
-                  actionRows.map((a) => ({
-                    id:         a.id,
-                    text:       a.action_text,
-                    stageTitle: a.stage_title,
-                  }))
-                );
-              }
-            }
-          } catch (err) {
-            // DB 미션 로드 실패 시 정적 ROADMAPS fallback 자동 적용 — 사용자 영향 없음
-            console.warn(
-              "[student/home] DB 미션 조회 오류 (정적 fallback 적용):",
-              err instanceof Error ? err.message : String(err)
-            );
-          }
-        }
+        // 5. 오늘의 미션은 정적 ROADMAPS에서 추출 (로드맵 화면과 동일 기준)
+        //    occupation_student_actions는 미션 ID 형식이 달라 completedMissions와
+        //    불일치하므로 student/home에서는 사용하지 않음.
+        //    → todayMissions useMemo에서 ROADMAPS 기반으로 계산.
 
         // 6. 추천 직업 DB 로드 ────────────────────────────────
         //    Query 1: occupation_master (is_active=true, priority DESC)
@@ -287,39 +243,32 @@ export default function StudentHomePage() {
   // Fallback: DB 데이터 없는 직업이거나 조회 실패 시 정적 ROADMAPS 사용
 
   /**
-   * hasMissionData — 미션 원본 데이터가 존재하는지 여부
-   *
-   * [판정 기준]
-   *   DB 미션이 1건이라도 있으면 true
-   *   DB 없고 ROADMAPS에 해당 직업 + 미션이 1건이라도 있으면 true
-   *   둘 다 없으면 false (데이터 미준비 상태)
+   * hasMissionData — 정적 ROADMAPS에 미션 데이터가 존재하는지 여부
    *
    * [사용 목적]
    *   todayMissions === [] 일 때 "완료 상태"와 "데이터 미준비 상태"를 구분해
    *   잘못된 "모든 미션을 완료했어요!" 표시를 방지한다.
    */
   const hasMissionData = useMemo(() => {
-    if (dbMissions.length > 0) return true;
     if (!chosenRoadmapId) return false;
     const roadmap = getRoadmap(chosenRoadmapId);
     if (!roadmap) return false;
     return roadmap.stages.flatMap((s) => s.missions).length > 0;
-  }, [chosenRoadmapId, dbMissions]);
+  }, [chosenRoadmapId]);
 
+  // ── 오늘의 미션 — 정적 ROADMAPS 기반 (로드맵 화면과 동일 기준) ──
+  // completedMissions = roadmap_progress.checked_missions 키 목록 (DB)
+  // 미션 ID는 ROADMAPS 정적 ID("m1"~"m12") 기준으로 필터링
   const todayMissions = useMemo(() => {
-    // DB 미션 우선
-    if (dbMissions.length > 0) {
-      return dbMissions.filter((m) => !completedMissions.includes(m.id)).slice(0, 3);
-    }
-    // fallback: 정적 ROADMAPS
     if (!chosenRoadmapId) return [];
     const roadmap = getRoadmap(chosenRoadmapId);
     if (!roadmap) return [];
+    const completedSet = new Set(completedMissions);
     const allMissions = roadmap.stages.flatMap((s) =>
       s.missions.map((m) => ({ ...m, stageTitle: s.title }))
     );
-    return allMissions.filter((m) => !completedMissions.includes(m.id)).slice(0, 3);
-  }, [chosenRoadmapId, completedMissions, dbMissions]);
+    return allMissions.filter((m) => !completedSet.has(m.id)).slice(0, 3);
+  }, [chosenRoadmapId, completedMissions]);
 
   // ── 추천 직업 — 관심분야 교집합 매칭 ────────────────────────
   const recommendedOccupations = useMemo((): DbOccupation[] => {

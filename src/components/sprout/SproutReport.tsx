@@ -33,7 +33,7 @@ const DEFAULT_ACTIVITIES = [
 export default function SproutReport() {
   const [interests, setInterests]               = useState<SproutInterest[]>([]);
   const [completedMissions, setCompletedMissions] = useState<string[]>([]);
-  const streakDays = 3; // 더미 데이터
+  const streakDays = 0; // 실제 집계 미구현 — 베타 기간 중 0 표시
 
   useEffect(() => {
     const storedInterests = localStorage.getItem("kkumddara_sprout_interests");

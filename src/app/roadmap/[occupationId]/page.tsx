@@ -141,26 +141,33 @@ export default function RoadmapPage() {
 
       setChildId(resolvedChildId);
 
-      // ── Task 1A: 방문 시 현재 occupation을 chosen으로 기록 ──────
-      // 같은 child_id의 다른 로드맵 chosen 초기화
-      await supabase
-        .from("roadmap_progress")
-        .update({ chosen: false })
-        .eq("child_id", resolvedChildId)
-        .neq("occupation_id", occupationId);
+      // ── chosen 기록: 방문한 occupation을 선택 상태로 표시 ───────
+      // chosen 컬럼이 없으면 에러를 catch하고 무시.
+      // last_visited_at만으로도 student/home에서 최신 직업 결정 가능.
+      try {
+        // 1. 같은 child_id의 다른 occupation → chosen: false
+        await supabase
+          .from("roadmap_progress")
+          .update({ chosen: false })
+          .eq("child_id", resolvedChildId)
+          .neq("occupation_id", occupationId);   // 현재 occupation 제외
 
-      // 현재 occupation upsert (chosen: true + last_visited_at)
-      await supabase
-        .from("roadmap_progress")
-        .upsert(
-          {
-            child_id:        resolvedChildId,
-            occupation_id:   occupationId,
-            chosen:          true,
-            last_visited_at: new Date().toISOString(),
-          },
-          { onConflict: "child_id,occupation_id" }
-        );
+        // 2. 현재 occupation → chosen: true + last_visited_at 갱신
+        await supabase
+          .from("roadmap_progress")
+          .upsert(
+            {
+              child_id:        resolvedChildId,
+              occupation_id:   occupationId,
+              chosen:          true,
+              last_visited_at: new Date().toISOString(),
+            },
+            { onConflict: "child_id,occupation_id" }
+          );
+      } catch {
+        // chosen 컬럼 미존재 시 무시 — last_visited_at 기반 fallback으로 동작
+        console.warn("[roadmap] chosen 컬럼 기록 실패 — last_visited_at 기반으로 진행");
+      }
 
       // ── Task 3: 실제 자녀 학년 로드 (static grade fallback 대체) ──
       if (!cancelled) {
