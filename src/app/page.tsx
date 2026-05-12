@@ -191,8 +191,8 @@ function LandingContent() {
             {/* ── 서비스 가치 블록 ─────────────────── */}
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-base-text leading-snug">
-                아이의 진로,<br />
-                <span style={{ color: "#E84B2E" }}>막막하지 않게</span>
+                막연한 꿈이 구체적인<br />
+                <span style={{ color: "#E84B2E" }}>로드맵이 되는 곳, 꿈따라</span>
               </h1>
               <p className="mt-3 text-sm text-base-muted leading-relaxed">
                 꿈따라는 자녀의 관심사를 함께 탐색하고,
@@ -222,7 +222,7 @@ function LandingContent() {
               "
               style={{ backgroundColor: "#E84B2E" }}
             >
-              우리 아이 진로 탐색 시작하기
+              내 아이의 진로 현황 확인하기
               <ChevronRight size={16} />
             </button>
             <p className="text-xs text-center text-base-muted mt-2">
@@ -242,7 +242,7 @@ function LandingContent() {
                 icon={<Users size={26} strokeWidth={1.8} />}
                 title="학부모로 시작하기"
                 description="자녀의 관심사를 파악하고, 이번 주 나눠볼 대화 주제와 진로 방향을 확인해요."
-                buttonLabel="학부모로 계속"
+                buttonLabel="내 아이의 진로 현황 확인하기"
                 onSelect={handleRoleSelect}
               />
 
@@ -252,7 +252,7 @@ function LandingContent() {
                 icon={<BookOpen size={26} strokeWidth={1.8} />}
                 title="학생으로 시작하기"
                 description="오늘의 미션을 완료하고, 관심 직업을 탐색하며 내 꿈을 찾아가요."
-                buttonLabel="학생으로 계속"
+                buttonLabel="나만의 직업 지도 그리기"
                 onSelect={handleRoleSelect}
               />
             </div>

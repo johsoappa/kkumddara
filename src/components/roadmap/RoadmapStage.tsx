@@ -112,7 +112,7 @@ export default function RoadmapStage({
             {stage.missions.length === 0 ? (
               /* 미션 데이터 미준비 — 빈 카드 대신 안내 문구 표시 */
               <p className="text-xs text-base-muted text-center py-4">
-                다음 단계 미션은 준비 중이에요.
+                더 알찬 미션을 준비 중이에요! 곧 업데이트될 예정이니 기대해주세요.
               </p>
             ) : (
               stage.missions.map((mission) => (

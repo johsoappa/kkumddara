@@ -470,10 +470,10 @@ export default function StudentHomePage() {
                   className="w-full p-5 text-left hover:bg-base-off transition-colors"
                 >
                   <p className="text-sm font-bold text-base-text">
-                    아직 선택한 직업이 없어요
+                    아직 저장한 직업이 없어요. 첫 직업을 찾아볼까요?
                   </p>
                   <p className="text-xs text-base-muted mt-1">
-                    탭하여 관심 직업을 찾고 미션을 시작해 보세요
+                    관심 직업을 찾고 나만의 로드맵을 시작해 보세요.
                   </p>
                   <div
                     className="mt-3 inline-flex items-center gap-1 text-xs font-semibold"
@@ -525,10 +525,10 @@ export default function StudentHomePage() {
                       /* 미션 데이터 자체가 없는 경우 (데이터 미준비) */
                       <div className="px-4 py-5 text-center">
                         <p className="text-sm font-bold text-base-text">
-                          아직 오늘의 미션을 준비 중이에요.
+                          더 알찬 미션을 준비 중이에요! 곧 업데이트될 예정이니 기대해주세요.
                         </p>
                         <p className="text-xs text-base-muted mt-1">
-                          지금은 직업 탐색과 로드맵 확인을 먼저 진행해 주세요.
+                          직업 탐색과 로드맵 확인을 먼저 진행해 주세요.
                         </p>
                       </div>
                     )
