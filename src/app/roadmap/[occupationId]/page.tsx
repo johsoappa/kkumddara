@@ -56,6 +56,8 @@ import TodayMission from "@/components/roadmap/TodayMission";
 import { getRoadmap } from "@/data/roadmaps";
 import { supabase } from "@/lib/supabase";
 import type { RoadmapData, RoadmapStage as RoadmapStageType, StageStatus } from "@/types/roadmap";
+import { GRADE_LEVEL_LABEL } from "@/types/family";
+import type { GradeLevel } from "@/types/family";
 
 const LAST_ROADMAP_KEY = "kkumddara_last_roadmap";
 
@@ -86,6 +88,7 @@ export default function RoadmapPage() {
 
   // ── 진행 상태 ────────────────────────────────────────────────
   const [childId, setChildId]             = useState<string | null>(null);
+  const [childGrade, setChildGrade]       = useState<string | null>(null);
   const [completedMissions, setCompleted] = useState<Set<string>>(new Set());
   const [hydrated, setHydrated]           = useState(false);
   const [toast, setToast]                 = useState<string | null>(null);
@@ -137,6 +140,39 @@ export default function RoadmapPage() {
       }
 
       setChildId(resolvedChildId);
+
+      // ── Task 1A: 방문 시 현재 occupation을 chosen으로 기록 ──────
+      // 같은 child_id의 다른 로드맵 chosen 초기화
+      await supabase
+        .from("roadmap_progress")
+        .update({ chosen: false })
+        .eq("child_id", resolvedChildId)
+        .neq("occupation_id", occupationId);
+
+      // 현재 occupation upsert (chosen: true + last_visited_at)
+      await supabase
+        .from("roadmap_progress")
+        .upsert(
+          {
+            child_id:        resolvedChildId,
+            occupation_id:   occupationId,
+            chosen:          true,
+            last_visited_at: new Date().toISOString(),
+          },
+          { onConflict: "child_id,occupation_id" }
+        );
+
+      // ── Task 3: 실제 자녀 학년 로드 (static grade fallback 대체) ──
+      if (!cancelled) {
+        const { data: childProfile } = await supabase
+          .from("child")
+          .select("grade_level")
+          .eq("id", resolvedChildId)
+          .maybeSingle();
+        if (childProfile?.grade_level && !cancelled) {
+          setChildGrade(childProfile.grade_level as string);
+        }
+      }
 
       const { data: progress } = await supabase
         .from("roadmap_progress")
@@ -367,6 +403,7 @@ export default function RoadmapPage() {
             child_id:         childId,
             occupation_id:    occupationId,   // legacy_occupation_id (text 키)
             checked_missions: checkedObj,
+            chosen:           true,
             last_visited_at:  new Date().toISOString(),
           },
           { onConflict: "child_id,occupation_id" }
@@ -426,12 +463,14 @@ export default function RoadmapPage() {
               {roadmap.occupationName}
             </p>
           </div>
-          <span
-            className="flex-shrink-0 text-white text-xs font-bold px-3 py-1.5 rounded-full"
-            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
-          >
-            {roadmap.grade}
-          </span>
+          {childGrade && (
+            <span
+              className="flex-shrink-0 text-white text-xs font-bold px-3 py-1.5 rounded-full"
+              style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+            >
+              {GRADE_LEVEL_LABEL[childGrade as GradeLevel] ?? childGrade}
+            </span>
+          )}
         </div>
 
         {/* ② 전체 진행률 카드 */}

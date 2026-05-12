@@ -145,31 +145,42 @@ export default function StudentHomePage() {
           }
         }
 
-        // 3. 선택된 로드맵 & 완료 미션 (localStorage 캐시 우선, DB 폴백)
-        // 로컬 변수로 roadmapId 추적 (step 5 DB 미션 조회에 사용)
+        // 3. 선택된 로드맵 & 완료 미션
+        // DB 우선: chosen=true 또는 가장 최근 last_visited_at 기준 직업 사용
+        // localStorage는 DB 레코드가 없을 때만 보조 사용 (stale 값 오표시 방지)
         let resolvedRoadmapId: string | null = null;
 
-        const localChosen = localStorage.getItem("kkumddara_chosen_roadmap");
-        if (localChosen) {
-          resolvedRoadmapId = localChosen;
-          setChosen(localChosen);
-          const localProgress = localStorage.getItem(`kkumddara_roadmap_${localChosen}`);
-          if (localProgress) {
-            try { setCompleted(JSON.parse(localProgress)); } catch { /* 파싱 실패 무시 */ }
-          }
-        } else if (studentData?.child_id) {
+        if (studentData?.child_id) {
+          // DB 우선 조회: chosen DESC → last_visited_at DESC 순으로 최신 선택 직업 결정
           const { data: roadmapData } = await supabase
             .from("roadmap_progress")
             .select("occupation_id, checked_missions")
             .eq("child_id", studentData.child_id)
-            .eq("chosen", true)
+            .order("chosen", { ascending: false })
+            .order("last_visited_at", { ascending: false })
+            .limit(1)
             .maybeSingle();
 
           if (roadmapData) {
             resolvedRoadmapId = roadmapData.occupation_id;
             setChosen(roadmapData.occupation_id);
+            // localStorage도 DB 값으로 동기화 (stale 값 교정)
+            localStorage.setItem("kkumddara_chosen_roadmap", roadmapData.occupation_id);
             const missions = roadmapData.checked_missions as Record<string, boolean>;
             setCompleted(Object.keys(missions).filter((k) => missions[k]));
+          }
+        }
+
+        // localStorage fallback: DB에 로드맵 기록이 전혀 없을 때만 사용
+        if (!resolvedRoadmapId) {
+          const localChosen = localStorage.getItem("kkumddara_chosen_roadmap");
+          if (localChosen) {
+            resolvedRoadmapId = localChosen;
+            setChosen(localChosen);
+            const localProgress = localStorage.getItem(`kkumddara_roadmap_${localChosen}`);
+            if (localProgress) {
+              try { setCompleted(JSON.parse(localProgress)); } catch { /* 파싱 실패 무시 */ }
+            }
           }
         }
 
