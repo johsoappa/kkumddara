@@ -120,6 +120,14 @@ export default function FamilyPage() {
             </p>
           </div>
 
+          {/* ── 베타 자녀 추가 제한 안내 ──────────────────── */}
+          <div className="px-3 py-2.5 bg-base-off rounded-button border border-base-border">
+            <p className="text-[11px] text-base-muted leading-relaxed">
+              현재 베타 버전에서는 자녀 1명 기준으로 진로 탐색을 이용할 수 있어요.
+              자녀 추가 기능은 패밀리 플랜 오픈 시 제공될 예정입니다.
+            </p>
+          </div>
+
           {/* ── 등록된 자녀 목록 (표시 전용) ──────────────── */}
           {children.length === 0 ? (
             <div className="text-center py-12">

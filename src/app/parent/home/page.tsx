@@ -384,6 +384,13 @@ export default function ParentHomePage() {
                 ))}
               </div>
             )}
+
+            {/* ── 베타 자녀 추가 제한 안내 ── */}
+            <p className="text-[11px] text-base-muted text-center mt-1 leading-relaxed px-1">
+              현재 베타 버전에서는 자녀 1명 기준으로 진로 탐색을 이용할 수 있어요.
+              <br />
+              자녀 추가 기능은 패밀리 플랜 오픈 시 제공될 예정입니다.
+            </p>
           </section>
 
           {/* ══════════════════════════════════════════
