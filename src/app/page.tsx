@@ -311,12 +311,12 @@ function LandingContent() {
             {/* ── 사업자 정보 (카카오 비즈니스 채널 심사용) ── */}
             <div className="mt-8 pt-5 border-t border-base-border">
               <p className="text-[11px] text-base-muted leading-relaxed mb-3">
-                꿈따라는 좋소아빠가 운영하는 자녀 진로 탐색 및 진로 설계 서비스입니다.
+                꿈따라는 OZ.K Lab이 운영하는 자녀 진로 탐색 및 진로 설계 서비스입니다.
               </p>
               <div className="flex flex-col gap-1">
                 {(
                   [
-                    ["운영사",        "좋소아빠"],
+                    ["운영사",        "OZ.K Lab"],
                     ["서비스명",      "꿈따라"],
                     ["대표자",        "OZ.Kim"],
                     ["사업자등록번호", "337-23-02160"],

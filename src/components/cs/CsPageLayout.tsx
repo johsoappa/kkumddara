@@ -52,7 +52,7 @@ export default function CsPageLayout({ title, children }: CsPageLayoutProps) {
           {/* ── 하단 푸터 ── */}
           <footer className="mt-8 border-t border-base-border pt-5">
             <p className="text-center text-xs font-semibold text-base-text mb-2">
-              좋소아빠 | 꿈따라
+              OZ.K Lab | 꿈따라
             </p>
             {/* 약관 링크 행 */}
             <div className="flex flex-wrap justify-center gap-x-1 gap-y-1 mb-3">
@@ -71,7 +71,7 @@ export default function CsPageLayout({ title, children }: CsPageLayoutProps) {
               ))}
             </div>
             <p className="text-center text-[11px] text-base-muted">
-              ⓒ 2026 좋소아빠. All rights reserved.
+              ⓒ 2026 OZ.K Lab. All rights reserved.
             </p>
           </footer>
         </main>

@@ -13,7 +13,7 @@ export default function RefundPage() {
         <div className="bg-white rounded-card-lg p-5 shadow-card">
           <h2 className="text-sm font-bold mb-3" style={{ color: "#E84B2E" }}>제1조 (기본 원칙)</h2>
           <p className="text-sm text-base-text leading-relaxed">
-            좋소아빠는 「전자상거래 등에서의 소비자보호에 관한 법률」을 준수하며
+            OZ.K Lab은 「전자상거래 등에서의 소비자보호에 관한 법률」을 준수하며
             명확한 기준으로 환불을 처리합니다.
           </p>
         </div>

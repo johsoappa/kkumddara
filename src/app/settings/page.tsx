@@ -61,7 +61,7 @@ export default function SettingsPage() {
             <span className="text-2xl leading-none">🌟</span>
             <div>
               <p className="text-sm font-bold text-base-text">꿈따라</p>
-              <p className="text-xs text-base-muted">v1.0.0 · 좋소아빠</p>
+              <p className="text-xs text-base-muted">v1.0.0 · OZ.K Lab</p>
             </div>
           </div>
           <span
@@ -119,7 +119,7 @@ export default function SettingsPage() {
         {/* 하단 회사 정보 */}
         <div className="text-center pt-2">
           <p className="text-xs text-base-muted leading-relaxed">
-            좋소아빠 · 대표 OZ.Kim<br />
+            OZ.K Lab · 대표 OZ.Kim<br />
             johsoappa@gmail.com<br />
             © 2026 꿈따라. All rights reserved.
           </p>
