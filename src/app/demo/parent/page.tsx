@@ -208,7 +208,7 @@ export default function DemoParentPage() {
                   ))}
                 </div>
                 <p className="text-[11px] text-base-muted mt-3 pt-3 border-t border-base-border leading-relaxed">
-                  💡 로그인하면 아이의 관심분야·학년에 맞는 대화 주제를 매주 받을 수 있어요.
+                  💡 로그인하면 아이의 관심분야에 맞는 대화 주제를 확인할 수 있어요.
                 </p>
               </div>
             </section>
