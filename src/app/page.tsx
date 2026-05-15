@@ -191,7 +191,7 @@ function LandingContent() {
             {/* ── 서비스 가치 블록 ─────────────────── */}
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-base-text leading-snug">
-                아직 꿈이 정해지지 않아도 괜찮아요<br />
+                아직 꿈이 없어도 괜찮아요<br />
                 <span style={{ color: "#E84B2E" }}>좋아하는 것에서 직업을 찾아요</span>
               </h1>
               <p className="mt-3 text-sm text-base-muted leading-relaxed">
