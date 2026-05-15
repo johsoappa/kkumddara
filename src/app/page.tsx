@@ -191,18 +191,18 @@ function LandingContent() {
             {/* ── 서비스 가치 블록 ─────────────────── */}
             <div className="mb-8">
               <h1 className="text-2xl font-bold text-base-text leading-snug">
-                막연한 꿈이 구체적인<br />
-                <span style={{ color: "#E84B2E" }}>로드맵이 되는 곳, 꿈따라</span>
+                아직 꿈이 정해지지 않아도 괜찮아요<br />
+                <span style={{ color: "#E84B2E" }}>좋아하는 것에서 직업을 찾아요</span>
               </h1>
               <p className="mt-3 text-sm text-base-muted leading-relaxed">
-                꿈따라는 자녀의 관심사를 함께 탐색하고,
-                이번 주 할 수 있는 진로 활동을 제안해요.
+                꿈따라는 아이가 좋아하는 관심사에서 출발해 관련 직업군을 발견하고,
+                이번 주 해볼 수 있는 진로 활동까지 제안해요.
               </p>
               <div className="mt-4 flex flex-col gap-2">
                 {[
-                  "관심 직업을 찾고 단계별 준비 방법을 확인해요",
-                  "오늘의 미션으로 진로를 한 걸음씩 탐색해요",
-                  "학부모와 학생이 나눌 수 있는 대화 주제를 제안해요",
+                  "관심사와 좋아하는 분야에서 관련 직업을 찾아요",
+                  "선택한 직업을 위해 무엇을 해보면 좋을지 확인해요",
+                  "부모와 아이가 함께 나눌 수 있는 대화 주제를 제안해요",
                 ].map((text, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs text-base-muted">
                     <span className="font-bold flex-shrink-0" style={{ color: "#E84B2E" }}>✓</span>
@@ -222,7 +222,7 @@ function LandingContent() {
               "
               style={{ backgroundColor: "#E84B2E" }}
             >
-              내 아이의 진로 현황 확인하기
+              내 아이 관심사로 진로 찾아보기
               <ChevronRight size={16} />
             </button>
             <p className="text-xs text-center text-base-muted mt-2">
@@ -241,7 +241,7 @@ function LandingContent() {
                 role="parent"
                 icon={<Users size={26} strokeWidth={1.8} />}
                 title="학부모로 시작하기"
-                description="자녀의 관심사를 파악하고, 이번 주 나눠볼 대화 주제와 진로 방향을 확인해요."
+                description="아이의 관심사에서 연결되는 직업을 살펴보고, 함께 나눌 대화와 활동 방향을 확인해요."
                 buttonLabel="진로 현황 확인하기"
                 onSelect={handleRoleSelect}
               />
@@ -251,7 +251,7 @@ function LandingContent() {
                 role="student"
                 icon={<BookOpen size={26} strokeWidth={1.8} />}
                 title="학생으로 시작하기"
-                description="오늘의 미션을 완료하고, 관심 직업을 탐색하며 내 꿈을 찾아가요."
+                description="좋아하는 것에서 시작해 관련 직업을 둘러보고, 나에게 맞는 꿈을 찾아가요."
                 buttonLabel="직업 지도 그리기"
                 onSelect={handleRoleSelect}
               />
