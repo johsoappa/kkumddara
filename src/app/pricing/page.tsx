@@ -344,7 +344,7 @@ function PlanCard({ plan, onStart }: { plan: Plan; onStart: () => void }) {
               : { backgroundColor: ACCENT_BG, color: ACCENT }
           }
         >
-          내 아이 진로 지도 만들기
+          정식 오픈 시 신청하기
         </button>
       </div>
     </div>
@@ -414,7 +414,7 @@ export default function PricingPage() {
   // 유료 플랜 CTA — 결제 연동 전 안내 alert
   const handlePaidStart = () => {
     alert(
-      "정식 결제 기능은 준비 중입니다.\n지금은 무료로 먼저 꿈따라를 경험해볼 수 있어요."
+      "정식 결제 기능은 준비 중입니다. 현재 베타 기간에는 무료로 주요 기능을 먼저 체험할 수 있어요."
     );
   };
 
@@ -445,6 +445,9 @@ export default function PricingPage() {
           </p>
         </div>
 
+        {/* ── 베타 무료 체험 안내 카드 (베타 기간 중 최상단 배치) ── */}
+        <FreePlanBox onStart={handleFreeStart} />
+
         {/* ── 메인 요금제 카드 (베이직 → 프리미엄 → 패밀리) ── */}
         {PLANS.map((plan) => (
           <PlanCard
@@ -453,9 +456,6 @@ export default function PricingPage() {
             onStart={handlePaidStart}
           />
         ))}
-
-        {/* ── 베타 무료 체험 안내 카드 ── */}
-        <FreePlanBox onStart={handleFreeStart} />
 
         {/* ── AI 베타 안내 박스 ── */}
         <div

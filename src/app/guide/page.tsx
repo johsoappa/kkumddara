@@ -4,7 +4,7 @@ const STEPS = [
   {
     emoji: "🙋",
     title: "회원가입",
-    desc: "이메일 또는 카카오 계정으로 간편하게 가입하세요. 최초 가입 시 14일 무료 체험이 자동으로 시작됩니다. 무료 체험은 자동결제로 연결되지 않으니 안심하세요.",
+    desc: "이메일 또는 카카오 계정으로 간편하게 가입하세요. 현재 베타 기간에는 무료로 꿈따라를 이용할 수 있어요. 자동결제로 연결되지 않으니 안심하세요.",
   },
   {
     emoji: "👧",
@@ -44,7 +44,7 @@ const STEPS = [
   {
     emoji: "💳",
     title: "결제 및 이용권 관리",
-    desc: "설정 > 구독 관리에서 요금제를 선택하고 결제하세요. 구독은 언제든 해지할 수 있으며, 해지 시에도 기간 만료 전까지 이용 가능합니다.\n\n• 베이직 9,900원 / 프리미엄 14,900원\n• 패밀리 19,900원 / 패밀리플러스 24,900원",
+    desc: "정식 오픈 시 설정 > 구독 관리에서 요금제를 선택하고 결제할 수 있어요. 현재 베타 기간에는 무료로 이용 가능합니다.",
   },
   {
     emoji: "💬",
@@ -92,7 +92,7 @@ export default function GuidePage() {
           style={{ backgroundColor: "#FFF0EB" }}
         >
           <p className="text-sm font-semibold text-base-text mb-1">아직 시작 전이라면?</p>
-          <p className="text-xs text-base-muted mb-3">14일 무료 체험으로 꿈따라를 경험해 보세요!</p>
+          <p className="text-xs text-base-muted mb-3">베타 기간 무료로 꿈따라를 먼저 경험해 보세요!</p>
           <a
             href="/contact"
             className="inline-block px-5 py-2 rounded-button text-sm font-bold text-white"
