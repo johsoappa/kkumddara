@@ -38,7 +38,7 @@ const MODE_CONFIG = {
   },
   compass: {
     headline: "미션 완료! 🧭",
-    sub:      "네 꿈이 한 칸 더 가까워졌어.",
+    sub:      "퀴즈를 마쳤어요. 아래의 '로드맵 만들기' 버튼으로 다음 단계를 확인해보세요.",
     color:    "#E84B2E",
     bgLight:  "rgba(232,75,46,0.12)",
   },

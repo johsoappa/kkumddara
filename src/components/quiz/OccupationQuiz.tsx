@@ -84,6 +84,18 @@ export default function OccupationQuiz({ quizData }: OccupationQuizProps) {
   if (phase === "entry") {
     return (
       <div className="mt-6">
+        {/* 퀴즈 대상 안내 */}
+        <div
+          className="rounded-card px-4 py-3 mb-3"
+          style={{ backgroundColor: "#F8F8F8" }}
+        >
+          <p className="text-xs font-semibold mb-1" style={{ color: "#555" }}>
+            👧 아이와 함께 풀어보세요
+          </p>
+          <p className="text-xs leading-relaxed" style={{ color: "#9E9E9E" }}>
+            이 직업에 대해 아이가 얼마나 알고 있는지 같이 확인해 보는 3가지 질문입니다.
+          </p>
+        </div>
         <button
           onClick={handleStart}
           className="w-full rounded-button py-4 text-sm font-bold text-white transition-opacity hover:opacity-90 active:opacity-80"
@@ -158,6 +170,12 @@ export default function OccupationQuiz({ quizData }: OccupationQuizProps) {
               다시 도전하기
             </button>
           </div>
+
+          {/* 다음 행동 안내 */}
+          <p className="text-xs text-center leading-relaxed mt-4 pt-3 border-t border-base-border" style={{ color: "#9E9E9E" }}>
+            퀴즈를 완료했어요.<br />
+            아래의 &lsquo;로드맵 만들기&rsquo; 버튼을 눌러 이 직업을 준비하는 다음 단계를 확인해보세요.
+          </p>
         </div>
 
         {/* 미션 완료 모달 */}
