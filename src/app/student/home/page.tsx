@@ -371,11 +371,16 @@ export default function StudentHomePage() {
     return (matched.length > 0 ? matched : dbOccupations).slice(0, 3);
   }, [dbOccupations, child]);
 
-  // ── 로드맵 진행률 (정적 ROADMAPS 기반) ─────────────────────
+  // ── 로드맵 진행률 ────────────────────────────────────────────
+  // chosenRoadmap : 파일럿 10개 직업 (정적 ROADMAPS 존재) → 그대로 사용
+  // dbChosenOcc   : 신규 DB 직업 (정적 ROADMAPS 없음) → occupation_master 기반 fallback
   const chosenRoadmap = chosenRoadmapId ? getRoadmap(chosenRoadmapId) : null;
+  const dbChosenOcc   = chosenRoadmapId
+    ? dbOccupations.find((o) => o.legacy_occupation_id === chosenRoadmapId) ?? null
+    : null;
   const totalMissions = chosenRoadmap
     ? chosenRoadmap.stages.flatMap((s) => s.missions).length
-    : 0;
+    : (dbMissions?.length ?? 0);
   const progressPct = totalMissions > 0
     ? Math.round((completedMissions.length / totalMissions) * 100)
     : 0;
@@ -503,7 +508,7 @@ export default function StudentHomePage() {
                 <Zap size={15} strokeWidth={2} style={{ color: "#E84B2E" }} />
                 <h2 className="text-sm font-bold text-base-text">오늘의 미션</h2>
               </div>
-              {chosenRoadmap && (
+              {chosenRoadmapId && (
                 <button
                   onClick={() => router.push(`/roadmap/${chosenRoadmapId}`)}
                   className="text-xs text-base-muted flex items-center gap-0.5"
@@ -514,7 +519,7 @@ export default function StudentHomePage() {
             </div>
 
             <div className="bg-white rounded-card-lg shadow-card overflow-hidden">
-              {!chosenRoadmap ? (
+              {!chosenRoadmapId ? (
                 <button
                   onClick={() => router.push("/explore")}
                   className="w-full p-5 text-left hover:bg-base-off transition-colors"
@@ -539,10 +544,10 @@ export default function StudentHomePage() {
                     <div className="flex items-center justify-between mb-1.5">
                       <div className="flex items-center gap-1.5">
                         <span className="text-lg leading-none">
-                          {chosenRoadmap.occupationEmoji}
+                          {chosenRoadmap?.occupationEmoji ?? dbChosenOcc?.emoji ?? "📋"}
                         </span>
                         <span className="text-sm font-bold text-base-text">
-                          {chosenRoadmap.occupationName}
+                          {chosenRoadmap?.occupationName ?? dbChosenOcc?.name_ko ?? chosenRoadmapId ?? "선택한 직업"}
                         </span>
                       </div>
                       <span className="text-xs font-semibold" style={{ color: "#E84B2E" }}>
