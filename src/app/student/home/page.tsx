@@ -10,19 +10,17 @@
 //                  → DB 데이터 없으면 정적 ROADMAPS fallback
 //   - 자녀 프로필: child 테이블 (학년/관심분야)
 //
-// [미션 DB 전환 범위]
+// [미션 DB 전환]
+//   /roadmap/[occupationId] 와 동일하게 action-{uuid} 기준으로 checked_missions 비교
 //   occupation_master.legacy_occupation_id → occupation_student_actions 연결
-//   grade_target(all/elementary/middle/high) 기준 학년 필터링
-//   완료 추적은 localStorage 기반 유지 (UUID ↔ 레거시 ID 혼용 — /roadmap/[id] 에서 처리)
+//   파일럿 10개 직업(stage 1, published + is_current=true) → DB 우선
+//   Phase 2 신규 직업 or DB miss → 정적 ROADMAPS fallback
+//   기존 m1~m4 체크 기록 변환은 별도 작업 예정
 //
 // 세션 처리:
 //   - getUser() null → router.replace('/') 리다이렉트
 //   - onAuthStateChange SIGNED_OUT → router.replace('/')
 //   - 세션 만료 시 무한 로딩 또는 화이트 스크린 없음
-//
-// [MVP 주의] 오늘의 미션 섹션은 정적 ROADMAPS 기반 미션 ID 사용
-//   DB 전환된 Stage 1 미션(prep-/action- UUID)과 ID 불일치 가능.
-//   추천 직업 섹션만 DB 전환 완료. 미션 섹션 DB 전환은 후속 작업 예정.
 // ====================================================
 
 import Image from "next/image";
@@ -76,6 +74,13 @@ export default function StudentHomePage() {
   const [chosenRoadmapId, setChosen]      = useState<string | null>(null);
   const [completedMissions, setCompleted] = useState<string[]>([]);
   const [loading, setLoading]             = useState(true);
+  /**
+   * dbMissions — DB occupation_student_actions 기반 Stage 1 미션 목록
+   *   null  : 아직 조회 전 (로딩 중)
+   *   []    : DB miss 또는 조회 오류 → static ROADMAPS fallback
+   *   [...] : DB 데이터 → action-{uuid} 기준으로 완료 상태 비교
+   */
+  const [dbMissions, setDbMissions]       = useState<{ id: string; text: string; stageTitle: string }[] | null>(null);
   /** GuideModal remount 트리거 — 증가 시 GuideModal 재마운트 → useEffect 재실행 */
   const [guideModalKey, setGuideModalKey] = useState(0);
 
@@ -181,10 +186,51 @@ export default function StudentHomePage() {
           }
         }
 
-        // 5. 오늘의 미션은 정적 ROADMAPS에서 추출 (로드맵 화면과 동일 기준)
-        //    occupation_student_actions는 미션 ID 형식이 달라 completedMissions와
-        //    불일치하므로 student/home에서는 사용하지 않음.
-        //    → todayMissions useMemo에서 ROADMAPS 기반으로 계산.
+        // 5. 오늘의 미션 — occupation_student_actions DB 우선, static fallback ─────
+        //    /roadmap/[occupationId] 와 동일하게 action-{uuid} 기준으로 조회
+        //    파일럿 10개 직업은 published + is_current=true 상태 확인 완료 (017 migration)
+        //    DB miss(Phase 2 신규 직업 등)는 [] 로 설정 → todayMissions useMemo에서 fallback
+        if (resolvedRoadmapId) {
+          try {
+            const { data: masterData } = await supabase
+              .from("occupation_master")
+              .select("id")
+              .eq("legacy_occupation_id", resolvedRoadmapId)
+              .eq("is_active", true)
+              .maybeSingle();
+
+            if (masterData?.id) {
+              const { data: actionRows } = await supabase
+                .from("occupation_student_actions")
+                .select("id, action_text, stage_title")
+                .eq("occupation_id", masterData.id)
+                .eq("stage_number", 1)
+                .eq("is_current", true)
+                .eq("is_active", true)
+                .eq("status", "published")
+                .order("display_order", { ascending: true });
+
+              if (actionRows && actionRows.length > 0) {
+                setDbMissions(
+                  actionRows.map((r) => ({
+                    id:         `action-${r.id}`,
+                    text:       r.action_text,
+                    stageTitle: r.stage_title ?? "지금 당장 시작하기",
+                  }))
+                );
+              } else {
+                setDbMissions([]);
+                console.warn("[student/home] occupation_student_actions 없음 — static fallback:", resolvedRoadmapId);
+              }
+            } else {
+              setDbMissions([]);
+              console.warn("[student/home] occupation_master 없음 — static fallback:", resolvedRoadmapId);
+            }
+          } catch (err) {
+            setDbMissions([]);
+            console.error("[student/home] DB 미션 조회 오류:", err);
+          }
+        }
 
         // 6. 추천 직업 DB 로드 ────────────────────────────────
         //    Query 1: occupation_master (is_active=true, priority DESC)
@@ -238,37 +284,56 @@ export default function StudentHomePage() {
   }, [router]);
 
   // ── 오늘의 미션 — DB(occupation_student_actions) 우선, 정적 ROADMAPS fallback ──
-  // DB 미션: UUID ID → completedMissions(레거시 "m1" 등)와 불일치 → 항상 미완료로 표시
-  //          (클릭 시 /roadmap/[id]로 이동하며 static 완료 추적 계속 동작)
-  // Fallback: DB 데이터 없는 직업이거나 조회 실패 시 정적 ROADMAPS 사용
+  //
+  // [데이터 흐름]
+  //   dbMissions null  → loadData 진행 중 (loading=true 구간, useMemo는 [] 반환)
+  //   dbMissions []    → DB miss or 조회 오류 → static ROADMAPS 기반 계산
+  //   dbMissions [...] → action-{uuid} 기준으로 completedMissions 비교
+  //
+  // [completedMissions 키 체계]
+  //   DB 파일럿 직업: roadmap 페이지가 action-{uuid} 로 저장 → 여기서도 동일하게 비교 ✅
+  //   static fallback: m1~m4 레거시 키 → static 완료 비교 (기존 동작 유지)
 
   /**
-   * hasMissionData — 정적 ROADMAPS에 미션 데이터가 존재하는지 여부
+   * hasMissionData — 표시 가능한 미션 데이터가 존재하는지 여부
    *
    * [사용 목적]
    *   todayMissions === [] 일 때 "완료 상태"와 "데이터 미준비 상태"를 구분해
    *   잘못된 "모든 미션을 완료했어요!" 표시를 방지한다.
    */
   const hasMissionData = useMemo(() => {
+    // DB 미션이 있으면 항상 데이터 있음
+    if (dbMissions && dbMissions.length > 0) return true;
+    // static ROADMAPS fallback 기준
     if (!chosenRoadmapId) return false;
     const roadmap = getRoadmap(chosenRoadmapId);
     if (!roadmap) return false;
     return roadmap.stages.flatMap((s) => s.missions).length > 0;
-  }, [chosenRoadmapId]);
+  }, [chosenRoadmapId, dbMissions]);
 
-  // ── 오늘의 미션 — 정적 ROADMAPS 기반 (로드맵 화면과 동일 기준) ──
-  // completedMissions = roadmap_progress.checked_missions 키 목록 (DB)
-  // 미션 ID는 ROADMAPS 정적 ID("m1"~"m12") 기준으로 필터링
+  // ── 오늘의 미션 — DB 우선 + static ROADMAPS fallback ──────────
+  // DB 파일럿 직업: action-{uuid} 기준으로 완료 여부 비교
+  // fallback:       m1~m4 정적 ID 기준 (기존 동작 유지)
   const todayMissions = useMemo(() => {
     if (!chosenRoadmapId) return [];
+
+    const completedSet = new Set(completedMissions);
+
+    // DB 미션 우선 (dbMissions가 null이면 로딩 중 → 빈 배열 반환해 깜빡임 방지)
+    if (dbMissions && dbMissions.length > 0) {
+      return dbMissions
+        .filter((m) => !completedSet.has(m.id))
+        .slice(0, 3);
+    }
+
+    // static ROADMAPS fallback (Phase 2 신규 직업 or DB miss)
     const roadmap = getRoadmap(chosenRoadmapId);
     if (!roadmap) return [];
-    const completedSet = new Set(completedMissions);
     const allMissions = roadmap.stages.flatMap((s) =>
       s.missions.map((m) => ({ ...m, stageTitle: s.title }))
     );
     return allMissions.filter((m) => !completedSet.has(m.id)).slice(0, 3);
-  }, [chosenRoadmapId, completedMissions]);
+  }, [chosenRoadmapId, completedMissions, dbMissions]);
 
   // ── 추천 직업 — 관심분야 교집합 매칭 ────────────────────────
   const recommendedOccupations = useMemo((): DbOccupation[] => {
@@ -405,7 +470,9 @@ export default function StudentHomePage() {
           <StudentStartChecklistCard />
 
           {/* ══════════════════════════════════════════
-              섹션 1 — 오늘의 미션 (정적 ROADMAPS 기반)
+              섹션 1 — 오늘의 미션
+              (DB occupation_student_actions 우선,
+               Phase 2 직업 등 DB miss 시 static ROADMAPS fallback)
           ══════════════════════════════════════════ */}
           <section>
             <div className="flex items-center justify-between mb-3">
