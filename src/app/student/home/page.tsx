@@ -11,8 +11,10 @@
 //   - 자녀 프로필: child 테이블 (학년/관심분야)
 //
 // [미션 DB 전환]
-//   /roadmap/[occupationId] 와 동일하게 action-{uuid} 기준으로 checked_missions 비교
-//   occupation_master.legacy_occupation_id → occupation_student_actions 연결
+//   /roadmap/[occupationId] 와 동일하게
+//     ① occupation_preparations(step_action) → prep-{uuid}
+//     ② occupation_student_actions(stage_number=1) → action-{uuid}
+//   두 소스를 병렬 조회, [...prep, ...action] 순서로 dbMissions 구성
 //   파일럿 10개 직업(stage 1, published + is_current=true) → DB 우선
 //   Phase 2 신규 직업 or DB miss → 정적 ROADMAPS fallback
 //   기존 m1~m4 체크 기록 변환은 별도 작업 예정
@@ -75,10 +77,10 @@ export default function StudentHomePage() {
   const [completedMissions, setCompleted] = useState<string[]>([]);
   const [loading, setLoading]             = useState(true);
   /**
-   * dbMissions — DB occupation_student_actions 기반 Stage 1 미션 목록
+   * dbMissions — DB Stage 1 미션 목록 (prep + action 혼합)
    *   null  : 아직 조회 전 (로딩 중)
    *   []    : DB miss 또는 조회 오류 → static ROADMAPS fallback
-   *   [...] : DB 데이터 → action-{uuid} 기준으로 완료 상태 비교
+   *   [...] : [prep-{uuid}..., action-{uuid}...] — /roadmap 페이지와 동일한 구성
    */
   const [dbMissions, setDbMissions]       = useState<{ id: string; text: string; stageTitle: string }[] | null>(null);
   /** GuideModal remount 트리거 — 증가 시 GuideModal 재마운트 → useEffect 재실행 */
@@ -186,10 +188,13 @@ export default function StudentHomePage() {
           }
         }
 
-        // 5. 오늘의 미션 — occupation_student_actions DB 우선, static fallback ─────
-        //    /roadmap/[occupationId] 와 동일하게 action-{uuid} 기준으로 조회
-        //    파일럿 10개 직업은 published + is_current=true 상태 확인 완료 (017 migration)
-        //    DB miss(Phase 2 신규 직업 등)는 [] 로 설정 → todayMissions useMemo에서 fallback
+        // 5. 오늘의 미션 — prep + action DB 우선, static fallback ──────────────
+        //    /roadmap/[occupationId] 와 동일하게
+        //      ① occupation_preparations(step_action) → prep-{uuid}
+        //      ② occupation_student_actions(stage_number=1) → action-{uuid}
+        //    두 소스를 병렬 조회해 [...prepMissions, ...actionMissions] 순서로 구성
+        //    → checked_missions key가 prep-{uuid}든 action-{uuid}든 모두 비교 가능
+        //    DB miss(Phase 2 신규 직업, is_active=false 등)는 [] → static fallback
         if (resolvedRoadmapId) {
           try {
             const { data: masterData } = await supabase
@@ -200,27 +205,45 @@ export default function StudentHomePage() {
               .maybeSingle();
 
             if (masterData?.id) {
-              const { data: actionRows } = await supabase
-                .from("occupation_student_actions")
-                .select("id, action_text, stage_title")
-                .eq("occupation_id", masterData.id)
-                .eq("stage_number", 1)
-                .eq("is_current", true)
-                .eq("is_active", true)
-                .eq("status", "published")
-                .order("display_order", { ascending: true });
+              // roadmap 페이지와 동일한 병렬 조회
+              const [{ data: prepRows }, { data: actionRows }] = await Promise.all([
+                supabase
+                  .from("occupation_preparations")
+                  .select("id, content, display_order")
+                  .eq("occupation_id", masterData.id)
+                  .eq("is_current", true)
+                  .eq("status", "published")
+                  .eq("prep_type", "step_action")
+                  .order("display_order", { ascending: true }),
+                supabase
+                  .from("occupation_student_actions")
+                  .select("id, action_text, stage_title, display_order")
+                  .eq("occupation_id", masterData.id)
+                  .eq("stage_number", 1)
+                  .eq("is_current", true)
+                  .eq("is_active", true)
+                  .eq("status", "published")
+                  .order("display_order", { ascending: true }),
+              ]);
 
-              if (actionRows && actionRows.length > 0) {
-                setDbMissions(
-                  actionRows.map((r) => ({
-                    id:         `action-${r.id}`,
-                    text:       r.action_text,
-                    stageTitle: r.stage_title ?? "지금 당장 시작하기",
-                  }))
-                );
+              const prepMissions = (prepRows ?? []).map((r) => ({
+                id:         `prep-${r.id}`,
+                text:       r.content,
+                stageTitle: "탐색하기",
+              }));
+              const actionMissions = (actionRows ?? []).map((r) => ({
+                id:         `action-${r.id}`,
+                text:       r.action_text,
+                stageTitle: r.stage_title ?? "탐색하기",
+              }));
+
+              const allMissions = [...prepMissions, ...actionMissions];
+
+              if (allMissions.length > 0) {
+                setDbMissions(allMissions);
               } else {
                 setDbMissions([]);
-                console.warn("[student/home] occupation_student_actions 없음 — static fallback:", resolvedRoadmapId);
+                console.warn("[student/home] DB 미션 없음 — static fallback:", resolvedRoadmapId);
               }
             } else {
               setDbMissions([]);
@@ -283,15 +306,15 @@ export default function StudentHomePage() {
     loadData();
   }, [router]);
 
-  // ── 오늘의 미션 — DB(occupation_student_actions) 우선, 정적 ROADMAPS fallback ──
+  // ── 오늘의 미션 — DB(prep + action) 우선, 정적 ROADMAPS fallback ──────────
   //
   // [데이터 흐름]
   //   dbMissions null  → loadData 진행 중 (loading=true 구간, useMemo는 [] 반환)
   //   dbMissions []    → DB miss or 조회 오류 → static ROADMAPS 기반 계산
-  //   dbMissions [...] → action-{uuid} 기준으로 completedMissions 비교
+  //   dbMissions [...] → [prep-{uuid}..., action-{uuid}...] 기준으로 completedMissions 비교
   //
   // [completedMissions 키 체계]
-  //   DB 파일럿 직업: roadmap 페이지가 action-{uuid} 로 저장 → 여기서도 동일하게 비교 ✅
+  //   DB 파일럿 직업: roadmap 페이지와 동일하게 prep-{uuid} / action-{uuid} 모두 비교 ✅
   //   static fallback: m1~m4 레거시 키 → static 완료 비교 (기존 동작 유지)
 
   /**
