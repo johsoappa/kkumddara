@@ -145,7 +145,49 @@
 
 **미완료 — 별도 작업 예정:**
 - 베타 인기 직업 2차 5개 추가 (운동선수·스포츠 트레이너·e스포츠 선수·항공기 조종사·플로리스트)
-- Phase 1 기존 직업 활성화 여부 검토
+- Phase 2 직업 20개 occupation_student_actions seed
+
+### P5 — 베타 중 수정 (Phase 1 기존 직업 1차 5개 보강 활성화)
+
+> Phase 1 seed(026)에 is_active=false로 삽입된 직업 중 아이 친숙도·학부모 납득도가 높은 5개를 선별.
+> 영향 파일: `supabase/migrations/030_seed_phase1_selected_5_actions_and_activate.sql`
+> occupation_master UPDATE + occupation_student_actions 보강. 코드 변경 없음.
+> **✅ 완료 — 커밋 `1a81da3` (2026.05.19)**
+
+| 직업 | slug | category | is_active | student_actions | 비고 |
+|---|---|---|---|---|---|
+| 수의사 | `veterinarian` | 의료·과학 | ✅ | 4개 | 지인 피드백 요청 직업군 |
+| 웹툰 작가 | `webtoon-artist` | 예술·디자인 | ✅ | 4개 | |
+| 게임 개발자 | `game-developer` | IT·기술 | ✅ | 4개 | |
+| 패션 디자이너 | `fashion-designer` | 예술·디자인 | ✅ | 4개 | |
+| 의사 | `doctor` | 의료·과학 | ✅ | 4개 | |
+
+처리 내용:
+- occupation_master 5행: `is_active = false → true`
+- occupation_student_actions: 4개 × 5직업 = 20행 추가 (stage_number=1, DELETE 후 INSERT)
+- occupation_summary / occupation_preparations: 기존 데이터 유지
+
+검수 완료:
+- /explore 5개 직업 카드 노출 ✅
+- 직업 상세 페이지 진입 ✅
+- /roadmap Stage 1 미션 표시 (prep 2 + action 4) ✅
+- 미션 체크 ✅
+- /student/home 오늘의 미션 반영 ✅
+- /report 완료율 반영 ✅
+
+**현재 베타 직업 확장 완료 현황:**
+| 구분 | 직업 수 | 직업 |
+|---|---:|---|
+| 파일럿 | 10개 | 소프트웨어 개발자·데이터 분석가·시각디자이너·영상콘텐츠 제작자·간호사·바이오 연구원·교사·심리상담사·경찰관·마케터 |
+| 베타 인기 1차 (029) | 5개 | 셰프·사육사·헤어디자이너·가수·크리에이터 |
+| Phase 1 보강 1차 (030) | 5개 | 수의사·웹툰 작가·게임 개발자·패션 디자이너·의사 |
+| **합계** | **20개** | |
+
+**미완료 — 별도 작업 예정:**
+- Phase 1 추가 활성화 후보: AI 엔지니어·사이버보안 전문가·약사·건축가·초등학교 교사·사회복지사
+- Phase 1 interest_fields 수정 후 활성화: 소방관·기자·방송 PD·과학수사관·우주항공 엔지니어
+- Phase 1 활성화 보류: 로봇 엔지니어·치과의사·광고기획자·회계사
+- 베타 인기 직업 2차 5개 추가 (운동선수·스포츠 트레이너·e스포츠 선수·항공기 조종사·플로리스트)
 - Phase 2 직업 20개 occupation_student_actions seed
 
 ---
@@ -188,6 +230,7 @@
 | 베타 UX P3 — /report localStorage → DB 전환 | student 테이블 기반 userType · roadmap_progress 기반 선택 직업·완료 미션 · occupation_master.name_ko 직업명 · MissionStatus DB 기반 렌더링 (d84ea20) | ✅ |
 | 베타 인기 직업 1차 5개 추가 | 셰프·사육사·헤어디자이너·가수·크리에이터 · occupation_master+summary+preparations+student_actions seed · is_active=true · /explore·/roadmap·/report·/student/home 연동 검수 완료 (10ce232) | ✅ |
 | student/home 렌더링 게이트 수정 | 신규 DB-only 직업도 오늘의 미션 정상 렌더 · getRoadmap() 정적 데이터 의존 제거 · DB occupation fallback + dbMissions.length fallback (09242cb) | ✅ |
+| Phase 1 기존 직업 1차 5개 보강 활성화 | 수의사·웹툰 작가·게임 개발자·패션 디자이너·의사 · is_active=true 전환 · occupation_student_actions 직업당 4개 보강 · /explore~report 전 화면 검수 완료 (1a81da3) | ✅ |
 | 직업정보제공사업 신고 준비 | 신고서·사업계획서 작성 완료 · 경기지방고용노동청 제출 진행 중 | 🔄 진행 중 |
 
 ---
@@ -198,7 +241,7 @@
 
 - 랜딩 페이지 (꿈따라.kr)
 - 학부모/학생 시작 흐름 (온보딩 → 역할 분기)
-- 관심사 기반 직업 탐색 (explore, 파일럿 10개 직업)
+- 관심사 기반 직업 탐색 (explore, 파일럿 10개 + 베타 확장 10개 = 총 20개 직업)
 - 직업 상세 + 로드맵 Stage 1 확인
 - 미션 unlock 구조 (CURRENT → NEXT → FUTURE, 75% 기준)
 - 명따라 MVP (베타 disclaimer 유지)
@@ -211,6 +254,7 @@
 - **베타 UX P3** — /report localStorage 완전 제거 · roadmap_progress + occupation_master 기반 MissionStatus DB 렌더링 (d84ea20)
 - **베타 인기 직업 1차 5개** — 셰프·사육사·헤어디자이너·가수·크리에이터 · is_active=true · /explore~student/home 전 화면 검수 완료 (10ce232)
 - **student/home 렌더링 게이트 수정** — 신규 DB-only 직업 오늘의 미션 정상 렌더 · DB occupation fallback 추가 (09242cb)
+- **Phase 1 기존 직업 1차 5개 보강 활성화** — 수의사·웹툰 작가·게임 개발자·패션 디자이너·의사 · is_active=true + student_actions 직업당 4개 · /explore~report 전 화면 검수 완료 (1a81da3)
 
 ---
 
@@ -412,7 +456,7 @@
 |---|---|---|
 | 1주차 (5/1~5/7) | PG사 계약 체결 · 고용24 API 연동 · roadmap Stage 2·3 DB화 | 🔘 확인 필요 |
 | 2주차 (5/8~5/14) | 결제 API 샌드박스 연동 · 정기 구독 결제 로직 · AI 상담 횟수 제한 | 🔘 확인 필요 |
-| 3주차 (5/15~5/21) | 베타 UX P0/P1 개선 완료 (결제 문구 완화 · 퀴즈 대상 안내) · **P2 student/home 오늘의 미션 DB 정합성 완료** (630c7c4, bda7142) · **P3 /report localStorage → DB 전환 완료** (d84ea20) · **P4 베타 인기 직업 1차 5개 추가 + student/home 렌더링 게이트 수정 완료** (10ce232, 09242cb) · 플랜별 기능 분기 · 구독 해지·환불 로직 · 보호자 초대 코드 | 🔨 진행 중 |
+| 3주차 (5/15~5/21) | 베타 UX P0/P1 개선 완료 (결제 문구 완화 · 퀴즈 대상 안내) · **P2 student/home 오늘의 미션 DB 정합성 완료** (630c7c4, bda7142) · **P3 /report localStorage → DB 전환 완료** (d84ea20) · **P4 베타 인기 직업 1차 5개 추가 + student/home 렌더링 게이트 수정 완료** (10ce232, 09242cb) · **P5 Phase 1 기존 직업 1차 5개 보강 활성화 완료** (1a81da3) · 플랜별 기능 분기 · 구독 해지·환불 로직 · 보호자 초대 코드 | 🔨 진행 중 |
 | 4주차 (5/22~5/31) | 실결제 테스트 (소액) · 웹훅 처리 완성 · 미션 성공 피드백 모달 | 예정 |
 
 ### 2026년 6월 — 품질 완성 및 출시 준비
