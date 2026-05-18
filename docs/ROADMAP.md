@@ -38,6 +38,7 @@
 |---|---|---|---|
 | 1 | 직업 탐색 후 나오는 3문제 퀴즈 — 누가 풀어야 하는지 불명확, 완료 후 다음 단계 모름 | UX 혼란 | P1 |
 | 2 | "돈 내라고 해서 사용 안 할 듯" — 결제 유도가 너무 이른 단계에서 노출 | 이탈 리스크 | P0 |
+| 3 | 태권도 선수·사육사·아이돌 가수·헤어디자이너 등 아이들이 친숙하게 느끼는 직업군 추가 요청 | 콘텐츠 확장 | P4 |
 
 ### P0 — 즉시 수정 (결제 노출 조기 이탈 방지)
 
@@ -105,6 +106,48 @@
 - weekly_reports 스냅샷 (AI 리포트·PDF 리포트, Phase 3 이후)
 - WeeklySummary / TopOccupations / GrowthChart 실데이터 연결 (추후)
 
+### P4 — 베타 중 수정 (인기 직업 1차 5개 추가 + student/home 렌더링 게이트 수정)
+
+> 지인 피드백 #3: 아이들이 친숙하게 느끼는 직업군 추가 요청 (사육사·아이돌 가수·헤어디자이너 등)
+> 영향 파일: `supabase/migrations/029_seed_popular_5_occupations.sql`, `src/app/student/home/page.tsx`
+> DB migration 1개 추가. 코드 조회 로직 최소 수정만.
+> **✅ 완료 — 커밋 `10ce232` (seed), `09242cb` (렌더링 수정) (2026.05.18)**
+
+#### 인기 직업 1차 5개 seed (10ce232)
+
+| 직업 | slug | category | is_active | 비고 |
+|---|---|---|---|---|
+| 셰프 | `chef` | 비즈니스·경영 | ✅ | |
+| 사육사 | `zookeeper` | 의료·과학 | ✅ | |
+| 헤어디자이너 | `hair-designer` | 예술·디자인 | ✅ | 미용사 → 헤어디자이너로 직업명 정리 |
+| 가수 | `singer` | 예술·디자인 | ✅ | 아이돌 → 가수로 중립 표기 |
+| 크리에이터 | `creator` | 콘텐츠·미디어 | ✅ | 유튜버 → 크리에이터로 중립 표기 |
+
+포함 데이터: occupation_master(5) + occupation_summary(15) + occupation_preparations(15) + occupation_student_actions(20)
+
+검수 완료:
+- /explore 5개 직업 카드 노출 ✅
+- 직업 상세 페이지 진입 ✅
+- roadmap Stage 1 미션 표시 ✅
+- 미션 체크 ✅
+- /report 완료율 반영 ✅
+- /student/home 오늘의 미션 반영 ✅ (P4 렌더링 수정 후)
+- 시크릿 크롬 최종 검수 ✅
+
+#### student/home 렌더링 게이트 수정 (09242cb)
+
+| 항목 | 변경 전 | 변경 후 | 상태 |
+|---|---|---|---|
+| 렌더링 게이트 조건 | `!chosenRoadmap` (getRoadmap() null이면 빈 상태) | `!chosenRoadmapId` (ID 있으면 미션 영역 렌더) | ✅ 완료 |
+| 직업명·이모지 | 정적 ROADMAPS 전용 | `chosenRoadmap?.xxx ?? dbChosenOcc?.xxx` DB fallback | ✅ 완료 |
+| 진행률 분모 | 정적 missions 총수 / 없으면 0 | 정적 없을 때 `dbMissions?.length` fallback | ✅ 완료 |
+| 파일럿 10개 직업 | — | chosenRoadmap ≠ null → 기존 동작 유지 | ✅ 영향 없음 |
+
+**미완료 — 별도 작업 예정:**
+- 베타 인기 직업 2차 5개 추가 (운동선수·스포츠 트레이너·e스포츠 선수·항공기 조종사·플로리스트)
+- Phase 1 기존 직업 활성화 여부 검토
+- Phase 2 직업 20개 occupation_student_actions seed
+
 ---
 
 ## 01 현재 상태 진단 (v3.2 — 2026.05.17 기준)
@@ -143,6 +186,8 @@
 | 베타 UX P1 — 퀴즈 혼란 제거 | OccupationQuiz 대상 안내 박스 추가 · 결과 카드 다음 행동 안내 · MissionSuccessModal compass 문구 수정 (50e2a8a) | ✅ |
 | 베타 UX P2 — student/home 오늘의 미션 DB 정합성 개선 | /roadmap와 동일한 prep-{uuid}+action-{uuid} 구성 · occupation_preparations+occupation_student_actions 병렬 조회 · static fallback 유지 (630c7c4, bda7142) | ✅ |
 | 베타 UX P3 — /report localStorage → DB 전환 | student 테이블 기반 userType · roadmap_progress 기반 선택 직업·완료 미션 · occupation_master.name_ko 직업명 · MissionStatus DB 기반 렌더링 (d84ea20) | ✅ |
+| 베타 인기 직업 1차 5개 추가 | 셰프·사육사·헤어디자이너·가수·크리에이터 · occupation_master+summary+preparations+student_actions seed · is_active=true · /explore·/roadmap·/report·/student/home 연동 검수 완료 (10ce232) | ✅ |
+| student/home 렌더링 게이트 수정 | 신규 DB-only 직업도 오늘의 미션 정상 렌더 · getRoadmap() 정적 데이터 의존 제거 · DB occupation fallback + dbMissions.length fallback (09242cb) | ✅ |
 | 직업정보제공사업 신고 준비 | 신고서·사업계획서 작성 완료 · 경기지방고용노동청 제출 진행 중 | 🔄 진행 중 |
 
 ---
@@ -164,6 +209,8 @@
 - **베타 UX P1** — 직업 퀴즈 대상 안내 추가, 완료 후 다음 행동 유도 문구 추가 (50e2a8a)
 - **베타 UX P2** — student/home 오늘의 미션 DB 전환 + prep/action 정합성 수정 (630c7c4, bda7142)
 - **베타 UX P3** — /report localStorage 완전 제거 · roadmap_progress + occupation_master 기반 MissionStatus DB 렌더링 (d84ea20)
+- **베타 인기 직업 1차 5개** — 셰프·사육사·헤어디자이너·가수·크리에이터 · is_active=true · /explore~student/home 전 화면 검수 완료 (10ce232)
+- **student/home 렌더링 게이트 수정** — 신규 DB-only 직업 오늘의 미션 정상 렌더 · DB occupation fallback 추가 (09242cb)
 
 ---
 
@@ -365,7 +412,7 @@
 |---|---|---|
 | 1주차 (5/1~5/7) | PG사 계약 체결 · 고용24 API 연동 · roadmap Stage 2·3 DB화 | 🔘 확인 필요 |
 | 2주차 (5/8~5/14) | 결제 API 샌드박스 연동 · 정기 구독 결제 로직 · AI 상담 횟수 제한 | 🔘 확인 필요 |
-| 3주차 (5/15~5/21) | 베타 UX P0/P1 개선 완료 (결제 문구 완화 · 퀴즈 대상 안내) · **P2 student/home 오늘의 미션 DB 정합성 완료** (630c7c4, bda7142) · **P3 /report localStorage → DB 전환 완료** (d84ea20) · 플랜별 기능 분기 · 구독 해지·환불 로직 · 보호자 초대 코드 | 🔨 진행 중 |
+| 3주차 (5/15~5/21) | 베타 UX P0/P1 개선 완료 (결제 문구 완화 · 퀴즈 대상 안내) · **P2 student/home 오늘의 미션 DB 정합성 완료** (630c7c4, bda7142) · **P3 /report localStorage → DB 전환 완료** (d84ea20) · **P4 베타 인기 직업 1차 5개 추가 + student/home 렌더링 게이트 수정 완료** (10ce232, 09242cb) · 플랜별 기능 분기 · 구독 해지·환불 로직 · 보호자 초대 코드 | 🔨 진행 중 |
 | 4주차 (5/22~5/31) | 실결제 테스트 (소액) · 웹훅 처리 완성 · 미션 성공 피드백 모달 | 예정 |
 
 ### 2026년 6월 — 품질 완성 및 출시 준비
