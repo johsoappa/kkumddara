@@ -68,6 +68,25 @@
 | 퀴즈 결과 카드 하단 | "다시 도전하기" 버튼만 존재 | "아래의 '로드맵 만들기' 버튼을 눌러 다음 단계를 확인해보세요" 보조 문구 추가 | ✅ 완료 |
 | MissionSuccessModal compass sub | "네 꿈이 한 칸 더 가까워졌어." | "퀴즈를 마쳤어요. 아래의 '로드맵 만들기' 버튼으로 다음 단계를 확인해보세요." | ✅ 완료 |
 
+### P2 — 베타 중 수정 (student/home 오늘의 미션 DB 정합성)
+
+> 영향 파일: `src/app/student/home/page.tsx`
+> DB migration 없음. 코드 조회 로직 수정만.
+> **✅ 완료 — 커밋 `630c7c4`, `bda7142` (2026.05.18)**
+
+| 항목 | 변경 전 | 변경 후 | 상태 |
+|---|---|---|---|
+| 오늘의 미션 소스 | 정적 ROADMAPS(m1~m4) 고정 | occupation_student_actions DB 우선 + static fallback | ✅ 완료 |
+| prep 미션 누락 | occupation_preparations step_action 미조회 | occupation_preparations + occupation_student_actions 병렬 조회 | ✅ 완료 |
+| checked_missions 정합성 | /roadmap(prep-/action-) ≠ student/home(m1~m4) 불일치 | 동일 key 체계 정합성 확보 | ✅ 완료 |
+| static fallback | 없음 | DB miss / is_active=false 직업 → static ROADMAPS 유지 | ✅ 완료 |
+
+**미완료 — 별도 작업 예정:**
+- 기존 m1~m4 checked_missions 기록 변환 migration (정식 오픈 전)
+- Phase 2 직업 20개 occupation_student_actions seed (029+ migration)
+- /report/page.tsx localStorage → DB 연결 (정식 오픈 전)
+- roadmap Stage 2·3 occupation_student_actions DB화 (추후)
+
 ---
 
 ## 01 현재 상태 진단 (v3.2 — 2026.05.17 기준)
@@ -104,6 +123,7 @@
 | 홈 타이틀 개선 | "아직 꿈이 없어도 괜찮아요" · 모바일 줄바꿈 개선 | ✅ |
 | 베타 UX P0 — 결제 문구 완화 | pricing FreePlanBox 상단 배치 · 유료 CTA 문구 · FAQ/가이드 결제 가능 오해 문구 전면 제거 (5d8ec85) | ✅ |
 | 베타 UX P1 — 퀴즈 혼란 제거 | OccupationQuiz 대상 안내 박스 추가 · 결과 카드 다음 행동 안내 · MissionSuccessModal compass 문구 수정 (50e2a8a) | ✅ |
+| 베타 UX P2 — student/home 오늘의 미션 DB 정합성 개선 | /roadmap와 동일한 prep-{uuid}+action-{uuid} 구성 · occupation_preparations+occupation_student_actions 병렬 조회 · static fallback 유지 (630c7c4, bda7142) | ✅ |
 | 직업정보제공사업 신고 준비 | 신고서·사업계획서 작성 완료 · 경기지방고용노동청 제출 진행 중 | 🔄 진행 중 |
 
 ---
@@ -123,6 +143,7 @@
 - 운영사·브랜드·법무 문서 전체
 - **베타 UX P0** — 요금제/결제 부담 문구 완화, 베타 무료 이용 안내 강화 (5d8ec85)
 - **베타 UX P1** — 직업 퀴즈 대상 안내 추가, 완료 후 다음 행동 유도 문구 추가 (50e2a8a)
+- **베타 UX P2** — student/home 오늘의 미션 DB 전환 + prep/action 정합성 수정 (630c7c4, bda7142)
 
 ---
 
@@ -132,7 +153,7 @@
 
 | 항목 | 현재 상태 | 비고 |
 |---|---|---|
-| /student/home DB 연결 | ⚠️ 부분 확인 | roadmap_progress 동작 확인됨. 전체 DB 기반 완전 연결 여부 재확인 필요 |
+| /student/home DB 연결 | ⚠️ 부분 완료 | 오늘의 미션 DB 전환 완료 (630c7c4, bda7142). 잔여: m1~m4 checked_missions 변환 migration · Phase 2 직업 20개 seed · Stage 2·3 DB화 |
 | /parent/home DB 연결 | ⚠️ 미확인 | 직업/질문 DB 연결 범위 확인 필요 |
 | roadmap Stage 2·3 DB화 | ⚠️ 미완료 | Stage 1만 확인됨. Stage 2·3은 static 유지 중 |
 | 보호자 초대 코드 E2E | ⚠️ 미확인 | caregiver_invite 스키마 존재 추정. 발급→전달→수락→권한 연결 E2E 완료 여부 미확인 |
@@ -285,7 +306,7 @@
 | 10 | 보호자 초대 코드 기능 E2E 완료 | ☐ 미확인 → 미완료 분류 |
 | 11 | 구독 해지 기능 정상 작동 | ☐ 미완료 |
 | 12 | 환불 정책 UI 및 처리 로직 완성 | ☐ 미완료 |
-| 13 | /student/home · /parent/home DB 연결 완료 | ☐ 부분 확인 → 재확인 필요 |
+| 13 | /student/home · /parent/home DB 연결 완료 | ☐ 부분 완료 (student/home 오늘의 미션 완료 · 잔여: Phase 2 seed · Stage 2·3 · /parent/home) |
 | 14 | Android·iOS 핵심 흐름 테스트 완료 | ☐ 미완료 |
 | 15 | 모든 에러 페이지 처리 완료 (404·500) | ☐ 미완료 |
 | 16 | 입시 정보 면책 문구 삽입 | ☐ 미완료 |
@@ -323,7 +344,7 @@
 |---|---|---|
 | 1주차 (5/1~5/7) | PG사 계약 체결 · 고용24 API 연동 · roadmap Stage 2·3 DB화 | 🔘 확인 필요 |
 | 2주차 (5/8~5/14) | 결제 API 샌드박스 연동 · 정기 구독 결제 로직 · AI 상담 횟수 제한 | 🔘 확인 필요 |
-| 3주차 (5/15~5/21) | 베타 UX P0/P1 개선 완료 (결제 문구 완화 · 퀴즈 대상 안내) · 플랜별 기능 분기 · 구독 해지·환불 로직 · 보호자 초대 코드 | 🔨 진행 중 |
+| 3주차 (5/15~5/21) | 베타 UX P0/P1 개선 완료 (결제 문구 완화 · 퀴즈 대상 안내) · **P2 student/home 오늘의 미션 DB 정합성 완료** (630c7c4, bda7142) · 플랜별 기능 분기 · 구독 해지·환불 로직 · 보호자 초대 코드 | 🔨 진행 중 |
 | 4주차 (5/22~5/31) | 실결제 테스트 (소액) · 웹훅 처리 완성 · 미션 성공 피드백 모달 | 예정 |
 
 ### 2026년 6월 — 품질 완성 및 출시 준비
