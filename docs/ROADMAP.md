@@ -84,8 +84,26 @@
 **미완료 — 별도 작업 예정:**
 - 기존 m1~m4 checked_missions 기록 변환 migration (정식 오픈 전)
 - Phase 2 직업 20개 occupation_student_actions seed (029+ migration)
-- /report/page.tsx localStorage → DB 연결 (정식 오픈 전)
 - roadmap Stage 2·3 occupation_student_actions DB화 (추후)
+
+### P3 — 베타 중 수정 (/report localStorage → DB 전환)
+
+> 영향 파일: `src/app/report/page.tsx`
+> DB migration 없음. 기존 테이블만 사용.
+> **✅ 완료 — 커밋 `d84ea20` (2026.05.18)**
+
+| 항목 | 변경 전 | 변경 후 | 상태 |
+|---|---|---|---|
+| userType 판단 | `kkumddara_onboarding` localStorage | `student` 테이블 row 존재 여부 | ✅ 완료 |
+| 선택 직업 | `kkumddara_chosen_roadmap` localStorage | `roadmap_progress` (chosen DESC) | ✅ 완료 |
+| 완료 미션 | `kkumddara_roadmap_{id}` localStorage 배열 | `roadmap_progress.checked_missions` JSONB | ✅ 완료 |
+| 미션 목록 | `getRoadmap()` static data | `occupation_preparations` + `occupation_student_actions` 병렬 조회 | ✅ 완료 |
+| 직업명 | static roadmap.occupationName | `occupation_master.name_ko` | ✅ 완료 |
+
+**미완료 — 별도 작업 예정:**
+- activity_logs 테이블 (연속 학습일·주간 탐색 수 정확 계산, Phase 3 이후)
+- weekly_reports 스냅샷 (AI 리포트·PDF 리포트, Phase 3 이후)
+- WeeklySummary / TopOccupations / GrowthChart 실데이터 연결 (추후)
 
 ---
 
@@ -124,6 +142,7 @@
 | 베타 UX P0 — 결제 문구 완화 | pricing FreePlanBox 상단 배치 · 유료 CTA 문구 · FAQ/가이드 결제 가능 오해 문구 전면 제거 (5d8ec85) | ✅ |
 | 베타 UX P1 — 퀴즈 혼란 제거 | OccupationQuiz 대상 안내 박스 추가 · 결과 카드 다음 행동 안내 · MissionSuccessModal compass 문구 수정 (50e2a8a) | ✅ |
 | 베타 UX P2 — student/home 오늘의 미션 DB 정합성 개선 | /roadmap와 동일한 prep-{uuid}+action-{uuid} 구성 · occupation_preparations+occupation_student_actions 병렬 조회 · static fallback 유지 (630c7c4, bda7142) | ✅ |
+| 베타 UX P3 — /report localStorage → DB 전환 | student 테이블 기반 userType · roadmap_progress 기반 선택 직업·완료 미션 · occupation_master.name_ko 직업명 · MissionStatus DB 기반 렌더링 (d84ea20) | ✅ |
 | 직업정보제공사업 신고 준비 | 신고서·사업계획서 작성 완료 · 경기지방고용노동청 제출 진행 중 | 🔄 진행 중 |
 
 ---
@@ -144,6 +163,7 @@
 - **베타 UX P0** — 요금제/결제 부담 문구 완화, 베타 무료 이용 안내 강화 (5d8ec85)
 - **베타 UX P1** — 직업 퀴즈 대상 안내 추가, 완료 후 다음 행동 유도 문구 추가 (50e2a8a)
 - **베타 UX P2** — student/home 오늘의 미션 DB 전환 + prep/action 정합성 수정 (630c7c4, bda7142)
+- **베타 UX P3** — /report localStorage 완전 제거 · roadmap_progress + occupation_master 기반 MissionStatus DB 렌더링 (d84ea20)
 
 ---
 
@@ -154,6 +174,7 @@
 | 항목 | 현재 상태 | 비고 |
 |---|---|---|
 | /student/home DB 연결 | ⚠️ 부분 완료 | 오늘의 미션 DB 전환 완료 (630c7c4, bda7142). 잔여: m1~m4 checked_missions 변환 migration · Phase 2 직업 20개 seed · Stage 2·3 DB화 |
+| /report DB 연결 | ✅ 완료 (d84ea20) | MissionStatus DB 기반 렌더링 완료. 잔여: WeeklySummary·TopOccupations·GrowthChart 실데이터 연결 (Phase 3 이후) |
 | /parent/home DB 연결 | ⚠️ 미확인 | 직업/질문 DB 연결 범위 확인 필요 |
 | roadmap Stage 2·3 DB화 | ⚠️ 미완료 | Stage 1만 확인됨. Stage 2·3은 static 유지 중 |
 | 보호자 초대 코드 E2E | ⚠️ 미확인 | caregiver_invite 스키마 존재 추정. 발급→전달→수락→권한 연결 E2E 완료 여부 미확인 |
@@ -344,7 +365,7 @@
 |---|---|---|
 | 1주차 (5/1~5/7) | PG사 계약 체결 · 고용24 API 연동 · roadmap Stage 2·3 DB화 | 🔘 확인 필요 |
 | 2주차 (5/8~5/14) | 결제 API 샌드박스 연동 · 정기 구독 결제 로직 · AI 상담 횟수 제한 | 🔘 확인 필요 |
-| 3주차 (5/15~5/21) | 베타 UX P0/P1 개선 완료 (결제 문구 완화 · 퀴즈 대상 안내) · **P2 student/home 오늘의 미션 DB 정합성 완료** (630c7c4, bda7142) · 플랜별 기능 분기 · 구독 해지·환불 로직 · 보호자 초대 코드 | 🔨 진행 중 |
+| 3주차 (5/15~5/21) | 베타 UX P0/P1 개선 완료 (결제 문구 완화 · 퀴즈 대상 안내) · **P2 student/home 오늘의 미션 DB 정합성 완료** (630c7c4, bda7142) · **P3 /report localStorage → DB 전환 완료** (d84ea20) · 플랜별 기능 분기 · 구독 해지·환불 로직 · 보호자 초대 코드 | 🔨 진행 중 |
 | 4주차 (5/22~5/31) | 실결제 테스트 (소액) · 웹훅 처리 완성 · 미션 성공 피드백 모달 | 예정 |
 
 ### 2026년 6월 — 품질 완성 및 출시 준비
