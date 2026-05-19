@@ -192,6 +192,14 @@ export async function POST(req: NextRequest) {
     ? FREE_LIMIT
     : Math.max(plan?.ai_consult_monthly_limit ?? FREE_LIMIT, 1);
 
+  // [035 진단 로그] 플랜 확인 결과 — Vercel Function Logs에서 값 추적 가능
+  console.log(
+    `[ai-consult] plan — isFree=${isFree}` +
+    ` plan_name=${plan?.plan_name ?? "none"}` +
+    ` db_limit=${plan?.ai_consult_monthly_limit ?? "null"}` +
+    ` computed_monthlyLimit=${monthlyLimit}`
+  );
+
   // ── 7. 이번 달 사용량 확인 ──────────────────────────────
   const usedMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
 
@@ -205,6 +213,13 @@ export async function POST(req: NextRequest) {
   const usedCount: number = usageRow?.count ?? 0;
 
   if (usedCount >= monthlyLimit) {
+    // [035 진단 로그] LIMIT_EXCEEDED 시 실제 값 기록 — Vercel Function Logs 확인 가능
+    // P0 버그 원인 추적: usedCount=0 인데 LIMIT_EXCEEDED → monthlyLimit=0 이었음
+    console.warn(
+      `[ai-consult] LIMIT_EXCEEDED — parentId=${parentId}` +
+      ` usedCount=${usedCount} monthlyLimit=${monthlyLimit}` +
+      ` isFree=${isFree} db_limit=${plan?.ai_consult_monthly_limit ?? "null"}`
+    );
     return errRes("LIMIT_EXCEEDED", 429);
   }
 
