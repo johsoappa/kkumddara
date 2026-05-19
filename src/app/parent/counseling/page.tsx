@@ -232,7 +232,7 @@ function CounselingPageImpl() {
 
         // AI_TIMEOUT / SERVER_ERROR / USAGE_UPDATE_FAILED 등
         // → OpenAI 실패 또는 서버 오류. 횟수 차감되지 않음, 재시도 가능.
-        const isRetryable = ["AI_TIMEOUT", "SERVER_ERROR", "USAGE_UPDATE_FAILED"].includes(
+        const isRetryable = ["AI_TIMEOUT", "SERVER_ERROR", "USAGE_UPDATE_FAILED", "AI_RESPONSE_QUALITY_FAILED"].includes(
           data.code ?? ""
         );
         setMessages((prev) => [

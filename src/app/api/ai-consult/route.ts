@@ -42,6 +42,7 @@ import {
   buildChildContext,
   AI_CONSULT_ERRORS,
 } from "@/lib/ai/systemPrompt";
+import { hasSuspiciousText } from "@/lib/ai/validateKoreanAnswer";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rateLimit";
 import { validateMessage, validateUUID } from "@/lib/validation";
 
@@ -287,9 +288,10 @@ export async function POST(req: NextRequest) {
   try {
     const completion = await Promise.race([
       openai.chat.completions.create({
-        model:      OPENAI_MODEL,
-        max_tokens: 350,  // [037] 모바일 UX — 답변 길이 제한 (1024→500→350)
-        messages:   apiMessages,
+        model:       OPENAI_MODEL,
+        max_tokens:  350,  // [037] 모바일 UX — 답변 길이 제한 (1024→500→350)
+        temperature: 0.3,  // [038] 낮은 temperature → 안정적 한국어 출력
+        messages:    apiMessages,
       }),
       timeoutPromise,
     ]);
@@ -323,6 +325,37 @@ export async function POST(req: NextRequest) {
       console.error("[ai-consult] OpenAI 네트워크/기타 오류:", msg);
     }
     return errRes("SERVER_ERROR", 502);
+  }
+
+  // ── 10-b. 한국어 품질 검사 + 1회 재시도 ────────────────────
+  // [038] 이상 문자열 감지 시 count 증가 없이 낮은 temperature로 재시도.
+  // 2회 모두 실패 시 AI_RESPONSE_QUALITY_FAILED 반환.
+  if (hasSuspiciousText(aiResponse)) {
+    console.warn("[ai-consult] 품질 검사 실패(1차) — 재시도 시작");
+    const retryTimeout = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("AI_TIMEOUT")), 8_000)
+    );
+    try {
+      const retryCompletion = await Promise.race([
+        openai.chat.completions.create({
+          model:       OPENAI_MODEL,
+          max_tokens:  350,
+          temperature: 0.1,
+          messages:    apiMessages,
+        }),
+        retryTimeout,
+      ]);
+      const retryResponse =
+        retryCompletion.choices[0]?.message?.content?.trim() ?? "";
+      if (hasSuspiciousText(retryResponse)) {
+        console.warn("[ai-consult] 품질 검사 실패(2차) — AI_RESPONSE_QUALITY_FAILED 반환");
+        return errRes("AI_RESPONSE_QUALITY_FAILED", 422);
+      }
+      aiResponse = retryResponse;
+    } catch {
+      console.warn("[ai-consult] 재시도 실패(timeout 또는 API 오류) — AI_RESPONSE_QUALITY_FAILED 반환");
+      return errRes("AI_RESPONSE_QUALITY_FAILED", 422);
+    }
   }
 
   // ── 11. 사용량 증가 (upsert) ────────────────────────────

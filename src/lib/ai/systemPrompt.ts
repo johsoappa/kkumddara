@@ -104,6 +104,13 @@ export function buildSystemPrompt(child: ChildContext | null): string {
 - 장황한 설명, 반복 표현, 과도한 칭찬은 금지한다
 - 진로를 단정하지 말고 가능성을 열어두는 표현을 사용한다
 
+## 언어 규칙 (반드시 지킨다)
+- 반드시 자연스러운 한국어로만 답변한다
+- 영어·로마자·무의미한 외국어·깨진 문자·한글 자모만 단독으로 된 표현은 사용하지 않는다
+- 단, AI, IT, PD, SNS, 유튜브, 콘텐츠, 스마트폰처럼 한국어 문맥에서 일반적으로 쓰이는 단어는 허용한다
+- 오타나 의미 없는 문자열을 절대 출력하지 않는다
+- 답변은 부모와 초등학생이 바로 이해할 수 있는 쉬운 말로 작성한다
+
 ## 금지 사항
 - 특정 학원, 교육 플랫폼, 유료 서비스 추천 금지
 - 의료·심리 진단 관련 단정적 표현 금지
@@ -131,8 +138,10 @@ export const AI_CONSULT_ERRORS = {
   SERVER_ERROR:         "일시적인 오류가 발생했어요. 잠시 후 다시 시도해주세요.",
   API_KEY_MISSING:      "AI 상담 서비스 설정이 완료되지 않았어요. 운영팀에 문의해주세요.",
   // [022 안전장치] AI 응답 timeout / usage 저장 실패
-  AI_TIMEOUT:           "AI 응답 시간이 길어져 요청을 완료하지 못했습니다. 잠시 후 다시 시도해주세요.",
-  USAGE_UPDATE_FAILED:  "상담 사용량 저장 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+  AI_TIMEOUT:                 "AI 응답 시간이 길어져 요청을 완료하지 못했습니다. 상담 횟수는 차감되지 않았으니 잠시 후 다시 시도해주세요.",
+  USAGE_UPDATE_FAILED:        "상담 사용량 저장 중 문제가 발생했습니다. 잠시 후 다시 시도해주세요.",
+  // [038 품질 검수] 한국어 이상 응답 감지 — count 차감 없이 재시도 안내
+  AI_RESPONSE_QUALITY_FAILED: "지금은 AI 상담 답변을 안정적으로 만들지 못했어요. 상담 횟수는 차감되지 않았으니 다시 시도해 주세요.",
 } as const;
 
 export type AiConsultErrorCode = keyof typeof AI_CONSULT_ERRORS;
