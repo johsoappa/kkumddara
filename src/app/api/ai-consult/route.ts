@@ -288,7 +288,7 @@ export async function POST(req: NextRequest) {
     const completion = await Promise.race([
       openai.chat.completions.create({
         model:      OPENAI_MODEL,
-        max_tokens: 500,  // [036] 모바일 UX — 답변 길이 제한 (기존 1024 → 500)
+        max_tokens: 350,  // [037] 모바일 UX — 답변 길이 제한 (1024→500→350)
         messages:   apiMessages,
       }),
       timeoutPromise,
