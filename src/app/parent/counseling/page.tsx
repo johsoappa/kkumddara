@@ -157,7 +157,10 @@ function CounselingPageImpl() {
       ]);
 
       // [009 보정] 무료 여부: plan_name 기준. "limit=0 → 무료" 암묵 규칙 제거.
-      const free = !planRes.data || planRes.data.plan_name === "free";
+      // [036 버그수정] auth/callback이 신규 가입자를 plan_name="basic"으로 생성하므로
+      //   "basic"도 free 판정에 포함 (DB default ai_consult_monthly_limit=1 우회).
+      const FREE_PLAN_NAMES = new Set(["free", "basic"]);
+      const free = !planRes.data || FREE_PLAN_NAMES.has(planRes.data.plan_name);
       // [034 버그수정] Free 플랜 한도는 항상 3 (018 정책 반영)
       // subscription_plan row 없거나 plan_name=free → FREE_LIMIT(3) 사용
       // 유료 플랜인데 DB 값이 0이면 최소 1 보장 (설정 오류 방지)

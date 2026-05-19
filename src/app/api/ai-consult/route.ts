@@ -184,7 +184,11 @@ export async function POST(req: NextRequest) {
 
   // [009 보정] 무료 여부: plan_name 기준. "limit=0 → 무료" 암묵 규칙 제거.
   // plan row 없으면 free로 취급 (fallback).
-  const isFree = !plan || plan.plan_name === "free";
+  // [036 버그수정] MVP 가입 시 auth/callback이 plan_name="basic"으로 row를 생성하므로
+  //   "basic"도 free 판정에 포함 (신규 사용자 ai_consult_monthly_limit DB default=1 우회)
+  //   family/premium 등 실제 유료 플랜은 별도 DB 갱신 시 자동 적용.
+  const FREE_PLAN_NAMES = new Set(["free", "basic"]);
+  const isFree = !plan || FREE_PLAN_NAMES.has(plan.plan_name);
   // [034 버그수정] 서버·클라이언트 monthlyLimit 통일
   //   Free 플랜: DB 값 무시, 항상 FREE_LIMIT(3) 사용
   //   유료 플랜: DB 값 사용, 0이면 최소 1 보장 (설정 오류 방지)
@@ -284,7 +288,7 @@ export async function POST(req: NextRequest) {
     const completion = await Promise.race([
       openai.chat.completions.create({
         model:      OPENAI_MODEL,
-        max_tokens: 1024,
+        max_tokens: 500,  // [036] 모바일 UX — 답변 길이 제한 (기존 1024 → 500)
         messages:   apiMessages,
       }),
       timeoutPromise,

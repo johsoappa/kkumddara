@@ -161,7 +161,12 @@ export async function GET(request: NextRequest) {
         console.log("[ROLE-TRACE]   parent row 생성 완료 id:", newParent.id);
         const { error: planErr } = await supabase
           .from("subscription_plan")
-          .insert({ parent_id: newParent.id, plan_name: "basic", child_limit: 1 });
+          .insert({
+            parent_id:                newParent.id,
+            plan_name:                "basic",
+            child_limit:              1,
+            ai_consult_monthly_limit: 3, // [036] MVP Free AI 상담 한도 3회 명시
+          });
         if (planErr) {
           console.error("[auth/callback] subscription_plan INSERT 실패:", planErr.message);
           // subscription_plan 없어도 parent/home 접근은 가능 — 계속 진행
