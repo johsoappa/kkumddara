@@ -205,22 +205,41 @@ function CounselingPageImpl() {
 
       if (!res.ok) {
         if (res.status === 429) {
-          // 월 한도 초과: 이달 상담 불가 → 입력창 영구 비활성
           if (data.code === "LIMIT_EXCEEDED") {
+            // 월 한도 초과: 이달 상담 불가 → 입력창 영구 비활성
             setLimitReached(true);
             setRemaining(0);
+            setMessages((prev) => [
+              ...prev,
+              { role: "system", content: data.error ?? "이번 달 상담 횟수를 모두 사용했어요." },
+            ]);
+          } else {
+            // RATE_LIMITED (분당 5회 초과): 횟수 차감 없음, 입력창 유지
+            setMessages((prev) => [
+              ...prev,
+              {
+                role: "system",
+                content:
+                  "요청이 너무 많아요. 상담 횟수는 차감되지 않았으니 잠시 후 다시 시도해주세요.",
+              },
+            ]);
           }
-          // RATE_LIMITED(분당 5회 초과): 메시지만 표시, 입력창 유지
-          setMessages((prev) => [
-            ...prev,
-            { role: "system", content: data.error ?? "잠시 후 다시 시도해주세요." },
-          ]);
           return;
         }
-        // 기타 에러 (503 API key 없음, 502 Anthropic 오류 등)
+
+        // AI_TIMEOUT / SERVER_ERROR / USAGE_UPDATE_FAILED 등
+        // → OpenAI 실패 또는 서버 오류. 횟수 차감되지 않음, 재시도 가능.
+        const isRetryable = ["AI_TIMEOUT", "SERVER_ERROR", "USAGE_UPDATE_FAILED"].includes(
+          data.code ?? ""
+        );
         setMessages((prev) => [
           ...prev,
-          { role: "system", content: data.error ?? "오류가 발생했어요. 다시 시도해주세요." },
+          {
+            role: "system",
+            content: isRetryable
+              ? "지금은 AI 상담 연결이 원활하지 않아요. 상담 횟수는 차감되지 않았으니 잠시 후 다시 시도해주세요."
+              : data.error ?? "오류가 발생했어요. 잠시 후 다시 시도해주세요.",
+          },
         ]);
         return;
       }
@@ -234,9 +253,15 @@ function CounselingPageImpl() {
       setRemaining(result.remainingCount);
       if (result.remainingCount <= 0) setLimitReached(true);
     } catch {
+      // 네트워크 오류 / fetch 자체 실패 → 서버에 요청 미도달 또는 응답 수신 실패
+      // 횟수가 차감되었는지 알 수 없으나 대부분 미차감. 재시도 안내.
       setMessages((prev) => [
         ...prev,
-        { role: "system", content: "네트워크 오류가 발생했어요. 잠시 후 다시 시도해주세요." },
+        {
+          role: "system",
+          content:
+            "네트워크 오류가 발생했어요. 상담 횟수는 차감되지 않았을 가능성이 높으니 잠시 후 다시 시도해주세요.",
+        },
       ]);
     } finally {
       setLoading(false);

@@ -45,15 +45,26 @@ import {
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rateLimit";
 import { validateMessage, validateUUID } from "@/lib/validation";
 
+// ── Vercel 함수 최대 실행 시간 (Pro 플랜: 최대 300s, Hobby: 10s 캡)
+// OpenAI 응답 대기를 위해 30s 확보. Hobby는 10s에서 자동 캡.
+export const maxDuration = 30;
+
 // ── 최대 컨텍스트 메시지 수 (유료 이어가기 시 최근 N개만 전송) ──
 const MAX_CONTEXT_MESSAGES = 20;
 
 // ── OpenAI 모델 ──
 const OPENAI_MODEL = "gpt-4o-mini";
 
+// ── Free 플랜 월 상담 한도 ──
+// [034 동기화] 클라이언트(page.tsx)와 동일한 상수를 서버도 사용.
+// DB subscription_plan.ai_consult_monthly_limit 값과 무관하게
+// plan_name = 'free' 이면 항상 FREE_LIMIT 적용.
+const FREE_LIMIT = 3;
+
 // ── OpenAI API 응답 timeout (ms) ──
-// [022 안전장치] 25초 초과 시 AI_TIMEOUT 반환, usage count 증가 안 함
-const AI_TIMEOUT_MS = 25_000;
+// [022 안전장치] 20초 초과 시 AI_TIMEOUT 반환, usage count 증가 안 함
+// maxDuration=30 기준 응답 전송 여유 10s 확보
+const AI_TIMEOUT_MS = 20_000;
 
 // ── 에러 응답 헬퍼 ──
 function errRes(
@@ -173,8 +184,13 @@ export async function POST(req: NextRequest) {
 
   // [009 보정] 무료 여부: plan_name 기준. "limit=0 → 무료" 암묵 규칙 제거.
   // plan row 없으면 free로 취급 (fallback).
-  const isFree       = !plan || plan.plan_name === "free";
-  const monthlyLimit = plan?.ai_consult_monthly_limit ?? 3; // DB 값 그대로 사용 (018: fallback 1→3)
+  const isFree = !plan || plan.plan_name === "free";
+  // [034 버그수정] 서버·클라이언트 monthlyLimit 통일
+  //   Free 플랜: DB 값 무시, 항상 FREE_LIMIT(3) 사용
+  //   유료 플랜: DB 값 사용, 0이면 최소 1 보장 (설정 오류 방지)
+  const monthlyLimit = isFree
+    ? FREE_LIMIT
+    : Math.max(plan?.ai_consult_monthly_limit ?? FREE_LIMIT, 1);
 
   // ── 7. 이번 달 사용량 확인 ──────────────────────────────
   const usedMonth = new Date().toISOString().slice(0, 7); // 'YYYY-MM'
