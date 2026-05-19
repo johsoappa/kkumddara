@@ -27,13 +27,13 @@
 //     - ai_consult_sessions에 대화 이력 저장 (이전 대화 컨텍스트 유지)
 //
 // [보안]
-//   - ANTHROPIC_API_KEY: 서버 전용 환경변수 (NEXT_PUBLIC_ 없음)
+//   - OPENAI_API_KEY: 서버 전용 환경변수 (NEXT_PUBLIC_ 없음)
 //   - 인증: supabase.auth.getUser() → parent 역할 확인
 //   - RLS: parent_id 기반, 타 유저 접근 불가
 // ====================================================
 
 import { NextRequest, NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
+import OpenAI from "openai";
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
@@ -48,10 +48,10 @@ import { validateMessage, validateUUID } from "@/lib/validation";
 // ── 최대 컨텍스트 메시지 수 (유료 이어가기 시 최근 N개만 전송) ──
 const MAX_CONTEXT_MESSAGES = 20;
 
-// ── Claude 모델 ──
-const CLAUDE_MODEL = "claude-3-5-haiku-20241022";
+// ── OpenAI 모델 ──
+const OPENAI_MODEL = "gpt-4o-mini";
 
-// ── Anthropic API 응답 timeout (ms) ──
+// ── OpenAI API 응답 timeout (ms) ──
 // [022 안전장치] 25초 초과 시 AI_TIMEOUT 반환, usage count 증가 안 함
 const AI_TIMEOUT_MS = 25_000;
 
@@ -77,9 +77,9 @@ export async function POST(req: NextRequest) {
   }
 
   // ── 1. API 키 확인 ──────────────────────────────────────
-  const apiKey = process.env.ANTHROPIC_API_KEY;
+  const apiKey = process.env.OPENAI_API_KEY;
   if (!apiKey) {
-    console.error("[ai-consult] ANTHROPIC_API_KEY 미설정");
+    console.error("[ai-consult] OPENAI_API_KEY 미설정");
     return errRes("API_KEY_MISSING", 503);
   }
 
@@ -225,17 +225,19 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── 10. Claude API 호출 ──────────────────────────────────
+  // ── 10. OpenAI API 호출 ──────────────────────────────────
   // [022 안전장치] AI_TIMEOUT_MS(25s) 초과 시 AI_TIMEOUT 반환, count 증가 안 함
-  const anthropic = new Anthropic({ apiKey });
+  const openai = new OpenAI({ apiKey });
   const systemPrompt = buildSystemPrompt(childCtx);
 
-  const apiMessages: Anthropic.MessageParam[] = [
-    ...priorMessages.map((m) => ({
+  type OAIMsg = OpenAI.Chat.ChatCompletionMessageParam;
+  const apiMessages: OAIMsg[] = [
+    { role: "system", content: systemPrompt },
+    ...priorMessages.map((m): OAIMsg => ({
       role:    m.role,
       content: m.content,
     })),
-    { role: "user" as const, content: msgResult.value },
+    { role: "user", content: msgResult.value },
   ];
 
   // timeout 프로미스 — AI_TIMEOUT_MS 초과 시 reject
@@ -249,43 +251,41 @@ export async function POST(req: NextRequest) {
   let aiResponse: string;
   try {
     const completion = await Promise.race([
-      anthropic.messages.create({
-        model:      CLAUDE_MODEL,
+      openai.chat.completions.create({
+        model:      OPENAI_MODEL,
         max_tokens: 1024,
-        system:     systemPrompt,
         messages:   apiMessages,
       }),
       timeoutPromise,
     ]);
 
-    const firstBlock = completion.content[0];
     aiResponse =
-      firstBlock.type === "text" ? firstBlock.text : "[응답을 불러올 수 없어요]";
+      completion.choices[0]?.message?.content?.trim() ?? "[응답을 불러올 수 없어요]";
   } catch (apiErr) {
     // [022 안전장치] timeout 분기 — count 증가 없이 즉시 반환
     if (apiErr instanceof Error && apiErr.message === "AI_TIMEOUT") {
-      console.error(`[ai-consult] Anthropic API 응답 시간 초과 (${AI_TIMEOUT_MS}ms 초과)`);
+      console.error(`[ai-consult] OpenAI API 응답 시간 초과 (${AI_TIMEOUT_MS}ms 초과)`);
       return errRes("AI_TIMEOUT", 504);
     }
 
-    // Anthropic SDK APIError 유형별 구분 로깅 (API key 값 자체는 절대 출력하지 않음)
-    if (apiErr instanceof Anthropic.APIError) {
+    // OpenAI SDK APIError 유형별 구분 로깅 (API key 값 자체는 절대 출력하지 않음)
+    if (apiErr instanceof OpenAI.APIError) {
       const s = apiErr.status;
       if (s === 401) {
-        console.error("[ai-consult] Anthropic 인증 실패(401): ANTHROPIC_API_KEY가 유효하지 않거나 만료됨");
+        console.error("[ai-consult] OpenAI 인증 실패(401): OPENAI_API_KEY가 유효하지 않거나 만료됨");
       } else if (s === 403) {
-        console.error("[ai-consult] Anthropic 접근 거부(403): billing/크레딧 소진 또는 권한 문제");
+        console.error("[ai-consult] OpenAI 접근 거부(403): billing/크레딧 소진 또는 권한 문제");
       } else if (s === 404) {
-        console.error(`[ai-consult] Anthropic 모델 없음(404): model="${CLAUDE_MODEL}" — 모델명 확인 필요`);
+        console.error(`[ai-consult] OpenAI 모델 없음(404): model="${OPENAI_MODEL}" — 모델명 확인 필요`);
       } else if (s === 429) {
-        console.error("[ai-consult] Anthropic rate limit(429): Anthropic 계정 분당 한도 초과");
+        console.error("[ai-consult] OpenAI rate limit(429): OpenAI 계정 분당 한도 초과");
       } else {
-        console.error(`[ai-consult] Anthropic API 오류(${s}): ${apiErr.message}`);
+        console.error(`[ai-consult] OpenAI API 오류(${s}): ${apiErr.message}`);
       }
     } else {
       // 네트워크 오류 / SDK 외 예외
       const msg = apiErr instanceof Error ? apiErr.message : String(apiErr);
-      console.error("[ai-consult] Anthropic 네트워크/기타 오류:", msg);
+      console.error("[ai-consult] OpenAI 네트워크/기타 오류:", msg);
     }
     return errRes("SERVER_ERROR", 502);
   }

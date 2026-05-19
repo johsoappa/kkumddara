@@ -14,14 +14,15 @@ export const FEATURE_FLAGS = {
   /**
    * AI 진로 상담 기능 활성화 여부
    *
-   * false (현재): Anthropic 결제 전 — 준비중 화면 표시, API 차단
-   * true  (이후): Anthropic 결제 완료 후 실사용 오픈
+   * true  (현재): OpenAI gpt-4o-mini 기반 — Free 월 3회 제한 공개
+   * false (비활성): 준비중 화면 표시, API 차단
    *
-   * 재활성화 체크리스트:
-   *   1. 이 값을 true 로 변경
-   *   2. Vercel 환경변수 ANTHROPIC_API_KEY 등록 확인
-   *   3. parent/home 카드에서 badge 제거 (또는 이 플래그로 자동 반영)
-   *   4. 배포 후 /parent/counseling 흐름 실 동작 확인
+   * 비활성화 체크리스트:
+   *   1. 이 값을 false 로 변경
+   *   2. 배포 후 /parent/counseling → 준비중 화면 확인
+   *
+   * Vercel 환경변수:
+   *   OPENAI_API_KEY 등록 필수
    */
-  AI_CONSULT_ENABLED: false,
+  AI_CONSULT_ENABLED: true,
 } as const;
