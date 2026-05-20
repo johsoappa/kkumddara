@@ -2935,4 +2935,98 @@ export const QUIZ_DATA: OccupationQuizData[] = [
     ],
   },
 
+  // ── 열차 관제사 (train-controller) ───────────────────────────
+  {
+    occupationId:   "train-controller",
+    occupationName: "열차 관제사",
+    questions: [
+      {
+        id:           "train-controller-1",
+        question:     "열차 관제사가 주로 하는 일은 무엇일까요?",
+        options: [
+          "여러 열차의 움직임을 확인하고 운행 흐름을 조정한다",
+          "병원에서 환자를 진료한다",
+          "노래 공연을 준비한다",
+          "동물을 치료한다",
+        ],
+        correctIndex: 0,
+        explanation:
+          "열차 관제사는 여러 열차가 안전하게 움직이도록 위치와 시간, 상황을 살피며 운행 흐름을 조정합니다.",
+      },
+      {
+        id:           "train-controller-2",
+        question:     "열차 관제사에게 필요한 능력으로 알맞은 것은 무엇일까요?",
+        options: [
+          "집중력과 판단력",
+          "규칙을 무시하는 태도",
+          "아무것도 확인하지 않는 습관",
+          "그림만 빠르게 그리는 능력",
+        ],
+        correctIndex: 0,
+        explanation:
+          "여러 열차의 상황을 함께 살펴야 하므로 집중력과 침착한 판단력이 중요합니다.",
+      },
+      {
+        id:           "train-controller-3",
+        question:     "열차 관제사에 대한 설명으로 올바른 것은 무엇일까요?",
+        options: [
+          "열차가 안전하게 움직이도록 운행 상황을 살핀다",
+          "열차 안에서 음식을 판다",
+          "머리카락을 디자인한다",
+          "책을 빌려주는 일을 한다",
+        ],
+        correctIndex: 0,
+        explanation:
+          "열차 관제사는 기관사와는 다르게 여러 열차의 운행 흐름을 살피고 조정하는 일을 합니다.",
+      },
+    ],
+  },
+
+  // ── 철도 정비원 (railway-maintenance-technician) ─────────────
+  {
+    occupationId:   "railway-maintenance-technician",
+    occupationName: "철도 정비원",
+    questions: [
+      {
+        id:           "railway-maintenance-1",
+        question:     "철도 정비원이 주로 살피는 것은 무엇일까요?",
+        options: [
+          "열차와 철도 장비가 안전하게 작동하는지",
+          "노래 가사의 운율",
+          "병원의 진료 기록",
+          "음식의 맛",
+        ],
+        correctIndex: 0,
+        explanation:
+          "철도 정비원은 열차와 철도 시설을 점검하고 고쳐 안전한 운행을 돕습니다.",
+      },
+      {
+        id:           "railway-maintenance-2",
+        question:     "철도 정비원에게 필요한 태도로 알맞은 것은 무엇일까요?",
+        options: [
+          "꼼꼼하게 살피고 문제를 해결하려는 태도",
+          "고장을 보고도 모른 척하는 태도",
+          "도구를 아무렇게나 쓰는 태도",
+          "안전 규칙을 무시하는 태도",
+        ],
+        correctIndex: 0,
+        explanation:
+          "정비 일은 작은 문제도 놓치지 않고 안전하게 해결하는 태도가 중요합니다.",
+      },
+      {
+        id:           "railway-maintenance-3",
+        question:     "철도 정비원에 대한 설명으로 올바른 것은 무엇일까요?",
+        options: [
+          "열차와 철도 시설을 점검하고 안전을 돕는다",
+          "동물을 치료한다",
+          "비행기를 조종한다",
+          "그림책을 만든다",
+        ],
+        correctIndex: 0,
+        explanation:
+          "철도 정비원은 열차가 안전하게 움직일 수 있도록 보이지 않는 곳에서 중요한 역할을 합니다.",
+      },
+    ],
+  },
+
 ];
