@@ -127,6 +127,8 @@ function getConversationQuestions(child: Child): string[] {
   return questions.slice(0, 3);
 }
 
+type LikedOccSummary = { id: string; name: string; emoji: string | null };
+
 type ParentFeature = {
   id:          string;
   icon:        React.ReactNode;
@@ -179,11 +181,12 @@ type StudentMap = Record<string, string | null>; // child_id → nickname
 export default function ParentHomePage() {
   const router = useRouter();
 
-  const [children, setChildren]   = useState<Child[]>([]);
-  const [plan, setPlan]           = useState<SubscriptionPlan | null>(null);
+  const [children, setChildren]     = useState<Child[]>([]);
+  const [plan, setPlan]             = useState<SubscriptionPlan | null>(null);
   const [studentMap, setStudentMap] = useState<StudentMap>({});
-  const [loading, setLoading]     = useState(true);
-  const [copiedId, setCopiedId]   = useState<string | null>(null);
+  const [likedOccs, setLikedOccs]  = useState<LikedOccSummary[]>([]);
+  const [loading, setLoading]       = useState(true);
+  const [copiedId, setCopiedId]     = useState<string | null>(null);
   /** GuideModal remount 트리거 — 증가 시 GuideModal 재마운트 → useEffect 재실행 */
   const [guideModalKey, setGuideModalKey] = useState(0);
 
@@ -219,22 +222,83 @@ export default function ParentHomePage() {
         setChildren(fetchedChildren);   // 0명도 포함 — 항상 최신 상태 반영
         if (planRes.data) setPlan(planRes.data as SubscriptionPlan);
 
-        // ── 학생 연결 여부 조회 ────────────────────────────────
+        // ── 학생 연결 여부 + 좋아요한 직업 조회 ───────────────
         // child.id 목록으로 연결된 student를 한 번에 조회 (N+1 방지)
-        // student.child_id IS NOT NULL + onboarding_status = 'completed'인 경우만
+        // 좋아요 직업은 첫 번째 자녀 기준 최신 3개
         if (fetchedChildren.length > 0) {
-          const childIds = fetchedChildren.map((c) => c.id);
-          const { data: connectedStudents } = await supabase
-            .from("student")
-            .select("child_id, nickname")
-            .in("child_id", childIds);
+          const childIds    = fetchedChildren.map((c) => c.id);
+          const firstChildId = fetchedChildren[0].id;
+
+          const [studentsRes, likedRes] = await Promise.all([
+            supabase
+              .from("student")
+              .select("child_id, nickname")
+              .in("child_id", childIds),
+            supabase
+              .from("liked_occupations")
+              .select("occupation_id")
+              .eq("child_id", firstChildId)
+              .order("liked_at", { ascending: false })
+              .limit(3),
+          ]);
 
           // child_id → nickname(없으면 null) 맵 생성
           const map: StudentMap = {};
-          for (const s of connectedStudents ?? []) {
+          for (const s of studentsRes.data ?? []) {
             if (s.child_id) map[s.child_id] = s.nickname ?? null;
           }
           setStudentMap(map);
+
+          // ── 좋아요한 직업 → occupation_master 조회 ───────────
+          const likedRows    = likedRes.data ?? [];
+          const occupationIds = likedRows.map((r) => r.occupation_id);
+
+          if (occupationIds.length > 0) {
+            // occupation_id = legacy_occupation_id ?? slug 이므로 두 컬럼 모두 조회
+            const { data: byLegacyId } = await supabase
+              .from("occupation_master")
+              .select("slug, name_ko, emoji, legacy_occupation_id")
+              .in("legacy_occupation_id", occupationIds)
+              .eq("is_active", true);
+
+            const foundIds   = new Set(
+              (byLegacyId ?? []).map((m) => m.legacy_occupation_id as string),
+            );
+            const unmatchedIds = occupationIds.filter((id) => !foundIds.has(id));
+
+            let bySlug: Array<{
+              slug: string;
+              name_ko: string;
+              emoji: string | null;
+              legacy_occupation_id: string | null;
+            }> = [];
+
+            if (unmatchedIds.length > 0) {
+              const { data } = await supabase
+                .from("occupation_master")
+                .select("slug, name_ko, emoji, legacy_occupation_id")
+                .in("slug", unmatchedIds)
+                .eq("is_active", true);
+              bySlug = (data ?? []) as typeof bySlug;
+            }
+
+            const allMasters = [...(byLegacyId ?? []), ...bySlug];
+            const masterMap  = new Map<string, { name: string; emoji: string | null }>();
+            for (const m of allMasters) {
+              const key = (m.legacy_occupation_id ?? m.slug) as string;
+              masterMap.set(key, { name: m.name_ko, emoji: m.emoji });
+            }
+
+            const occs: LikedOccSummary[] = occupationIds
+              .map((id) => {
+                const info = masterMap.get(id);
+                if (!info) return null;
+                return { id, name: info.name, emoji: info.emoji };
+              })
+              .filter((x): x is LikedOccSummary => x !== null);
+
+            setLikedOccs(occs);
+          }
         }
       } catch (err) {
         console.error("[parent/home] loadData 오류:", err);
@@ -423,6 +487,83 @@ export default function ParentHomePage() {
                   💡 답변에 정답은 없어요. 자녀가 무엇에 관심 있는지 자연스럽게 파악하는 것이 목적이에요.
                 </p>
               </div>
+            </section>
+          )}
+
+          {/* ══════════════════════════════════════════
+              섹션 1.7 — 자녀가 좋아요한 직업 요약
+              자녀가 있을 때만 표시 / 최신 3개
+          ══════════════════════════════════════════ */}
+          {children.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-sm font-bold text-base-text">
+                  {children[0].name}
+                  {pickParticle(children[0].name, "가", "이")} 좋아요한 직업
+                </h2>
+                <button
+                  onClick={() => router.push("/explore")}
+                  className="text-xs font-semibold"
+                  style={{ color: "#E84B2E" }}
+                >
+                  전체 보기 →
+                </button>
+              </div>
+
+              {likedOccs.length === 0 ? (
+                /* 빈 상태 */
+                <div className="bg-white rounded-card-lg shadow-card p-5 flex flex-col items-center text-center gap-2">
+                  <p className="text-2xl leading-none">🤍</p>
+                  <p className="text-sm font-semibold text-base-text">
+                    아직 좋아요한 직업이 없어요
+                  </p>
+                  <p className="text-xs text-base-muted leading-relaxed">
+                    아이가 직업 탐색에서 하트를 누르면<br />여기에서 바로 확인할 수 있어요.
+                  </p>
+                  <button
+                    onClick={() => router.push("/explore")}
+                    className="mt-1 text-xs font-semibold px-4 py-2 rounded-full"
+                    style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+                  >
+                    직업 탐색 바로가기
+                  </button>
+                </div>
+              ) : (
+                /* 직업 목록 */
+                <div className="bg-white rounded-card-lg shadow-card p-4 flex flex-col gap-0">
+                  {likedOccs.map((occ, idx) => (
+                    <button
+                      key={occ.id}
+                      onClick={() => router.push(`/explore/${occ.id}`)}
+                      className={`
+                        flex items-center gap-3 text-left w-full py-3
+                        hover:opacity-70 transition-opacity
+                        ${idx < likedOccs.length - 1 ? "border-b border-base-border" : ""}
+                      `}
+                    >
+                      <span className="text-xl leading-none w-8 text-center shrink-0">
+                        {occ.emoji ?? "🎯"}
+                      </span>
+                      <span className="text-sm font-medium text-base-text flex-1 leading-snug">
+                        {occ.name}
+                      </span>
+                      <ChevronRight size={14} className="text-base-muted shrink-0" />
+                    </button>
+                  ))}
+
+                  {/* AI 상담 유도 버튼 */}
+                  <div className="border-t border-base-border pt-3 mt-1">
+                    <button
+                      onClick={() => router.push("/parent/counseling")}
+                      className="w-full flex items-center justify-center gap-2 py-2.5 rounded-button text-sm font-semibold transition-opacity active:opacity-70"
+                      style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+                    >
+                      <MessageSquare size={14} />
+                      AI 진로 상담으로 더 알아보기
+                    </button>
+                  </div>
+                </div>
+              )}
             </section>
           )}
 
