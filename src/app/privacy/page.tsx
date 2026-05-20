@@ -60,10 +60,11 @@ const ARTICLES = [
   {
     title: "제5조 (개인정보 처리의 위탁)",
     delegates: [
-      { role: "결제 처리",      company: "포트원(아임포트)" },
+      { role: "결제 처리 (정식 결제 도입 시 적용)", company: "포트원(아임포트) 등 결제대행사" },
       { role: "클라우드 인프라", company: "Vercel / Supabase" },
       { role: "간편로그인",      company: "카카오" },
     ],
+    delegateNote: "현재 베타 기간에는 결제 기능이 연결되어 있지 않아 결제 처리 위탁이 발생하지 않습니다.",
   },
   {
     title: "제6조 (미성년 자녀 정보 처리 특칙)",
@@ -88,7 +89,7 @@ const ARTICLES = [
   },
   {
     title: "제9조 (개인정보 보호책임자)",
-    manager: { name: "OZ.Kim", title: "대표", email: "johsoappa@gmail.com" },
+    manager: { name: "OZ.K Lab", title: "대표", email: "johsoappa@gmail.com" },
   },
   {
     title: "제10조 (처리방침 변경)",
@@ -156,6 +157,11 @@ export default function PrivacyPage() {
                     <span className="font-medium text-base-text">{d.company}</span>
                   </div>
                 ))}
+                {"delegateNote" in art && art.delegateNote && (
+                  <p className="text-xs text-base-muted leading-relaxed pt-1">
+                    ※ {art.delegateNote}
+                  </p>
+                )}
               </div>
             )}
 

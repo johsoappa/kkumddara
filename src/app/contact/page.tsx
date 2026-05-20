@@ -27,7 +27,7 @@ export default function ContactPage() {
 
         {/* 카카오채널 버튼 */}
         <a
-          href="http://pf.kakao.com/_xfkxfjX"
+          href="https://pf.kakao.com/_xfkxfjX"
           target="_blank"
           rel="noopener noreferrer"
           className="rounded-card-lg p-5 shadow-card flex items-center gap-4 active:opacity-80 transition-opacity"
