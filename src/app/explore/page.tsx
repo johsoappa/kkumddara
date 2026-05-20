@@ -39,12 +39,14 @@ export default function ExplorePage() {
       setError(null);
 
       try {
-        // 1단계: occupation_master — is_active=true, priority 내림차순
+        // 1단계: occupation_master — 대표 직업만 노출 (is_active=true, is_representative=true)
+        // [037] is_representative: 세부 직업이 추가되어도 대표 직업만 목록에 노출
         // legacy_occupation_id: static /explore/[id] 상세 페이지 라우팅 호환용
         const { data: masters, error: masterErr } = await supabase
           .from("occupation_master")
           .select("id, slug, name_ko, emoji, category, interest_fields, priority, legacy_occupation_id")
           .eq("is_active", true)
+          .eq("is_representative", true)
           .order("priority", { ascending: false });
 
         if (masterErr) throw masterErr;

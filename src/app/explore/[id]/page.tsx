@@ -63,16 +63,26 @@ interface DbMaster {
   interest_fields: string[];
 }
 
+// [037] 관련 직업 더보기용 세부 직업 항목
+interface RelatedOccupation {
+  id:      string; // 라우팅용 (legacy_occupation_id ?? slug)
+  slug:    string;
+  name_ko: string;
+  emoji:   string;
+  category: string;
+}
+
 // 페이지 렌더 모드 (discriminated union)
 type PageState =
   | { mode: "loading" }
   | {
       mode: "db";
-      master:        DbMaster;
-      summaries:     Record<string, string>; // content_type → content
-      missionHint:   string | null;
-      stepActions:   string[];
-      goyo24Profile: OccupationGoyo24Profile | null;
+      master:             DbMaster;
+      summaries:          Record<string, string>; // content_type → content
+      missionHint:        string | null;
+      stepActions:        string[];
+      goyo24Profile:      OccupationGoyo24Profile | null;
+      relatedOccupations: RelatedOccupation[];    // [037] 세부 직업 목록 (없으면 빈 배열)
     }
   | { mode: "static"; occupation: Occupation }
   | { mode: "not-found" };
@@ -180,6 +190,25 @@ export default function OccupationDetailPage() {
 
         const goyo24Profile = goyo24Row ?? null;
 
+        // 5단계: 관련 직업 더보기 [037]
+        // 현재 직업을 parent로 가진 세부 직업 목록 조회 (is_active=true)
+        const { data: relatedRows } = await supabase
+          .from("occupation_master")
+          .select("id, slug, name_ko, emoji, category, legacy_occupation_id")
+          .eq("parent_occupation_id", master.id)
+          .eq("is_active", true)
+          .order("group_display_order", { ascending: true })
+          .order("priority",            { ascending: false })
+          .order("name_ko",             { ascending: true });
+
+        const relatedOccupations: RelatedOccupation[] = (relatedRows ?? []).map((r) => ({
+          id:       r.legacy_occupation_id ?? r.slug,
+          slug:     r.slug,
+          name_ko:  r.name_ko,
+          emoji:    r.emoji,
+          category: r.category,
+        }));
+
         if (!cancelled) {
           setPageState({
             mode: "db",
@@ -188,6 +217,7 @@ export default function OccupationDetailPage() {
             missionHint,
             stepActions,
             goyo24Profile,
+            relatedOccupations,
           });
         }
       } catch (err) {
@@ -261,7 +291,7 @@ export default function OccupationDetailPage() {
   // ── DB 모드 렌더 ─────────────────────────────────────
   // ====================================================
   if (pageState.mode === "db") {
-    const { master, summaries, missionHint, stepActions, goyo24Profile } = pageState;
+    const { master, summaries, missionHint, stepActions, goyo24Profile, relatedOccupations } = pageState;
 
     return (
       <div className="min-h-screen bg-base-off flex justify-center">
@@ -412,7 +442,33 @@ export default function OccupationDetailPage() {
             {/* ⑤ 고용24 직업 참고 정보 (데이터 있을 때만 표시) */}
             <Goyo24InfoSection profile={goyo24Profile} />
 
-            {/* ⑥ 퀴즈 (정적 QUIZ_DATA 유지) */}
+            {/* ⑥ 관련 직업 더보기 [037] — 세부 직업 있을 때만 표시 */}
+            {relatedOccupations.length > 0 && (
+              <section className="card">
+                <h3 className="text-sm font-bold text-base-text mb-1">관련 직업 더보기</h3>
+                <p className="text-xs text-base-muted mb-3">
+                  같은 직업군 안에서도 하는 일과 준비 방법이 조금씩 달라요.
+                </p>
+                <div className="flex flex-col gap-2">
+                  {relatedOccupations.map((rel) => (
+                    <button
+                      key={rel.slug}
+                      onClick={() => router.push(`/explore/${rel.id}`)}
+                      className="flex items-center gap-3 p-3 rounded-xl bg-base-off hover:bg-brand-light transition-colors text-left w-full"
+                    >
+                      <span className="text-2xl leading-none">{rel.emoji}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-base-text">{rel.name_ko}</p>
+                        <p className="text-xs text-base-muted">{rel.category}</p>
+                      </div>
+                      <span className="text-base-muted text-sm flex-shrink-0">›</span>
+                    </button>
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {/* ⑦ 퀴즈 (정적 QUIZ_DATA 유지) */}
             {quizData && (
               <section>
                 <OccupationQuiz quizData={quizData} />

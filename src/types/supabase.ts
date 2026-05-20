@@ -396,6 +396,12 @@ export interface Database {
           sync_attempt_count:   number;
           priority:             number;
           legacy_occupation_id: string | null;
+          // [037] 계층화 컬럼
+          parent_occupation_id: string | null;
+          occupation_level:     number;
+          display_group:        string | null;
+          is_representative:    boolean;
+          group_display_order:  number;
           created_at:           string;
           updated_at:           string;
         };
@@ -411,6 +417,12 @@ export interface Database {
           priority?:            number;
           legacy_occupation_id?: string | null;
           employment24_code?:   string | null;
+          // [037] 계층화 컬럼
+          parent_occupation_id?: string | null;
+          occupation_level?:    number;
+          display_group?:       string | null;
+          is_representative?:   boolean;
+          group_display_order?: number;
         };
         Update: {
           is_active?:           boolean;
@@ -420,6 +432,12 @@ export interface Database {
           last_error_message?:  string | null;
           employment24_code?:   string | null;
           updated_at?:          string;
+          // [037] 계층화 컬럼
+          parent_occupation_id?: string | null;
+          occupation_level?:    number;
+          display_group?:       string | null;
+          is_representative?:   boolean;
+          group_display_order?: number;
         };
         Relationships: [];
       };
