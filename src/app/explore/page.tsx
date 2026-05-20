@@ -6,14 +6,20 @@
 // - 스켈레톤 로딩, 빈 결과 / 에러 처리
 //
 // [데이터 소스]
-//   occupation_master (is_active=true, priority DESC)
+//   occupation_master (is_active=true, is_representative=true, priority DESC)
 //   + occupation_summary (one_liner, is_current=true, published)
 //
-// [다음 단계]
-//   /explore/[id] 상세 페이지 DB 전환 (현재는 static 유지)
+// [좋아요 (liked_occupations)]
+//   - 로그인 + child_id 있으면 DB liked_occupations 테이블 사용
+//   - 비로그인 또는 child_id 없으면 localStorage(kkumddara_liked) fallback
+//   - 좋아요 필터: "❤️ 좋아요만 보기" 버튼으로 필터링
+//
+// [RLS 정책]
+//   liked: parent 전체 권한, liked: student 전체 권한 — 수정 없음
 // ====================================================
 
 import { useState, useEffect, useMemo } from "react";
+import { Heart } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import AppShell from "@/components/layout/AppShell";
 import SearchBar from "@/components/explore/SearchBar";
@@ -22,15 +28,94 @@ import OccupationCard from "@/components/explore/OccupationCard";
 import SkeletonCard from "@/components/explore/SkeletonCard";
 import type { OccupationListItem, OccupationCategory, CategoryFilter } from "@/types/occupation";
 
-export default function ExplorePage() {
-  const [search,      setSearch]      = useState("");
-  const [category,    setCategory]    = useState<CategoryFilter>("전체");
-  const [liked,       setLiked]       = useState<Set<string>>(new Set());
-  const [occupations, setOccupations] = useState<OccupationListItem[]>([]);
-  const [isLoading,   setIsLoading]   = useState(true);
-  const [error,       setError]       = useState<string | null>(null);
+const LIKED_LS_KEY = "kkumddara_liked";
 
-  // ── DB fetch ─────────────────────────────────────────────
+export default function ExplorePage() {
+  const [search,        setSearch]        = useState("");
+  const [category,      setCategory]      = useState<CategoryFilter>("전체");
+  const [showLikedOnly, setShowLikedOnly] = useState(false);
+  const [liked,         setLiked]         = useState<Set<string>>(new Set());
+  const [childId,       setChildId]       = useState<string | null>(null); // DB 연동 기준
+  const [occupations,   setOccupations]   = useState<OccupationListItem[]>([]);
+  const [isLoading,     setIsLoading]     = useState(true);
+  const [error,         setError]         = useState<string | null>(null);
+
+  // ── 세션 + child_id 감지 ───────────────────────────────────
+  // student: student.child_id
+  // parent:  child 테이블 첫 번째 active 자녀
+  // 비로그인: null → localStorage fallback
+  useEffect(() => {
+    async function resolveChildId() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // student 먼저 시도
+        const { data: studentRow } = await supabase
+          .from("student")
+          .select("child_id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (studentRow?.child_id) {
+          setChildId(studentRow.child_id);
+          return;
+        }
+
+        // parent → 첫 번째 active 자녀
+        const { data: parentRow } = await supabase
+          .from("parent")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (parentRow?.id) {
+          const { data: childRow } = await supabase
+            .from("child")
+            .select("id")
+            .eq("parent_id", parentRow.id)
+            .eq("profile_status", "active")
+            .order("created_at", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (childRow?.id) setChildId(childRow.id);
+        }
+      } catch (err) {
+        console.error("[explore] child_id 조회 오류:", err);
+      }
+    }
+
+    resolveChildId();
+  }, []);
+
+  // ── liked 상태 초기 로드 ──────────────────────────────────
+  // child_id 확정 후 DB 조회, 없으면 localStorage
+  useEffect(() => {
+    async function loadLiked() {
+      if (childId) {
+        // DB 우선
+        const { data, error: likedErr } = await supabase
+          .from("liked_occupations")
+          .select("occupation_id")
+          .eq("child_id", childId);
+
+        if (!likedErr && data) {
+          setLiked(new Set(data.map((r) => r.occupation_id)));
+          return;
+        }
+      }
+      // fallback: localStorage
+      const stored = localStorage.getItem(LIKED_LS_KEY);
+      if (stored) {
+        try { setLiked(new Set(JSON.parse(stored) as string[])); } catch { /* ignore */ }
+      }
+    }
+
+    loadLiked();
+  }, [childId]);
+
+  // ── 직업 목록 DB fetch ────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
@@ -39,9 +124,7 @@ export default function ExplorePage() {
       setError(null);
 
       try {
-        // 1단계: occupation_master — 대표 직업만 노출 (is_active=true, is_representative=true)
-        // [037] is_representative: 세부 직업이 추가되어도 대표 직업만 목록에 노출
-        // legacy_occupation_id: static /explore/[id] 상세 페이지 라우팅 호환용
+        // 1단계: occupation_master — 대표 직업만 (is_representative=true)
         const { data: masters, error: masterErr } = await supabase
           .from("occupation_master")
           .select("id, slug, name_ko, emoji, category, interest_fields, priority, legacy_occupation_id")
@@ -52,14 +135,11 @@ export default function ExplorePage() {
         if (masterErr) throw masterErr;
 
         if (!masters || masters.length === 0) {
-          if (!cancelled) {
-            setOccupations([]);
-            setIsLoading(false);
-          }
+          if (!cancelled) { setOccupations([]); setIsLoading(false); }
           return;
         }
 
-        // 2단계: one_liner 조회 — service layer, is_current=true, published
+        // 2단계: one_liner 조회
         const masterIds = masters.map((m) => m.id);
         const { data: summaries, error: sumErr } = await supabase
           .from("occupation_summary")
@@ -72,21 +152,18 @@ export default function ExplorePage() {
 
         if (sumErr) throw sumErr;
 
-        // 3단계: 병합 — occupation_id 기준 one_liner 매핑
         const summaryMap = new Map(
           (summaries ?? []).map((s) => [s.occupation_id, s.content])
         );
 
         const items: OccupationListItem[] = masters.map((m) => ({
-          // id: static /explore/[id] 상세 호환 — legacy_occupation_id 우선, 없으면 slug
-          // 상세 페이지 DB 전환 완료 후 slug로 교체 예정
           id:           m.legacy_occupation_id ?? m.slug,
           slug:         m.slug,
           name:         m.name_ko,
           emoji:        m.emoji,
           category:     m.category as OccupationCategory,
           description:  summaryMap.get(m.id) ?? "",
-          relatedMajors: [],           // [추후] occupation_traits DB 연결 예정
+          relatedMajors: [],
           skills:       m.interest_fields ?? [],
         }));
 
@@ -103,27 +180,43 @@ export default function ExplorePage() {
     return () => { cancelled = true; };
   }, []);
 
-  // ── localStorage 찜 목록 복원 ─────────────────────────────
-  useEffect(() => {
-    const stored = localStorage.getItem("kkumddara_liked");
-    if (stored) {
-      setLiked(new Set(JSON.parse(stored) as string[]));
-    }
-  }, []);
+  // ── 찜 토글 ──────────────────────────────────────────────
+  const toggleLike = async (id: string) => {
+    const isLiked = liked.has(id);
 
-  // ── 찜 토글 + localStorage 동기화 ────────────────────────
-  const toggleLike = (id: string) => {
+    // optimistic update
     setLiked((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      localStorage.setItem("kkumddara_liked", JSON.stringify(Array.from(next)));
+      isLiked ? next.delete(id) : next.add(id);
       return next;
     });
+
+    if (childId) {
+      // DB 동기화
+      if (isLiked) {
+        await supabase
+          .from("liked_occupations")
+          .delete()
+          .eq("child_id", childId)
+          .eq("occupation_id", id);
+      } else {
+        await supabase
+          .from("liked_occupations")
+          .insert({ child_id: childId, occupation_id: id });
+      }
+    } else {
+      // localStorage fallback
+      setLiked((prev) => {
+        localStorage.setItem(LIKED_LS_KEY, JSON.stringify(Array.from(prev)));
+        return prev;
+      });
+    }
   };
 
-  // ── 검색 + 카테고리 필터 (메모이제이션) ──────────────────
+  // ── 필터링 (검색 + 카테고리 + 좋아요) ────────────────────
   const filtered = useMemo(() => {
     return occupations.filter((occ) => {
+      if (showLikedOnly && !liked.has(occ.id)) return false;
       const matchCategory = category === "전체" || occ.category === category;
       const q = search.trim();
       const matchSearch =
@@ -133,22 +226,40 @@ export default function ExplorePage() {
         occ.skills.some((s) => s.includes(q));
       return matchCategory && matchSearch;
     });
-  }, [search, category, occupations]);
+  }, [search, category, occupations, showLikedOnly, liked]);
 
-  // ── 렌더 ─────────────────────────────────────────────────
+  // ── 렌더 ────────────────────────────────────────────────
   return (
     <AppShell headerTitle="직업 탐색">
       <div className="px-4 pt-4 pb-4 flex flex-col gap-3">
         <SearchBar value={search} onChange={setSearch} />
-        <CategoryTabs active={category} onChange={setCategory} />
+        <CategoryTabs active={category} onChange={(cat) => { setCategory(cat); setShowLikedOnly(false); }} />
+
+        {/* ── 좋아요 필터 버튼 ── */}
+        <button
+          onClick={() => {
+            setShowLikedOnly((v) => !v);
+            if (!showLikedOnly) { setCategory("전체"); setSearch(""); }
+          }}
+          className="flex items-center gap-1.5 self-start px-3.5 py-2 rounded-full text-sm font-medium transition-colors"
+          style={
+            showLikedOnly
+              ? { backgroundColor: "#E84B2E", color: "#fff" }
+              : { backgroundColor: "#FFF0EB", color: "#E84B2E" }
+          }
+        >
+          <Heart
+            size={14}
+            className={showLikedOnly ? "fill-white text-white" : "fill-brand-red text-brand-red"}
+          />
+          좋아요한 직업
+        </button>
 
         <div className="flex flex-col gap-3 mt-1">
           {isLoading ? (
-            // 스켈레톤 로딩
             Array.from({ length: 4 }).map((_, i) => <SkeletonCard key={i} />)
 
           ) : error ? (
-            // DB 오류
             <div className="flex flex-col items-center justify-center py-20 text-center">
               <p className="text-4xl mb-3">😢</p>
               <p className="text-base font-bold text-base-text">{error}</p>
@@ -156,21 +267,40 @@ export default function ExplorePage() {
             </div>
 
           ) : filtered.length === 0 ? (
-            // 검색 결과 없음 또는 DB에 is_active 직업 없음
             <div className="flex flex-col items-center justify-center py-20 text-center">
-              <p className="text-4xl mb-3">😢</p>
-              <p className="text-base font-bold text-base-text">
-                {occupations.length === 0 ? "아직 탐색할 직업이 없어요" : "찾는 직업이 없어요"}
-              </p>
-              <p className="text-sm text-base-muted mt-1.5">
-                {occupations.length === 0
-                  ? "곧 다양한 직업이 추가될 예정이에요"
-                  : "다른 검색어나 카테고리를 시도해보세요"}
-              </p>
+              {showLikedOnly ? (
+                <>
+                  <p className="text-4xl mb-3">🤍</p>
+                  <p className="text-base font-bold text-base-text">
+                    아직 좋아요한 직업이 없어요
+                  </p>
+                  <p className="text-sm text-base-muted mt-1.5 leading-relaxed">
+                    관심 있는 직업의 하트를 눌러<br />모아보세요.
+                  </p>
+                  <button
+                    onClick={() => setShowLikedOnly(false)}
+                    className="mt-4 text-sm font-semibold"
+                    style={{ color: "#E84B2E" }}
+                  >
+                    전체 직업 보기 →
+                  </button>
+                </>
+              ) : (
+                <>
+                  <p className="text-4xl mb-3">😢</p>
+                  <p className="text-base font-bold text-base-text">
+                    {occupations.length === 0 ? "아직 탐색할 직업이 없어요" : "찾는 직업이 없어요"}
+                  </p>
+                  <p className="text-sm text-base-muted mt-1.5">
+                    {occupations.length === 0
+                      ? "곧 다양한 직업이 추가될 예정이에요"
+                      : "다른 검색어나 카테고리를 시도해보세요"}
+                  </p>
+                </>
+              )}
             </div>
 
           ) : (
-            // 직업 카드 리스트
             filtered.map((occ) => (
               <OccupationCard
                 key={occ.id}
