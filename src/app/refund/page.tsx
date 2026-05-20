@@ -9,6 +9,21 @@ export default function RefundPage() {
           <p className="text-xs text-base-muted">시행일: 2026년 4월 1일</p>
         </div>
 
+        {/* 베타 기간 결제 미연동 안내 */}
+        <div
+          className="rounded-card-lg p-4"
+          style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A" }}
+        >
+          <p className="text-xs font-semibold mb-1" style={{ color: "#92400E" }}>
+            📢 베타 기간 안내
+          </p>
+          <p className="text-xs leading-relaxed" style={{ color: "#92400E" }}>
+            현재 꿈따라는 베타 운영 중이며, 결제 기능은 아직 연결되어 있지 않습니다.
+            아래 환불정책은 정식 결제 기능 도입 시 적용될 기준이며,
+            실제 결제는 추후 별도 공지 후 적용됩니다.
+          </p>
+        </div>
+
         {/* 제1조 */}
         <div className="bg-white rounded-card-lg p-5 shadow-card">
           <h2 className="text-sm font-bold mb-3" style={{ color: "#E84B2E" }}>제1조 (기본 원칙)</h2>
