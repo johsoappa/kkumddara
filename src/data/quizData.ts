@@ -2841,4 +2841,98 @@ export const QUIZ_DATA: OccupationQuizData[] = [
     ],
   },
 
+  // ── 철도경찰 (railway-police-officer) ────────────────────────
+  {
+    occupationId:   "railway-police-officer",
+    occupationName: "철도경찰",
+    questions: [
+      {
+        id:           "railway-police-1",
+        question:     "철도경찰이 주로 안전을 지키는 곳은 어디일까요?",
+        options: [
+          "기차역과 열차 안",
+          "병원 수술실",
+          "바다 위 어선",
+          "미술 전시장",
+        ],
+        correctIndex: 0,
+        explanation:
+          "철도경찰은 기차역과 열차 안, 철도 시설에서 사람들이 안전하게 이동할 수 있도록 돕습니다.",
+      },
+      {
+        id:           "railway-police-2",
+        question:     "철도경찰에게 필요한 태도로 알맞은 것은 무엇일까요?",
+        options: [
+          "주변을 잘 살피고 침착하게 돕는 태도",
+          "규칙을 무시하는 태도",
+          "아무 일에도 관심을 갖지 않는 태도",
+          "빠르게 뛰기만 하는 태도",
+        ],
+        correctIndex: 0,
+        explanation:
+          "많은 사람이 이용하는 공간에서는 관찰력과 침착함, 책임감이 중요합니다.",
+      },
+      {
+        id:           "railway-police-3",
+        question:     "철도경찰에 대한 설명으로 올바른 것은 무엇일까요?",
+        options: [
+          "철도와 역의 안전을 지키는 일을 한다",
+          "기차를 직접 운전하는 일이 전부다",
+          "음식을 만드는 일을 한다",
+          "동물을 치료하는 일을 한다",
+        ],
+        correctIndex: 0,
+        explanation:
+          "철도경찰은 열차 운전자가 아니라 철도 공간의 안전과 질서를 돕는 경찰입니다.",
+      },
+    ],
+  },
+
+  // ── 사이버수사관 (cyber-investigator) ────────────────────────
+  {
+    occupationId:   "cyber-investigator",
+    occupationName: "사이버수사관",
+    questions: [
+      {
+        id:           "cyber-investigator-1",
+        question:     "사이버수사관이 주로 살펴보는 공간은 어디일까요?",
+        options: [
+          "인터넷과 디지털 공간",
+          "산 정상",
+          "동물병원",
+          "농장",
+        ],
+        correctIndex: 0,
+        explanation:
+          "사이버수사관은 온라인에서 일어나는 피해나 범죄 단서를 조사하는 일을 합니다.",
+      },
+      {
+        id:           "cyber-investigator-2",
+        question:     "사이버수사관에게 필요한 태도로 알맞은 것은 무엇일까요?",
+        options: [
+          "작은 단서를 차분히 살피고 책임감 있게 행동하는 태도",
+          "남의 정보를 함부로 보는 태도",
+          "장난으로 링크를 보내는 태도",
+          "규칙을 무시하는 태도",
+        ],
+        correctIndex: 0,
+        explanation:
+          "디지털 공간을 다룰 때는 책임감과 윤리 의식이 중요합니다.",
+      },
+      {
+        id:           "cyber-investigator-3",
+        question:     "사이버수사관에 대해 올바른 설명은 무엇일까요?",
+        options: [
+          "인터넷 범죄 단서를 조사하고 안전한 온라인 생활을 돕는다",
+          "해킹 방법을 마음대로 알려주는 사람이다",
+          "열차를 운전하는 사람이다",
+          "옷을 디자인하는 사람이다",
+        ],
+        correctIndex: 0,
+        explanation:
+          "사이버수사관은 온라인 안전을 지키기 위해 디지털 단서를 조사하는 직업입니다.",
+      },
+    ],
+  },
+
 ];
