@@ -8,14 +8,29 @@
 //   - 무료: 월 3개, 저장 없음, remainingCount = 0 되면 업그레이드 안내
 //   - 유료: 남은 횟수 표시, 이어가기(sessionId) 지원
 //   - 자녀 프로필이 있으면 childId 자동 연동
+//
+// [UX 개선 — P0]
+//   - Welcome 메시지: 자녀 이름 기반 환영 문구
+//   - 추천 질문 칩: 클릭 → 입력창 채움 (자동 전송 없음)
+//   - 신뢰/면책 문구: 입력창 하단
+//   - 무료 제한 안내: 경고 배너 → 작은 헤더 배지로 위계 낮춤
+//   - 한도 종료 CTA: 목적 지향 문구
 // ====================================================
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { Send, ChevronLeft, RefreshCw, Info, Clock } from "lucide-react";
+import { Send, ChevronLeft, RefreshCw, Clock } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { getFirstActiveChild } from "@/lib/db/family";
 import { FEATURE_FLAGS } from "@/lib/featureFlags";
+
+// ── 추천 질문 칩 ──
+const SUGGESTED_QUESTIONS = [
+  "아이가 장래희망이 없다고 할 때 어떻게 대화하면 좋을까요?",
+  "아이가 유튜브 크리에이터에 관심이 있는데 집에서 어떻게 도와줄까요?",
+  "아이가 관심 있어 하는 직업이 자주 바뀌는데 괜찮을까요?",
+  "아이가 좋아하는 것을 진로와 어떻게 연결해 볼 수 있을까요?",
+] as const;
 
 // ── 채팅 메시지 타입 ──
 type ChatRole = "user" | "assistant" | "system";
@@ -110,6 +125,7 @@ function CounselingPageImpl() {
   const [loading, setLoading]             = useState(false);
   const [sessionId, setSessionId]         = useState<string | null>(null);
   const [childId, setChildId]             = useState<string | null>(null);
+  const [childName, setChildName]         = useState<string | null>(null);
   const [remainingCount, setRemaining]    = useState<number | null>(null);
   const [isFree, setIsFree]               = useState<boolean | null>(null);
   const [limitReached, setLimitReached]   = useState(false);
@@ -132,10 +148,13 @@ function CounselingPageImpl() {
 
       if (!parentRow) { setInitError("학부모 정보를 불러오지 못했어요."); return; }
 
-      // 자녀 프로필 조회 (system prompt 연동용)
+      // 자녀 프로필 조회 (system prompt 연동 + 이름 표시용)
       try {
         const child = await getFirstActiveChild(parentRow.id);
-        if (child) setChildId(child.id);
+        if (child) {
+          setChildId(child.id);
+          setChildName(child.name ?? null);
+        }
       } catch {
         // 자녀 없어도 상담 진행 가능
       }
@@ -294,6 +313,9 @@ function CounselingPageImpl() {
     return "mx-auto bg-base-off text-base-muted text-center rounded-2xl text-xs";
   }
 
+  // 대화가 시작된 상태인지 (WELCOME_MSG 이외 메시지 존재)
+  const isConversationStarted = messages.length > 1;
+
   return (
     <div className="min-h-screen bg-base-off flex justify-center">
       <div className="w-full max-w-mobile bg-white min-h-screen flex flex-col">
@@ -313,27 +335,24 @@ function CounselingPageImpl() {
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-bold text-base-text">AI 진로 상담</h1>
             <p className="text-xs text-base-muted">
-              {childId ? "자녀 프로필 연동됨" : "일반 진로 설계 모드"}
+              {childId ? "자녀 맞춤형 상담" : "진로 설계 도우미"}
             </p>
           </div>
 
-          {/* 남은 횟수 배지 */}
-          {remainingCount !== null && (
-            <span
-              className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                remainingCount === 0
-                  ? "bg-red-50 text-red-500"
-                  : "bg-brand-light text-brand-red"
-              }`}
-            >
-              {remainingCount === 0
-                ? "이번 달 종료"
-                : `이번 달 ${remainingCount}회 남음`}
+          {/* 남은 무료 상담 배지 — 작은 chip 형태, 위계 낮춤 */}
+          {remainingCount !== null && !limitReached && (
+            <span className="text-xs text-base-muted px-2 py-1 rounded-full bg-base-off border border-base-border whitespace-nowrap">
+              무료 {remainingCount}회 남음
+            </span>
+          )}
+          {remainingCount !== null && limitReached && (
+            <span className="text-xs text-red-400 px-2 py-1 rounded-full bg-red-50 whitespace-nowrap">
+              이번 달 종료
             </span>
           )}
 
           {/* 새 대화 버튼 */}
-          {messages.length > 1 && (
+          {isConversationStarted && (
             <button
               onClick={handleNewSession}
               className="p-1.5 rounded-full hover:bg-base-off transition-colors"
@@ -352,27 +371,59 @@ function CounselingPageImpl() {
           </div>
         )}
 
-        {/* 무료 플랜 안내 배너 */}
-        {isFree && !limitReached && (
-          <div className="mx-4 mt-3 p-3 bg-amber-50 border border-amber-200 rounded-button flex gap-2 text-xs text-amber-700">
-            <Info size={14} className="mt-0.5 shrink-0" />
-            <span>
-              무료 플랜은 매달 3개 메시지를 이용할 수 있어요.
-              더 많은 상담이 필요하다면 베이직 이상 플랜을 고려해 보세요.
-            </span>
-          </div>
-        )}
-
         {/* 메시지 목록 */}
         <div className="flex-1 overflow-y-auto px-4 py-4 flex flex-col gap-3">
-          {messages.map((msg, i) => (
-            <div
-              key={i}
-              className={`max-w-[85%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${bubbleStyle(msg.role)}`}
-            >
-              {msg.content}
+
+          {/* ── Welcome 카드 + 추천 질문 칩 (대화 시작 전만 표시) ── */}
+          {!isConversationStarted && !limitReached && (
+            <div className="mb-1">
+              {/* 환영 메시지 */}
+              <div className="mb-4">
+                <p className="text-base font-bold text-base-text leading-snug">
+                  {childName
+                    ? `안녕하세요, ${childName} 부모님.`
+                    : "안녕하세요."}
+                </p>
+                <p className="text-sm text-base-muted mt-1 leading-relaxed">
+                  오늘 아이의 어떤 관심과 가능성에 대해 이야기해 볼까요?
+                </p>
+                <p className="text-xs text-base-muted mt-2">
+                  아래 질문을 선택하거나 직접 입력해 보세요.
+                </p>
+              </div>
+
+              {/* 추천 질문 칩 */}
+              <div className="flex flex-col gap-2">
+                {SUGGESTED_QUESTIONS.map((q) => (
+                  <button
+                    key={q}
+                    onClick={() => setInput(q)}
+                    className="
+                      text-left text-sm px-4 py-3 rounded-2xl border border-base-border
+                      bg-base-off text-base-text leading-snug
+                      hover:border-brand-red hover:bg-brand-light transition-colors
+                    "
+                  >
+                    {q}
+                  </button>
+                ))}
+              </div>
             </div>
-          ))}
+          )}
+
+          {/* 채팅 메시지 (WELCOME_MSG system 말풍선은 대화 시작 후에만 표시) */}
+          {messages.map((msg, i) => {
+            // 대화 시작 전 WELCOME_MSG system 메시지는 별도 Welcome 카드로 대체
+            if (i === 0 && msg.role === "system" && !isConversationStarted) return null;
+            return (
+              <div
+                key={i}
+                className={`max-w-[85%] px-4 py-3 text-sm leading-relaxed whitespace-pre-wrap ${bubbleStyle(msg.role)}`}
+              >
+                {msg.content}
+              </div>
+            );
+          })}
 
           {/* 로딩 인디케이터 */}
           {loading && (
@@ -388,68 +439,78 @@ function CounselingPageImpl() {
           <div ref={bottomRef} />
         </div>
 
-        {/* 한도 초과 안내 */}
+        {/* 한도 초과 안내 — 목적 지향 문구 */}
         {limitReached && (
-          <div className="mx-4 mb-3 p-4 bg-base-off rounded-button text-center">
+          <div className="mx-4 mb-3 p-4 bg-base-off rounded-2xl text-center">
             <p className="text-sm font-semibold text-base-text mb-1">
-              이번 달 상담을 모두 탐색했어요
+              이번 달 준비된 무료 맞춤 상담을 모두 사용했어요.
             </p>
-            <p className="text-xs text-base-muted mb-3">
-              {isFree
-                ? "베이직 이상 플랜에서 매달 더 많은 상담을 이용할 수 있어요."
-                : "다음 달 1일에 다시 시작하거나 플랜을 살펴보세요."}
+            <p className="text-xs text-base-muted mb-3 leading-relaxed">
+              {childName
+                ? `${childName}의 진로 탐색을 계속 이어가고 싶다면 맞춤 플랜을 살펴보세요.`
+                : "아이의 진로 탐색을 계속 이어가고 싶다면 맞춤 플랜을 살펴보세요."}
             </p>
             <button
-              onClick={() => router.push("/settings")}
-              className="text-xs font-semibold text-brand-red underline underline-offset-2"
+              onClick={() => router.push("/pricing")}
+              className="px-4 py-2 rounded-button text-xs font-semibold text-white transition-opacity"
+              style={{ backgroundColor: "#E84B2E" }}
             >
-              플랜 살펴보기
+              맞춤 진로 플랜 시작하기
             </button>
           </div>
         )}
 
-        {/* 입력창 */}
+        {/* 입력 영역 */}
         <div
-          className="border-t border-base-border px-4 py-3 flex gap-2 items-end bg-white"
-          style={{ paddingBottom: "env(safe-area-inset-bottom, 12px)" }}
+          className="border-t border-base-border px-4 pt-3 pb-2 bg-white"
+          style={{ paddingBottom: "max(8px, env(safe-area-inset-bottom, 8px))" }}
         >
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder={
-              limitReached
-                ? "이번 달 상담 횟수를 모두 사용했어요"
-                : "메시지를 입력하세요… (Enter로 전송)"
-            }
-            disabled={limitReached || loading}
-            rows={1}
-            className="
-              flex-1 resize-none rounded-button border border-base-border
-              px-3 py-2.5 text-sm text-base-text bg-white
-              focus:outline-none focus:border-brand-red transition-colors
-              placeholder:text-base-muted disabled:bg-base-off disabled:text-base-muted
-              max-h-32 overflow-y-auto
-            "
-            style={{ minHeight: "42px" }}
-            onInput={(e) => {
-              const el = e.currentTarget;
-              el.style.height = "auto";
-              el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
-            }}
-          />
-          <button
-            onClick={handleSend}
-            disabled={!input.trim() || loading || limitReached}
-            className="
-              p-2.5 rounded-button text-white transition-opacity
-              disabled:opacity-40
-            "
-            style={{ backgroundColor: "#E84B2E" }}
-            aria-label="전송"
-          >
-            <Send size={16} strokeWidth={2} />
-          </button>
+          <div className="flex gap-2 items-end">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={
+                limitReached
+                  ? "이번 달 상담 횟수를 모두 사용했어요"
+                  : "메시지를 입력하세요… (Enter로 전송)"
+              }
+              disabled={limitReached || loading}
+              rows={1}
+              className="
+                flex-1 resize-none rounded-button border border-base-border
+                px-3 py-2.5 text-sm text-base-text bg-white
+                focus:outline-none focus:border-brand-red transition-colors
+                placeholder:text-base-muted disabled:bg-base-off disabled:text-base-muted
+                max-h-32 overflow-y-auto
+              "
+              style={{ minHeight: "42px" }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = "auto";
+                el.style.height = `${Math.min(el.scrollHeight, 128)}px`;
+              }}
+            />
+            <button
+              onClick={handleSend}
+              disabled={!input.trim() || loading || limitReached}
+              className="
+                p-2.5 rounded-button text-white transition-opacity
+                disabled:opacity-40
+              "
+              style={{ backgroundColor: "#E84B2E" }}
+              aria-label="전송"
+            >
+              <Send size={16} strokeWidth={2} />
+            </button>
+          </div>
+
+          {/* 신뢰/면책 문구 */}
+          {!limitReached && (
+            <p className="mt-1.5 text-[11px] text-base-muted leading-relaxed">
+              💡 AI 답변은 아이의 가능성을 넓히기 위한 참고 제안입니다. 아이의 반응을 보며 가볍게 대화로 시작해 보세요.
+            </p>
+          )}
         </div>
 
       </div>
