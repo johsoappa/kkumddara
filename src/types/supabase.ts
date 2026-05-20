@@ -14,7 +14,14 @@ export type GradeLevel =
   | "middle_1" | "middle_2" | "middle_3"
   | "high_1" | "high_2" | "high_3";
 
-export type InterestField = "it" | "art" | "medical" | "business" | "education";
+export type InterestField =
+  | "it"
+  | "art"
+  | "medical"
+  | "business"
+  | "education"
+  | "environment"
+  | "public_safety";
 
 export type UserRole = "parent" | "student";
 

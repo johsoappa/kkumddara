@@ -14,7 +14,14 @@ export type GradeLevel =
   | "middle_1" | "middle_2" | "middle_3"
   | "high_1" | "high_2" | "high_3";
 
-export type InterestField = "it" | "art" | "medical" | "business" | "education";
+export type InterestField =
+  | "it"
+  | "art"
+  | "medical"
+  | "business"
+  | "education"
+  | "environment"
+  | "public_safety";
 
 export type UserRole = "parent" | "student";
 
@@ -225,11 +232,13 @@ export const VALID_GRADE_LEVELS: readonly GradeLevel[] = [
 ] as const;
 
 export const INTEREST_LABEL: Record<InterestField, string> = {
-  it:        "IT·기술",
-  art:       "예술·디자인",
-  medical:   "의료·과학",
-  business:  "비즈니스",
-  education: "교육·사회",
+  it:            "IT·기술",
+  art:           "예술·디자인",
+  medical:       "의료·과학",
+  business:      "비즈니스",
+  education:     "교육·사회",
+  environment:   "환경·미래산업",
+  public_safety: "공공·안전",
 };
 
 export const SPROUT_GRADES = new Set<Grade>(["elementary3", "elementary4"]);

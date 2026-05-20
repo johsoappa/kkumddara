@@ -30,7 +30,7 @@ export const VALID_GRADES_LIST: Grade[] = [
 ];
 
 export const VALID_INTERESTS_LIST: InterestField[] = [
-  "it", "art", "medical", "business", "education",
+  "it", "art", "medical", "business", "education", "environment", "public_safety",
 ];
 
 export const VALID_ROLES = ["parent", "student"] as const;
