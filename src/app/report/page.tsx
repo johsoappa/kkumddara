@@ -1,20 +1,17 @@
 "use client";
 
 // ====================================================
-// 부모 주간 리포트 (/report) — 베타 v3
-// [2026-05] 그래프/시각 요약 보정
+// 부모 주간 리포트 (/report) — 베타 v4
+// [2026-05] 추천 활동 완료 저장 + 지난주 vs 이번 주 비교 그래프
 //
-// [추가된 시각 요소]
-//   - 이번 주 관심 요약 카드 3개 (관심 직업 수 / 가장 많이 본 분야 / 추천 대화)
-//   - 관심 분야 분포 막대 그래프 (CSS/Tailwind 기반, 차트 라이브러리 미사용)
-//   - 추천 활동 체크형 카드 (시각용 표시, 저장 기능 미포함)
-//
-// [데이터 변경]
-//   occupation_master 매칭 범위: top3 → 최대 20개 (그래프 계산용)
-//   추가 테이블 없음 / migration 없음 / RLS 변경 없음
+// [추가된 기능]
+//   - weekly_activity_completions 완료 저장 (upsert/update)
+//   - 낙관적 업데이트 + 롤백
+//   - 지난주 vs 이번 주 실천 미션 비교 막대 그래프
 //
 // [변경하지 않은 것]
-//   DB schema / RLS / auth / AI 상담 API / 명따라 / 요금제 / 직업 데이터
+//   AI 상담 API / 명따라 / 요금제 / 직업 데이터 / liked_occupations 구조 /
+//   부모 홈 좋아요 카드 / /explore / RLS 과도한 완화 / 차트 라이브러리
 // ====================================================
 
 import { useState, useEffect, useRef } from "react";
@@ -39,6 +36,34 @@ function get7DaysAgoISO(): string {
   return d.toISOString();
 }
 
+// 로컬 시간 기준 YYYY-MM-DD 반환 (UTC 오프셋 보정)
+function getLocalDateString(d: Date): string {
+  const y   = d.getFullYear();
+  const m   = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+// 이번 주 월요일 (로컬 기준)
+function getWeekStartDate(): string {
+  const now  = new Date();
+  const dow  = now.getDay(); // 0=일, 1=월 ...
+  const diff = dow === 0 ? -6 : 1 - dow;
+  const mon  = new Date(now);
+  mon.setDate(now.getDate() + diff);
+  return getLocalDateString(mon);
+}
+
+// 지난주 월요일 (로컬 기준)
+function getPrevWeekStartDate(): string {
+  const now  = new Date();
+  const dow  = now.getDay();
+  const diff = dow === 0 ? -6 : 1 - dow;
+  const mon  = new Date(now);
+  mon.setDate(now.getDate() + diff - 7);
+  return getLocalDateString(mon);
+}
+
 // ── 타입 ───────────────────────────────────────────────────
 
 type LikedOcc = {
@@ -56,14 +81,17 @@ type CategoryEntry = {
 };
 
 type ReportData = {
-  childName:          string;
-  likedOccs:          LikedOcc[];  // 화면 표시용 top 3
-  allMatchedOccs:     LikedOcc[];  // 그래프 계산용 최대 20개
-  totalLikedCount:    number;      // 전체 좋아요 수 (요약 카드용)
-  displayTotal:       number;      // 표시 대상 총 개수 (7일 or 전체)
-  isRecent7Days:      boolean;
-  recommendedAction:  string | null;
-  recommendedOccName: string | null;
+  childId:               string;
+  childName:             string;
+  likedOccs:             LikedOcc[];  // 화면 표시용 top 3
+  allMatchedOccs:        LikedOcc[];  // 그래프 계산용 최대 20개
+  totalLikedCount:       number;      // 전체 좋아요 수 (요약 카드용)
+  displayTotal:          number;      // 표시 대상 총 개수 (7일 or 전체)
+  isRecent7Days:         boolean;
+  recommendedAction:     string | null;
+  recommendedOccName:    string | null;
+  recommendedActionId:   string | null;   // occupation_student_actions.id
+  recommendedOccMasterId: string | null;  // occupation_master.id
 };
 
 // ── 관심 분야 분포 계산 ────────────────────────────────────
@@ -156,19 +184,29 @@ function FadeInSection({
 export default function ReportPage() {
   const router = useRouter();
 
+  // ── 리포트 로딩 상태 ──────────────────────────────────────
   const [loading, setLoading] = useState(true);
   const [error,   setError]   = useState(false);
   const [noChild, setNoChild] = useState(false);
   const [report,  setReport]  = useState<ReportData | null>(null);
 
+  // ── 완료 저장 상태 ────────────────────────────────────────
+  const [isCompleted,       setIsCompleted]       = useState(false);
+  const [thisWeekCount,     setThisWeekCount]     = useState(0);
+  const [lastWeekCount,     setLastWeekCount]     = useState(0);
+  const [completionLoaded,  setCompletionLoaded]  = useState(false);
+  const [completionSaving,  setCompletionSaving]  = useState(false);
+  const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // ── 리포트 데이터 로딩 ────────────────────────────────────
   useEffect(() => {
     async function loadReport() {
       try {
-        // ── 1. 인증 ───────────────────────────────────────
+        // 1. 인증
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) { router.replace("/"); return; }
 
-        // ── 2. parent 확인 ────────────────────────────────
+        // 2. parent 확인
         const { data: parentData } = await supabase
           .from("parent")
           .select("id")
@@ -176,7 +214,7 @@ export default function ReportPage() {
           .maybeSingle();
         if (!parentData) { router.replace("/"); return; }
 
-        // ── 3. 첫 번째 active child ───────────────────────
+        // 3. 첫 번째 active child
         const { data: childData } = await supabase
           .from("child")
           .select("id, name")
@@ -190,7 +228,7 @@ export default function ReportPage() {
         const childId   = childData.id   as string;
         const childName = childData.name as string;
 
-        // ── 4. 최근 7일 + 전체 liked_occupations (병렬) ───
+        // 4. 최근 7일 + 전체 liked_occupations (병렬)
         const sevenDaysAgo = get7DaysAgoISO();
         const [recentRes, allRes] = await Promise.all([
           supabase
@@ -213,8 +251,7 @@ export default function ReportPage() {
         const displayTotal    = displayRows.length;
         const totalLikedCount = allRows.length;
 
-        // ── 5. occupation_master 매칭 (그래프用: 최대 20개) ─
-        //   top3 표시 + 최대 20개 그래프 계산을 한 번에 처리
+        // 5. occupation_master 매칭 (그래프用: 최대 20개)
         const graphIds = displayRows
           .slice(0, 20)
           .map((r) => r.occupation_id as string);
@@ -231,7 +268,6 @@ export default function ReportPage() {
         let allMatchedOccs: LikedOcc[] = [];
 
         if (graphIds.length > 0) {
-          // legacy_occupation_id 우선 조회
           const { data: byLegacy } = await supabase
             .from("occupation_master")
             .select("id, slug, name_ko, emoji, category, legacy_occupation_id")
@@ -267,7 +303,6 @@ export default function ReportPage() {
             });
           }
 
-          // graphIds 순서 유지 (liked_at desc 순)
           allMatchedOccs = graphIds
             .map((id) => {
               const info = masterMap.get(id);
@@ -285,15 +320,19 @@ export default function ReportPage() {
 
         const likedOccs = allMatchedOccs.slice(0, 3);
 
-        // ── 6. 추천 활동 (첫 번째 관심 직업, stage_number=1) ─
-        let recommendedAction:  string | null = null;
-        let recommendedOccName: string | null = null;
+        // 6. 추천 활동 (첫 번째 관심 직업, stage_number=1) — id 포함 조회
+        let recommendedAction:      string | null = null;
+        let recommendedOccName:     string | null = null;
+        let recommendedActionId:    string | null = null;
+        let recommendedOccMasterId: string | null = null;
 
         if (likedOccs.length > 0) {
-          recommendedOccName = likedOccs[0].name;
+          recommendedOccName     = likedOccs[0].name;
+          recommendedOccMasterId = likedOccs[0].masterId;
+
           const { data: actionRow } = await supabase
             .from("occupation_student_actions")
-            .select("action_text")
+            .select("id, action_text")
             .eq("occupation_id", likedOccs[0].masterId)
             .eq("stage_number", 1)
             .eq("is_current", true)
@@ -302,10 +341,15 @@ export default function ReportPage() {
             .order("display_order", { ascending: true })
             .limit(1)
             .maybeSingle();
-          recommendedAction = actionRow?.action_text ?? null;
+
+          if (actionRow) {
+            recommendedAction   = actionRow.action_text as string;
+            recommendedActionId = actionRow.id          as string;
+          }
         }
 
         setReport({
+          childId,
           childName,
           likedOccs,
           allMatchedOccs,
@@ -314,6 +358,8 @@ export default function ReportPage() {
           isRecent7Days: isRecent7,
           recommendedAction,
           recommendedOccName,
+          recommendedActionId,
+          recommendedOccMasterId,
         });
       } catch (err) {
         console.error("[report] loadReport 오류:", err);
@@ -325,6 +371,120 @@ export default function ReportPage() {
 
     loadReport();
   }, [router]);
+
+  // ── 완료 상태 로딩 (리포트 로딩 후 실행) ─────────────────
+  useEffect(() => {
+    if (!report) return;
+
+    // action_id 없으면 저장 불가 → 스킵
+    if (!report.recommendedActionId) {
+      setCompletionLoaded(true);
+      return;
+    }
+
+    async function loadCompletions() {
+      const thisWeekStart = getWeekStartDate();
+      const prevWeekStart = getPrevWeekStartDate();
+
+      try {
+        // weekly_activity_completions 는 migration 046 적용 후 types에 추가됨
+        // 그 전까지는 any 캐스팅으로 타입 오류 우회
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const wac = supabase.from("weekly_activity_completions" as any);
+
+        // 현재 주 완료 여부
+        const { data: currentRow } = await (wac as any)
+          .select("is_completed")
+          .eq("child_id", report!.childId)
+          .eq("action_id", report!.recommendedActionId!)
+          .eq("week_start_date", thisWeekStart)
+          .maybeSingle() as { data: { is_completed: boolean } | null };
+
+        setIsCompleted((currentRow as { is_completed: boolean } | null)?.is_completed ?? false);
+
+        // 이번 주 전체 완료 수
+        const { count: twCount } = await supabase
+          .from("weekly_activity_completions" as any)
+          .select("id", { count: "exact", head: true })
+          .eq("child_id", report!.childId)
+          .eq("week_start_date", thisWeekStart)
+          .eq("is_completed", true) as { count: number | null };
+
+        // 지난주 전체 완료 수
+        const { count: lwCount } = await supabase
+          .from("weekly_activity_completions" as any)
+          .select("id", { count: "exact", head: true })
+          .eq("child_id", report!.childId)
+          .eq("week_start_date", prevWeekStart)
+          .eq("is_completed", true) as { count: number | null };
+
+        setThisWeekCount(twCount ?? 0);
+        setLastWeekCount(lwCount ?? 0);
+      } catch (err) {
+        console.error("[report] loadCompletions 오류:", err);
+      } finally {
+        setCompletionLoaded(true);
+      }
+    }
+
+    loadCompletions();
+  }, [report]);
+
+  // ── 완료 토글 ──────────────────────────────────────────────
+  async function handleToggleCompletion() {
+    if (!report || !report.recommendedActionId || !report.recommendedOccMasterId) return;
+    if (completionSaving) return;
+
+    const newValue      = !isCompleted;
+    const thisWeekStart = getWeekStartDate();
+
+    // 낙관적 업데이트
+    setIsCompleted(newValue);
+    setThisWeekCount((c) => newValue ? c + 1 : Math.max(0, c - 1));
+    setCompletionSaving(true);
+    setSaveStatus("saving");
+
+    try {
+      if (newValue) {
+        // 체크: upsert (migration 046 적용 전 any 캐스팅)
+        const { error } = await supabase
+          .from("weekly_activity_completions" as any)
+          .upsert(
+            {
+              child_id:        report.childId,
+              occupation_id:   report.recommendedOccMasterId,
+              action_id:       report.recommendedActionId,
+              week_start_date: thisWeekStart,
+              is_completed:    true,
+              completed_at:    new Date().toISOString(),
+            } as never,
+            { onConflict: "child_id,action_id,week_start_date" }
+          ) as { error: Error | null };
+        if (error) throw error;
+      } else {
+        // 체크 해제: update
+        const { error } = await supabase
+          .from("weekly_activity_completions" as any)
+          .update({ is_completed: false, completed_at: null } as never)
+          .eq("child_id",        report.childId)
+          .eq("action_id",       report.recommendedActionId)
+          .eq("week_start_date", thisWeekStart) as { error: Error | null };
+        if (error) throw error;
+      }
+
+      setSaveStatus("saved");
+      setTimeout(() => setSaveStatus("idle"), 2000);
+    } catch (err) {
+      console.error("[report] completion save 오류:", err);
+      // 롤백
+      setIsCompleted(!newValue);
+      setThisWeekCount((c) => newValue ? Math.max(0, c - 1) : c + 1);
+      setSaveStatus("error");
+      setTimeout(() => setSaveStatus("idle"), 3000);
+    } finally {
+      setCompletionSaving(false);
+    }
+  }
 
   // ── 로딩 ─────────────────────────────────────────────────
   if (loading) {
@@ -400,6 +560,7 @@ export default function ReportPage() {
     childName, likedOccs, allMatchedOccs,
     totalLikedCount, displayTotal,
     isRecent7Days, recommendedAction, recommendedOccName,
+    recommendedActionId,
   } = report;
 
   const categoryDist          = computeCategoryDist(allMatchedOccs);
@@ -407,9 +568,14 @@ export default function ReportPage() {
   const conversationQuestions = buildConversationQuestions(likedOccs);
   const remainingCount        = Math.max(0, displayTotal - 3);
 
-  // 추천 활동 fallback — 단일 따옴표 사용 (curly quote 인코딩 회피)
+  // 추천 활동 fallback — 단일 따옴표 사용
   const fallbackActivity =
     "관심 있는 직업 하나를 고르고 '이 일을 하는 사람은 누구를 도와줄까?'를 함께 이야기해보세요.";
+
+  // 비교 그래프용 높이 계산
+  const maxCount        = Math.max(thisWeekCount, lastWeekCount, 1);
+  const thisWeekBarH    = Math.max(8, Math.round((thisWeekCount / maxCount) * 60));
+  const lastWeekBarH    = Math.max(8, Math.round((lastWeekCount / maxCount) * 60));
 
   return (
     <AppShell headerTitle="주간 리포트">
@@ -492,7 +658,6 @@ export default function ReportPage() {
             </div>
 
             {likedOccs.length === 0 ? (
-              /* 좋아요 없음 */
               <div className="text-center py-6">
                 <p className="text-2xl mb-2">🤍</p>
                 <p className="text-sm font-semibold text-base-text mb-1">
@@ -562,7 +727,6 @@ export default function ReportPage() {
             </p>
 
             {categoryDist.length === 0 ? (
-              /* 그래프 빈 상태 */
               <div
                 className="flex flex-col items-center justify-center py-5 rounded-button gap-2"
                 style={{ backgroundColor: "#F9FAFB" }}
@@ -585,7 +749,6 @@ export default function ReportPage() {
                         {entry.count}개
                       </span>
                     </div>
-                    {/* 막대 그래프 — CSS 기반, 차트 라이브러리 미사용 */}
                     <div className="h-2 bg-base-off rounded-full overflow-hidden">
                       <div
                         className="h-full rounded-full"
@@ -608,8 +771,80 @@ export default function ReportPage() {
           </div>
         </FadeInSection>
 
-        {/* ⑤ 이번 주 대화 질문 */}
+        {/* ⑤ 지난주 vs 이번 주 실천 미션 비교 */}
         <FadeInSection delay={160}>
+          <div className="card">
+            <h2 className="text-sm font-bold text-base-text mb-1">실천 미션 비교</h2>
+            <p className="text-[11px] text-base-muted mb-4 leading-relaxed">
+              지난주 대비 이번 주 완료한 추천 활동 수예요.
+            </p>
+
+            {completionLoaded ? (
+              <>
+                {/* 막대 비교 그래프 */}
+                <div className="flex gap-6 items-end justify-center py-2">
+                  {/* 지난주 */}
+                  <div className="flex flex-col items-center gap-1.5">
+                    <span className="text-xs font-bold text-base-muted">{lastWeekCount}</span>
+                    <div
+                      className="w-12 rounded-t-sm transition-all duration-700"
+                      style={{
+                        height:          `${lastWeekBarH}px`,
+                        backgroundColor: "#D1D5DB",
+                      }}
+                    />
+                    <span className="text-[10px] text-base-muted">지난주</span>
+                  </div>
+
+                  {/* 이번 주 */}
+                  <div className="flex flex-col items-center gap-1.5">
+                    <span
+                      className="text-xs font-bold"
+                      style={{ color: "#E84B2E" }}
+                    >
+                      {thisWeekCount}
+                    </span>
+                    <div
+                      className="w-12 rounded-t-sm transition-all duration-700"
+                      style={{
+                        height:          `${thisWeekBarH}px`,
+                        backgroundColor: "#E84B2E",
+                      }}
+                    />
+                    <span className="text-[10px] text-base-muted">이번 주</span>
+                  </div>
+                </div>
+
+                {/* 축하 / 안내 메시지 */}
+                {thisWeekCount > 0 && thisWeekCount > lastWeekCount && (
+                  <p className="text-xs font-semibold text-center mt-2" style={{ color: "#E84B2E" }}>
+                    🎉 지난주보다 {thisWeekCount - lastWeekCount}개 더 완료했어요!
+                  </p>
+                )}
+                {thisWeekCount === 0 && (
+                  <p className="text-[11px] text-base-muted text-center mt-3">
+                    이번 주 추천 활동을 완료하면 여기에 표시돼요.
+                  </p>
+                )}
+              </>
+            ) : (
+              /* 로딩 스켈레톤 */
+              <div className="flex gap-6 items-end justify-center py-2">
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="w-12 h-10 bg-base-border rounded animate-pulse" />
+                  <span className="text-[10px] text-base-muted">지난주</span>
+                </div>
+                <div className="flex flex-col items-center gap-1.5">
+                  <div className="w-12 h-10 bg-base-border rounded animate-pulse" />
+                  <span className="text-[10px] text-base-muted">이번 주</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </FadeInSection>
+
+        {/* ⑥ 이번 주 대화 질문 */}
+        <FadeInSection delay={200}>
           <div className="card">
             <h2 className="text-sm font-bold text-base-text mb-3">이번 주 대화 질문</h2>
             <div className="flex flex-col gap-3">
@@ -631,8 +866,8 @@ export default function ReportPage() {
           </div>
         </FadeInSection>
 
-        {/* ⑥ 이번 주 추천 활동 — 체크형 카드 (시각용, 저장 기능 없음) */}
-        <FadeInSection delay={200}>
+        {/* ⑦ 이번 주 추천 활동 — 완료 저장 가능 체크형 카드 */}
+        <FadeInSection delay={240}>
           <div className="card">
             <div className="flex items-center gap-2 mb-3">
               <BookOpen size={15} className="text-brand-red shrink-0" />
@@ -640,38 +875,88 @@ export default function ReportPage() {
             </div>
 
             {/* 체크형 활동 행 */}
-            <div
-              className="flex items-start gap-3 p-3 rounded-button"
+            <button
+              onClick={recommendedActionId ? handleToggleCompletion : undefined}
+              disabled={!recommendedActionId || completionSaving}
+              className={[
+                "flex items-start gap-3 p-3 rounded-button w-full text-left",
+                "transition-opacity",
+                (recommendedActionId && !completionSaving)
+                  ? "hover:opacity-80 active:opacity-60"
+                  : "cursor-default",
+              ].join(" ")}
               style={{ backgroundColor: "#F9FAFB" }}
+              aria-label={isCompleted ? "활동 완료 취소" : "활동 완료 체크"}
             >
-              {/* 체크박스 — 시각 표시용, 클릭 동작 없음 */}
+              {/* 체크박스 */}
               <div
-                className="w-5 h-5 rounded border-2 shrink-0 mt-0.5 flex items-center justify-center"
-                style={{ borderColor: "#D1D5DB", backgroundColor: "#fff" }}
-                aria-hidden="true"
-              />
-              <p className="text-sm text-base-text leading-relaxed flex-1">
+                className="w-5 h-5 rounded border-2 shrink-0 mt-0.5 flex items-center justify-center transition-colors"
+                style={{
+                  borderColor:     isCompleted ? "#E84B2E" : "#D1D5DB",
+                  backgroundColor: isCompleted ? "#E84B2E" : "#fff",
+                }}
+              >
+                {isCompleted && (
+                  <svg
+                    width="10" height="8" viewBox="0 0 10 8" fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      d="M1 4L3.5 6.5L9 1"
+                      stroke="white" strokeWidth="1.8"
+                      strokeLinecap="round" strokeLinejoin="round"
+                    />
+                  </svg>
+                )}
+              </div>
+              <p
+                className="text-sm leading-relaxed flex-1"
+                style={{
+                  color:          isCompleted ? "#9CA3AF" : "inherit",
+                  textDecoration: isCompleted ? "line-through" : "none",
+                }}
+              >
                 {recommendedAction ?? fallbackActivity}
               </p>
-            </div>
+            </button>
 
-            {recommendedOccName && recommendedAction && (
-              <p className="text-xs text-base-muted mt-2">
-                관련 직업: {recommendedOccName}
-              </p>
-            )}
+            {/* 관련 직업 + 저장 상태 */}
+            <div className="mt-2 flex items-center justify-between">
+              {recommendedOccName && recommendedAction ? (
+                <p className="text-xs text-base-muted">관련 직업: {recommendedOccName}</p>
+              ) : (
+                <span />
+              )}
+
+              {/* 저장 상태 메시지 */}
+              {saveStatus === "saving" && (
+                <p className="text-[11px] text-base-muted animate-pulse">저장 중...</p>
+              )}
+              {saveStatus === "saved" && (
+                <p className="text-[11px] font-semibold" style={{ color: "#E84B2E" }}>
+                  ✓ 저장됨
+                </p>
+              )}
+              {saveStatus === "error" && (
+                <p className="text-[11px] text-red-500">저장 실패 — 다시 시도해주세요</p>
+              )}
+            </div>
 
             <p className="text-[11px] text-base-muted mt-2 leading-relaxed">
               💡 부모와 함께 안전하게 할 수 있는 활동입니다.
             </p>
-            <p className="text-[10px] text-base-muted mt-1 opacity-60">
-              완료 체크 저장 기능은 준비 중이에요.
-            </p>
+
+            {/* action_id 없으면 저장 불가 안내 */}
+            {!recommendedActionId && (
+              <p className="text-[10px] text-base-muted mt-1 opacity-60">
+                이번 주 추천 직업이 없어 완료 저장이 지원되지 않아요.
+              </p>
+            )}
           </div>
         </FadeInSection>
 
-        {/* ⑦ AI 상담 CTA */}
-        <FadeInSection delay={240}>
+        {/* ⑧ AI 상담 CTA */}
+        <FadeInSection delay={280}>
           <div className="card">
             <div className="flex items-center gap-2 mb-2">
               <MessageSquare size={15} className="text-brand-red shrink-0" />
@@ -691,8 +976,8 @@ export default function ReportPage() {
           </div>
         </FadeInSection>
 
-        {/* ⑧ 하단 안내 */}
-        <FadeInSection delay={280}>
+        {/* ⑨ 하단 안내 */}
+        <FadeInSection delay={320}>
           <p className="text-[11px] text-base-muted text-center leading-relaxed px-2">
             이 리포트는 자녀의 진로를 단정하지 않습니다.
             <br />아이와 이런 대화를 시작해볼 수 있어요라는 안내로 봐주세요.
@@ -701,7 +986,7 @@ export default function ReportPage() {
         </FadeInSection>
 
         {/* 부모 홈 복귀 */}
-        <FadeInSection delay={320}>
+        <FadeInSection delay={360}>
           <button
             onClick={() => router.push("/parent/home")}
             className="w-full text-center text-xs text-base-muted py-2 underline"
