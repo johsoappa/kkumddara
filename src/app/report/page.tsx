@@ -1,22 +1,17 @@
 "use client";
 
 // ====================================================
-// 부모 주간 리포트 (/report) — 베타 v2
-// [2026-05] 주간 리포트 베타 오픈
+// 부모 주간 리포트 (/report) — 베타 v3
+// [2026-05] 그래프/시각 요약 보정
 //
-// [목적]
-//   부모가 자녀의 관심 직업을 주간 단위로 확인하고
-//   아이와 진로 대화를 시작할 수 있는 최소 리포트 기능 제공
+// [추가된 시각 요소]
+//   - 이번 주 관심 요약 카드 3개 (관심 직업 수 / 가장 많이 본 분야 / 추천 대화)
+//   - 관심 분야 분포 막대 그래프 (CSS/Tailwind 기반, 차트 라이브러리 미사용)
+//   - 추천 활동 체크형 카드 (시각용 표시, 저장 기능 미포함)
 //
-// [데이터 소스]
-//   liked_occupations  → 최근 7일 우선, 없으면 전체 fallback
-//   occupation_master  → 직업명/이모지/카테고리 (legacy_occupation_id→slug 순)
-//   occupation_student_actions → 추천 활동 1개 (stage_number=1)
-//
-// [구현 방식]
-//   - AI 호출 없음 — 대화 질문/활동 모두 템플릿 기반
-//   - 성향 단정 표현 금지
-//   - 위험한 활동 금지
+// [데이터 변경]
+//   occupation_master 매칭 범위: top3 → 최대 20개 (그래프 계산용)
+//   추가 테이블 없음 / migration 없음 / RLS 변경 없음
 //
 // [변경하지 않은 것]
 //   DB schema / RLS / auth / AI 상담 API / 명따라 / 요금제 / 직업 데이터
@@ -31,7 +26,7 @@ import { ChevronRight, MessageSquare, BookOpen } from "lucide-react";
 // ── 날짜 헬퍼 ─────────────────────────────────────────────
 
 function getDateRange(): string {
-  const now = new Date();
+  const now  = new Date();
   const from = new Date(now);
   from.setDate(from.getDate() - 6);
   const fmt = (d: Date) => `${d.getMonth() + 1}월 ${d.getDate()}일`;
@@ -54,14 +49,43 @@ type LikedOcc = {
   category:     string | null;
 };
 
-type ReportData = {
-  childName:           string;
-  likedOccs:           LikedOcc[];   // 화면 표시용 최대 3개
-  displayTotal:        number;       // 화면 표시 대상 총 개수 (7일 or 전체)
-  isRecent7Days:       boolean;      // true=최근 7일, false=전체 fallback
-  recommendedAction:   string | null;
-  recommendedOccName:  string | null;
+type CategoryEntry = {
+  category: string;
+  count:    number;
+  barPct:   number;  // 0–100, max 기준 상대 비율 (시각용)
 };
+
+type ReportData = {
+  childName:          string;
+  likedOccs:          LikedOcc[];  // 화면 표시용 top 3
+  allMatchedOccs:     LikedOcc[];  // 그래프 계산용 최대 20개
+  totalLikedCount:    number;      // 전체 좋아요 수 (요약 카드용)
+  displayTotal:       number;      // 표시 대상 총 개수 (7일 or 전체)
+  isRecent7Days:      boolean;
+  recommendedAction:  string | null;
+  recommendedOccName: string | null;
+};
+
+// ── 관심 분야 분포 계산 ────────────────────────────────────
+// 최대 4개 분야, count 내림차순, 막대 너비 = max 대비 상대 비율
+
+function computeCategoryDist(occs: LikedOcc[]): CategoryEntry[] {
+  if (occs.length === 0) return [];
+  const freq: Record<string, number> = {};
+  for (const occ of occs) {
+    const cat = occ.category?.trim() || "기타";
+    freq[cat] = (freq[cat] ?? 0) + 1;
+  }
+  const sorted = Object.entries(freq)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 4);
+  const maxCount = sorted[0]?.[1] ?? 1;
+  return sorted.map(([cat, cnt]) => ({
+    category: cat,
+    count:    cnt,
+    barPct:   Math.round((cnt / maxCount) * 100),
+  }));
+}
 
 // ── 대화 질문 템플릿 ───────────────────────────────────────
 
@@ -81,7 +105,6 @@ function buildConversationQuestions(occs: LikedOcc[]): string[] {
       `"이번 주에 이 직업과 관련해서 안전하게 해볼 수 있는 작은 활동은 무엇일까?"`,
     ];
   }
-  // 2개 이상
   const a = occs[0].name;
   const b = occs[1].name;
   return [
@@ -89,27 +112,6 @@ function buildConversationQuestions(occs: LikedOcc[]): string[] {
     `"두 직업은 어떤 점이 비슷하고 어떤 점이 다를까?"`,
     `"실제로 해본다면 어떤 활동부터 해보고 싶어?"`,
   ];
-}
-
-// ── 관심 분야 요약 ─────────────────────────────────────────
-
-function buildInterestSummary(occs: LikedOcc[]): string {
-  if (occs.length === 0) {
-    return "아직 탐색 중이에요. 직업 탐색에서 마음에 드는 직업의 하트를 눌러보세요.";
-  }
-  const cats = occs
-    .map((o) => o.category)
-    .filter((c): c is string => Boolean(c));
-  if (cats.length === 0) {
-    return "관심 직업을 바탕으로 탐색 중이에요. 아직 데이터가 적어 탐색 중으로 보는 것이 좋아요.";
-  }
-  const freq: Record<string, number> = {};
-  for (const c of cats) freq[c] = (freq[c] ?? 0) + 1;
-  const sorted = Object.entries(freq).sort((a, b) => b[1] - a[1]);
-  if (sorted.length === 1) {
-    return `이번 주에는 ${sorted[0][0]} 분야에 관심을 보였어요.`;
-  }
-  return `이번 주에는 ${sorted[0][0]}, ${sorted[1][0]} 분야에 관심을 보였어요. 아직 데이터가 적어 탐색 중으로 보는 것이 좋아요.`;
 }
 
 // ── FadeInSection ──────────────────────────────────────────
@@ -121,7 +123,7 @@ function FadeInSection({
   children: React.ReactNode;
   delay?: number;
 }) {
-  const ref = useRef<HTMLDivElement>(null);
+  const ref     = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
@@ -162,28 +164,19 @@ export default function ReportPage() {
   useEffect(() => {
     async function loadReport() {
       try {
-        // ── 1. 인증 확인 ───────────────────────────────────
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          router.replace("/");
-          return;
-        }
+        // ── 1. 인증 ───────────────────────────────────────
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.replace("/"); return; }
 
-        // ── 2. parent 확인 (student 계정이면 / 로 이동) ────
+        // ── 2. parent 확인 ────────────────────────────────
         const { data: parentData } = await supabase
           .from("parent")
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle();
+        if (!parentData) { router.replace("/"); return; }
 
-        if (!parentData) {
-          router.replace("/");
-          return;
-        }
-
-        // ── 3. 첫 번째 active child 조회 ───────────────────
+        // ── 3. 첫 번째 active child ───────────────────────
         const { data: childData } = await supabase
           .from("child")
           .select("id, name")
@@ -192,65 +185,63 @@ export default function ReportPage() {
           .order("created_at", { ascending: true })
           .limit(1)
           .maybeSingle();
+        if (!childData) { setNoChild(true); setLoading(false); return; }
 
-        if (!childData) {
-          setNoChild(true);
-          setLoading(false);
-          return;
-        }
-
-        const childId   = childData.id as string;
+        const childId   = childData.id   as string;
         const childName = childData.name as string;
 
-        // ── 4. 최근 7일 liked_occupations ─────────────────
+        // ── 4. 최근 7일 + 전체 liked_occupations (병렬) ───
         const sevenDaysAgo = get7DaysAgoISO();
+        const [recentRes, allRes] = await Promise.all([
+          supabase
+            .from("liked_occupations")
+            .select("occupation_id")
+            .eq("child_id", childId)
+            .gte("liked_at", sevenDaysAgo)
+            .order("liked_at", { ascending: false }),
+          supabase
+            .from("liked_occupations")
+            .select("occupation_id")
+            .eq("child_id", childId)
+            .order("liked_at", { ascending: false }),
+        ]);
 
-        const { data: recentLiked } = await supabase
-          .from("liked_occupations")
-          .select("occupation_id")
-          .eq("child_id", childId)
-          .gte("liked_at", sevenDaysAgo)
-          .order("liked_at", { ascending: false });
+        const recentRows      = recentRes.data ?? [];
+        const allRows         = allRes.data    ?? [];
+        const isRecent7       = recentRows.length > 0;
+        const displayRows     = isRecent7 ? recentRows : allRows;
+        const displayTotal    = displayRows.length;
+        const totalLikedCount = allRows.length;
 
-        // ── 5. 전체 liked_occupations (fallback + total) ───
-        const { data: allLiked } = await supabase
-          .from("liked_occupations")
-          .select("occupation_id")
-          .eq("child_id", childId)
-          .order("liked_at", { ascending: false });
+        // ── 5. occupation_master 매칭 (그래프用: 최대 20개) ─
+        //   top3 표시 + 최대 20개 그래프 계산을 한 번에 처리
+        const graphIds = displayRows
+          .slice(0, 20)
+          .map((r) => r.occupation_id as string);
 
-        const recentRows = recentLiked ?? [];
-        const allRows    = allLiked    ?? [];
-        const isRecent7  = recentRows.length > 0;
-        const displayRows = isRecent7 ? recentRows : allRows;
-        const top3Rows    = displayRows.slice(0, 3);
-        const displayTotal = displayRows.length;
+        type MasterRow = {
+          id:                   string;
+          slug:                 string;
+          name_ko:              string;
+          emoji:                string | null;
+          category:             string | null;
+          legacy_occupation_id: string | null;
+        };
 
-        // ── 6. occupation_master 매칭 (top3, id+category含) ─
-        const top3Ids = top3Rows.map((r) => r.occupation_id as string);
-        let likedOccs: LikedOcc[] = [];
+        let allMatchedOccs: LikedOcc[] = [];
 
-        if (top3Ids.length > 0) {
-          // legacy_occupation_id 먼저
+        if (graphIds.length > 0) {
+          // legacy_occupation_id 우선 조회
           const { data: byLegacy } = await supabase
             .from("occupation_master")
             .select("id, slug, name_ko, emoji, category, legacy_occupation_id")
-            .in("legacy_occupation_id", top3Ids)
+            .in("legacy_occupation_id", graphIds)
             .eq("is_active", true);
 
           const foundLegacyIds = new Set(
             (byLegacy ?? []).map((m) => m.legacy_occupation_id as string)
           );
-          const unmatchedIds = top3Ids.filter((id) => !foundLegacyIds.has(id));
-
-          type MasterRow = {
-            id: string;
-            slug: string;
-            name_ko: string;
-            emoji: string | null;
-            category: string | null;
-            legacy_occupation_id: string | null;
-          };
+          const unmatchedIds = graphIds.filter((id) => !foundLegacyIds.has(id));
 
           let bySlug: MasterRow[] = [];
           if (unmatchedIds.length > 0) {
@@ -276,7 +267,8 @@ export default function ReportPage() {
             });
           }
 
-          likedOccs = top3Ids
+          // graphIds 순서 유지 (liked_at desc 순)
+          allMatchedOccs = graphIds
             .map((id) => {
               const info = masterMap.get(id);
               if (!info) return null;
@@ -291,18 +283,18 @@ export default function ReportPage() {
             .filter((x): x is LikedOcc => x !== null);
         }
 
-        // ── 7. 추천 활동 (첫 번째 관심 직업, stage_number=1) ─
+        const likedOccs = allMatchedOccs.slice(0, 3);
+
+        // ── 6. 추천 활동 (첫 번째 관심 직업, stage_number=1) ─
         let recommendedAction:  string | null = null;
         let recommendedOccName: string | null = null;
 
         if (likedOccs.length > 0) {
           recommendedOccName = likedOccs[0].name;
-          const topMasterId  = likedOccs[0].masterId;
-
           const { data: actionRow } = await supabase
             .from("occupation_student_actions")
             .select("action_text")
-            .eq("occupation_id", topMasterId)
+            .eq("occupation_id", likedOccs[0].masterId)
             .eq("stage_number", 1)
             .eq("is_current", true)
             .eq("is_active", true)
@@ -310,13 +302,14 @@ export default function ReportPage() {
             .order("display_order", { ascending: true })
             .limit(1)
             .maybeSingle();
-
           recommendedAction = actionRow?.action_text ?? null;
         }
 
         setReport({
           childName,
           likedOccs,
+          allMatchedOccs,
+          totalLikedCount,
           displayTotal,
           isRecent7Days: isRecent7,
           recommendedAction,
@@ -339,9 +332,9 @@ export default function ReportPage() {
       <AppShell headerTitle="주간 리포트">
         <div className="px-4 pt-4 pb-6 flex flex-col gap-4">
           <div className="h-28 bg-base-border rounded-lg animate-pulse" />
+          <div className="h-16 bg-base-border rounded-lg animate-pulse" />
           <div className="h-40 bg-base-border rounded-lg animate-pulse" />
-          <div className="h-24 bg-base-border rounded-lg animate-pulse" />
-          <div className="h-36 bg-base-border rounded-lg animate-pulse" />
+          <div className="h-32 bg-base-border rounded-lg animate-pulse" />
         </div>
       </AppShell>
     );
@@ -386,10 +379,7 @@ export default function ReportPage() {
               잠시 후 다시 확인해 주세요.
             </p>
             <div className="flex flex-col gap-2">
-              <button
-                onClick={() => router.push("/explore")}
-                className="btn-primary"
-              >
+              <button onClick={() => router.push("/explore")} className="btn-primary">
                 직업 탐색으로 이동
               </button>
               <button
@@ -405,22 +395,21 @@ export default function ReportPage() {
     );
   }
 
-  // ── 정상 리포트 렌더링 ────────────────────────────────────
+  // ── 렌더링용 계산 ─────────────────────────────────────────
   const {
-    childName,
-    likedOccs,
-    displayTotal,
-    isRecent7Days,
-    recommendedAction,
-    recommendedOccName,
+    childName, likedOccs, allMatchedOccs,
+    totalLikedCount, displayTotal,
+    isRecent7Days, recommendedAction, recommendedOccName,
   } = report;
 
+  const categoryDist          = computeCategoryDist(allMatchedOccs);
+  const topCategory           = categoryDist[0]?.category ?? null;
   const conversationQuestions = buildConversationQuestions(likedOccs);
-  const interestSummary       = buildInterestSummary(likedOccs);
   const remainingCount        = Math.max(0, displayTotal - 3);
 
+  // 추천 활동 fallback — 단일 따옴표 사용 (curly quote 인코딩 회피)
   const fallbackActivity =
-    "관심 있는 직업 하나를 고르고 “이 일을 하는 사람은 누구를 도와줄까?”를 함께 이야기해보세요.";
+    "관심 있는 직업 하나를 고르고 '이 일을 하는 사람은 누구를 도와줄까?'를 함께 이야기해보세요.";
 
   return (
     <AppShell headerTitle="주간 리포트">
@@ -448,8 +437,47 @@ export default function ReportPage() {
           </div>
         </FadeInSection>
 
-        {/* ② 이번 주 관심 직업 */}
-        <FadeInSection delay={60}>
+        {/* ② 이번 주 관심 요약 카드 3개 */}
+        <FadeInSection delay={40}>
+          <div className="grid grid-cols-3 gap-2">
+
+            {/* 카드 1: 관심 직업 수 */}
+            <div className="bg-white rounded-card shadow-card p-3 flex flex-col items-center text-center gap-0.5">
+              <p className="text-[10px] text-base-muted leading-tight">관심 직업</p>
+              <p
+                className="text-2xl font-bold leading-none"
+                style={{ color: "#E84B2E" }}
+              >
+                {totalLikedCount}
+              </p>
+              <p className="text-[10px] text-base-muted">개</p>
+            </div>
+
+            {/* 카드 2: 가장 많이 본 분야 */}
+            <div className="bg-white rounded-card shadow-card p-3 flex flex-col items-center text-center gap-0.5">
+              <p className="text-[10px] text-base-muted leading-tight">관심 분야</p>
+              <p className="text-[11px] font-bold text-base-text leading-snug mt-0.5 px-0.5">
+                {topCategory ?? "아직 없음"}
+              </p>
+            </div>
+
+            {/* 카드 3: 추천 대화 */}
+            <div className="bg-white rounded-card shadow-card p-3 flex flex-col items-center text-center gap-0.5">
+              <p className="text-[10px] text-base-muted leading-tight">추천 대화</p>
+              <p
+                className="text-2xl font-bold leading-none"
+                style={{ color: "#E84B2E" }}
+              >
+                3
+              </p>
+              <p className="text-[10px] text-base-muted">개</p>
+            </div>
+
+          </div>
+        </FadeInSection>
+
+        {/* ③ 이번 주 관심 직업 */}
+        <FadeInSection delay={80}>
           <div className="card">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-sm font-bold text-base-text">
@@ -464,7 +492,7 @@ export default function ReportPage() {
             </div>
 
             {likedOccs.length === 0 ? (
-              /* 좋아요한 직업 없음 */
+              /* 좋아요 없음 */
               <div className="text-center py-6">
                 <p className="text-2xl mb-2">🤍</p>
                 <p className="text-sm font-semibold text-base-text mb-1">
@@ -495,9 +523,7 @@ export default function ReportPage() {
                         {occ.emoji ?? "🎯"}
                       </span>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-base-text">
-                          {occ.name}
-                        </p>
+                        <p className="text-sm font-medium text-base-text">{occ.name}</p>
                         {occ.category && (
                           <p className="text-xs text-base-muted">{occ.category}</p>
                         )}
@@ -527,27 +553,65 @@ export default function ReportPage() {
           </div>
         </FadeInSection>
 
-        {/* ③ 관심 분야 흐름 */}
+        {/* ④ 관심 분야 분포 그래프 */}
         <FadeInSection delay={120}>
           <div className="card">
-            <h2 className="text-sm font-bold text-base-text mb-2">
-              관심 분야 흐름
-            </h2>
-            <p className="text-sm text-base-text leading-relaxed">
-              {interestSummary}
+            <h2 className="text-sm font-bold text-base-text mb-1">관심 분야 분포</h2>
+            <p className="text-[11px] text-base-muted mb-3 leading-relaxed">
+              좋아요한 직업 기준으로 본 관심 흐름입니다. 아직 데이터가 적어 참고용으로만 봐주세요.
             </p>
-            <p className="text-[11px] text-base-muted mt-2 leading-relaxed">
+
+            {categoryDist.length === 0 ? (
+              /* 그래프 빈 상태 */
+              <div
+                className="flex flex-col items-center justify-center py-5 rounded-button gap-2"
+                style={{ backgroundColor: "#F9FAFB" }}
+              >
+                <p className="text-base">📊</p>
+                <p className="text-xs text-base-muted text-center leading-relaxed">
+                  좋아요한 직업이 생기면
+                  <br />분야별 분포가 표시돼요.
+                </p>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {categoryDist.map((entry) => (
+                  <div key={entry.category}>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <span className="text-xs font-medium text-base-text truncate max-w-[70%]">
+                        {entry.category}
+                      </span>
+                      <span className="text-[11px] text-base-muted shrink-0 ml-2">
+                        {entry.count}개
+                      </span>
+                    </div>
+                    {/* 막대 그래프 — CSS 기반, 차트 라이브러리 미사용 */}
+                    <div className="h-2 bg-base-off rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width:           `${entry.barPct}%`,
+                          backgroundColor: "#E84B2E",
+                          opacity:         entry.barPct === 100 ? 1 : 0.65,
+                          transition:      "width 0.7s ease",
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <p className="text-[11px] text-base-muted mt-3 pt-3 border-t border-base-border leading-relaxed">
               💡 성향이나 적성을 단정하기보다는 탐색 중인 관심사로 바라봐주세요.
             </p>
           </div>
         </FadeInSection>
 
-        {/* ④ 이번 주 대화 질문 */}
-        <FadeInSection delay={180}>
+        {/* ⑤ 이번 주 대화 질문 */}
+        <FadeInSection delay={160}>
           <div className="card">
-            <h2 className="text-sm font-bold text-base-text mb-3">
-              이번 주 대화 질문
-            </h2>
+            <h2 className="text-sm font-bold text-base-text mb-3">이번 주 대화 질문</h2>
             <div className="flex flex-col gap-3">
               {conversationQuestions.map((q, i) => (
                 <div key={i} className="flex items-start gap-3">
@@ -567,37 +631,51 @@ export default function ReportPage() {
           </div>
         </FadeInSection>
 
-        {/* ⑤ 이번 주 추천 활동 */}
-        <FadeInSection delay={240}>
+        {/* ⑥ 이번 주 추천 활동 — 체크형 카드 (시각용, 저장 기능 없음) */}
+        <FadeInSection delay={200}>
           <div className="card">
             <div className="flex items-center gap-2 mb-3">
               <BookOpen size={15} className="text-brand-red shrink-0" />
-              <h2 className="text-sm font-bold text-base-text">
-                이번 주 추천 활동
-              </h2>
+              <h2 className="text-sm font-bold text-base-text">이번 주 추천 활동</h2>
             </div>
-            <p className="text-sm text-base-text leading-relaxed">
-              {recommendedAction ?? fallbackActivity}
-            </p>
+
+            {/* 체크형 활동 행 */}
+            <div
+              className="flex items-start gap-3 p-3 rounded-button"
+              style={{ backgroundColor: "#F9FAFB" }}
+            >
+              {/* 체크박스 — 시각 표시용, 클릭 동작 없음 */}
+              <div
+                className="w-5 h-5 rounded border-2 shrink-0 mt-0.5 flex items-center justify-center"
+                style={{ borderColor: "#D1D5DB", backgroundColor: "#fff" }}
+                aria-hidden="true"
+              />
+              <p className="text-sm text-base-text leading-relaxed flex-1">
+                {recommendedAction ?? fallbackActivity}
+              </p>
+            </div>
+
             {recommendedOccName && recommendedAction && (
               <p className="text-xs text-base-muted mt-2">
                 관련 직업: {recommendedOccName}
               </p>
             )}
+
             <p className="text-[11px] text-base-muted mt-2 leading-relaxed">
               💡 부모와 함께 안전하게 할 수 있는 활동입니다.
+            </p>
+            <p className="text-[10px] text-base-muted mt-1 opacity-60">
+              완료 체크 저장 기능은 준비 중이에요.
             </p>
           </div>
         </FadeInSection>
 
-        {/* ⑥ AI 상담 CTA */}
-        <FadeInSection delay={300}>
+        {/* ⑦ AI 상담 CTA */}
+        <FadeInSection delay={240}>
           <div className="card">
             <div className="flex items-center gap-2 mb-2">
               <MessageSquare size={15} className="text-brand-red shrink-0" />
-              <h2 className="text-sm font-bold text-base-text">
-                AI 진로 상담으로 이어가기
-              </h2>
+              <h2 className="text-sm font-bold text-base-text">AI 진로 상담으로 이어가기</h2>
             </div>
             <p className="text-xs text-base-muted leading-relaxed mb-3">
               아이의 관심을 바탕으로 부모 대화 질문을 더 받아보세요.
@@ -613,19 +691,17 @@ export default function ReportPage() {
           </div>
         </FadeInSection>
 
-        {/* ⑦ 하단 안내 문구 */}
-        <FadeInSection delay={360}>
+        {/* ⑧ 하단 안내 */}
+        <FadeInSection delay={280}>
           <p className="text-[11px] text-base-muted text-center leading-relaxed px-2">
             이 리포트는 자녀의 진로를 단정하지 않습니다.
-            <br />
-            아이와 이런 대화를 시작해볼 수 있어요라는 안내로 봐주세요.
-            <br />
-            주간 리포트는 현재 베타 운영 중입니다.
+            <br />아이와 이런 대화를 시작해볼 수 있어요라는 안내로 봐주세요.
+            <br />주간 리포트는 현재 베타 운영 중입니다.
           </p>
         </FadeInSection>
 
         {/* 부모 홈 복귀 */}
-        <FadeInSection delay={400}>
+        <FadeInSection delay={320}>
           <button
             onClick={() => router.push("/parent/home")}
             className="w-full text-center text-xs text-base-muted py-2 underline"
