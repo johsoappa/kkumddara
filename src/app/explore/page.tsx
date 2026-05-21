@@ -6,8 +6,10 @@
 // - 스켈레톤 로딩, 빈 결과 / 에러 처리
 //
 // [데이터 소스]
-//   occupation_master (is_active=true, is_representative=true, priority DESC)
+//   occupation_master (is_active=true, priority DESC) — 대표+세부 전체 로드
 //   + occupation_summary (one_liner, is_current=true, published)
+//   기본 목록: is_representative=true 항목만 렌더 (클라이언트 필터)
+//   검색어 있을 때: 세부 직업(is_representative=false)도 결과에 포함
 //
 // [좋아요 (liked_occupations)]
 //   - 로그인 + child_id 있으면 DB liked_occupations 테이블 사용
@@ -124,12 +126,12 @@ export default function ExplorePage() {
       setError(null);
 
       try {
-        // 1단계: occupation_master — 대표 직업만 (is_representative=true)
+        // 1단계: occupation_master — 활성 직업 전체 (대표 + 세부)
+        // 기본 목록은 클라이언트 필터(is_representative)로 분기
         const { data: masters, error: masterErr } = await supabase
           .from("occupation_master")
-          .select("id, slug, name_ko, emoji, category, interest_fields, priority, legacy_occupation_id")
+          .select("id, slug, name_ko, emoji, category, interest_fields, priority, legacy_occupation_id, parent_occupation_id, is_representative")
           .eq("is_active", true)
-          .eq("is_representative", true)
           .order("priority", { ascending: false });
 
         if (masterErr) throw masterErr;
@@ -139,7 +141,7 @@ export default function ExplorePage() {
           return;
         }
 
-        // 2단계: one_liner 조회
+        // 2단계: one_liner 조회 (대표 + 세부 모두 포함)
         const masterIds = masters.map((m) => m.id);
         const { data: summaries, error: sumErr } = await supabase
           .from("occupation_summary")
@@ -156,15 +158,25 @@ export default function ExplorePage() {
           (summaries ?? []).map((s) => [s.occupation_id, s.content])
         );
 
+        // 대표 직업 UUID → name_ko 맵 (세부 직업의 parent 이름 조회용)
+        const parentNameMap = new Map<string, string>();
+        for (const m of masters) {
+          if (m.is_representative) parentNameMap.set(m.id, m.name_ko);
+        }
+
         const items: OccupationListItem[] = masters.map((m) => ({
-          id:           m.legacy_occupation_id ?? m.slug,
-          slug:         m.slug,
-          name:         m.name_ko,
-          emoji:        m.emoji,
-          category:     m.category as OccupationCategory,
-          description:  summaryMap.get(m.id) ?? "",
-          relatedMajors: [],
-          skills:       m.interest_fields ?? [],
+          id:              m.legacy_occupation_id ?? m.slug,
+          slug:            m.slug,
+          name:            m.name_ko,
+          emoji:           m.emoji,
+          category:        m.category as OccupationCategory,
+          description:     summaryMap.get(m.id) ?? "",
+          relatedMajors:   [],
+          skills:          m.interest_fields ?? [],
+          isRepresentative: m.is_representative ?? false,
+          parentName:      m.parent_occupation_id
+            ? (parentNameMap.get(m.parent_occupation_id) ?? null)
+            : null,
         }));
 
         if (!cancelled) setOccupations(items);
@@ -214,13 +226,19 @@ export default function ExplorePage() {
   };
 
   // ── 필터링 (검색 + 카테고리 + 좋아요) ────────────────────
+  // 검색어 없음 → is_representative=true 항목만 표시 (기본 목록 정책)
+  // 검색어 있음 → 대표 + 세부 전체 검색 (세부 직업 포함)
   const filtered = useMemo(() => {
+    const q = search.trim();
+    const isSearching = q.length > 0;
+
     return occupations.filter((occ) => {
       if (showLikedOnly && !liked.has(occ.id)) return false;
+      // 검색어 없을 때: 대표 직업만 표시
+      if (!isSearching && !occ.isRepresentative) return false;
       const matchCategory = category === "전체" || occ.category === category;
-      const q = search.trim();
       const matchSearch =
-        q === "" ||
+        !isSearching ||
         occ.name.includes(q) ||
         occ.description.includes(q) ||
         occ.skills.some((s) => s.includes(q));
@@ -285,7 +303,22 @@ export default function ExplorePage() {
                     전체 직업 보기 →
                   </button>
                 </>
+              ) : search.trim().length > 0 ? (
+                /* 검색어 있는데 결과 없음 */
+                <>
+                  <p className="text-4xl mb-3">🔍</p>
+                  <p className="text-base font-bold text-base-text">
+                    검색 결과가 아직 없어요
+                  </p>
+                  <p className="text-sm text-base-muted mt-1.5 leading-relaxed">
+                    다른 표현으로 다시 검색하거나,<br />대표 직업을 먼저 살펴보세요.
+                  </p>
+                  <p className="text-xs text-base-muted mt-2">
+                    예: 의사, 경찰, 철도, 영상, 사이버, 소아
+                  </p>
+                </>
               ) : (
+                /* 검색어 없음 / 데이터 없음 / 카테고리 빈 결과 */
                 <>
                   <p className="text-4xl mb-3">😢</p>
                   <p className="text-base font-bold text-base-text">
@@ -294,7 +327,7 @@ export default function ExplorePage() {
                   <p className="text-sm text-base-muted mt-1.5">
                     {occupations.length === 0
                       ? "곧 다양한 직업이 추가될 예정이에요"
-                      : "다른 검색어나 카테고리를 시도해보세요"}
+                      : "다른 카테고리를 선택하거나 검색어로 찾아보세요"}
                   </p>
                 </>
               )}
@@ -307,6 +340,7 @@ export default function ExplorePage() {
                 occupation={occ}
                 liked={liked.has(occ.id)}
                 onLikeToggle={toggleLike}
+                showTypeLabel={search.trim().length > 0}
               />
             ))
           )}

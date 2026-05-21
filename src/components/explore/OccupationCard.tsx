@@ -12,15 +12,18 @@ import { cn } from "@/lib/utils";
 import type { OccupationListItem } from "@/types/occupation";
 
 interface OccupationCardProps {
-  occupation: OccupationListItem;
-  liked: boolean;
-  onLikeToggle: (id: string) => void;
+  occupation:     OccupationListItem;
+  liked:          boolean;
+  onLikeToggle:   (id: string) => void;
+  /** 검색 결과일 때만 true — 대표/세부 직업 구분 보조 문구 표시 */
+  showTypeLabel?: boolean;
 }
 
 export default function OccupationCard({
   occupation,
   liked,
   onLikeToggle,
+  showTypeLabel = false,
 }: OccupationCardProps) {
   const router = useRouter();
   // 상세 라우팅: /explore/${occupation.id}
@@ -47,6 +50,19 @@ export default function OccupationCard({
         <h3 className="text-sm font-bold text-base-text leading-tight">
           {occupation.name}
         </h3>
+        {/* 검색 결과에서만 표시 — 대표 직업 / 세부 직업 구분 */}
+        {showTypeLabel && (
+          <p
+            className="text-[10px] font-semibold mt-0.5 leading-tight"
+            style={{
+              color: occupation.parentName ? "#E84B2E" : "#9CA3AF",
+            }}
+          >
+            {occupation.parentName
+              ? `${occupation.parentName} 관련 세부 직업`
+              : "대표 직업"}
+          </p>
+        )}
         <p className="text-xs text-base-muted mt-0.5 line-clamp-1">
           {occupation.description}
         </p>

@@ -43,12 +43,15 @@ export interface OccupationListItem {
   // 카드 라우팅 ID: legacy_occupation_id (있으면) 또는 slug
   // → /explore/[id] static 상세 페이지와 호환 유지
   // → DB 기반 상세 페이지 전환 시 slug 기준으로 교체 예정
-  id:           string;
-  slug:         string;             // occupation_master.slug (DB 원본 식별자)
-  name:         string;             // occupation_master.name_ko
-  emoji:        string;             // occupation_master.emoji
-  category:     OccupationCategory; // occupation_master.category
-  description:  string;             // occupation_summary.content (one_liner)
-  relatedMajors: Array<{ name: string }>; // [추후 DB 연결] 현재 빈 배열
-  skills:       string[];           // occupation_master.interest_fields
+  id:               string;
+  slug:             string;              // occupation_master.slug (DB 원본 식별자)
+  name:             string;             // occupation_master.name_ko
+  emoji:            string;             // occupation_master.emoji
+  category:         OccupationCategory; // occupation_master.category
+  description:      string;             // occupation_summary.content (one_liner)
+  relatedMajors:    Array<{ name: string }>; // [추후 DB 연결] 현재 빈 배열
+  skills:           string[];           // occupation_master.interest_fields
+  // ── 대표/세부 직업 구분 (검색 결과 표시용) ──────────────
+  isRepresentative?: boolean;           // occupation_master.is_representative
+  parentName?:       string | null;     // 세부 직업인 경우 대표 직업 name_ko
 }
