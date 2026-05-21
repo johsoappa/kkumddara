@@ -185,10 +185,11 @@ export async function POST(req: NextRequest) {
 
   // [009 보정] 무료 여부: plan_name 기준. "limit=0 → 무료" 암묵 규칙 제거.
   // plan row 없으면 free로 취급 (fallback).
-  // [036 버그수정] MVP 가입 시 auth/callback이 plan_name="basic"으로 row를 생성하므로
-  //   "basic"도 free 판정에 포함 (신규 사용자 ai_consult_monthly_limit DB default=1 우회)
-  //   family/premium 등 실제 유료 플랜은 별도 DB 갱신 시 자동 적용.
-  const FREE_PLAN_NAMES = new Set(["free", "basic"]);
+  // [043 정규화] free=무료, basic=유료베이직으로 명칭 분리 완료.
+  //   auth/callback이 신규 가입자를 plan_name="free"로 생성하도록 수정됨.
+  //   기존 basic row는 migration 043에서 모두 free로 보정됨.
+  // TODO: 결제 연동 후 basic/premium/family 유료 플랜 판정 로직 추가 필요.
+  const FREE_PLAN_NAMES = new Set(["free"]);
   const isFree = !plan || FREE_PLAN_NAMES.has(plan.plan_name);
   // [034 버그수정] 서버·클라이언트 monthlyLimit 통일
   //   Free 플랜: DB 값 무시, 항상 FREE_LIMIT(3) 사용

@@ -43,7 +43,7 @@
 
 | 플랜명 | 코드 키 | 월 가격 | 자녀 수 (`child_limit`) | AI 상담 월 한도 | 명따라 연 한도 | 공동양육자 | 비고 |
 |---|---|---|---|---|---|---|---|
-| 베타 무료 체험 | `free` / `basic` | 0원 | 1명 | 3회 | 없음 (free) / 3회 (basic) | 없음 | ⚠️ 명칭 혼선 (아래 리스크 참조) |
+| 베타 무료 체험 | `free` | 0원 | 1명 | 3회 | 없음 | 없음 | ✅ Migration 043으로 정규화 완료 (2026-05-21) |
 | 베이직 | `basic` | 9,900원 | 1명 | 30회 | 3회 | 1명 | |
 | 프리미엄 | `premium` | 14,900원 | 1명 | 100회 | 3회 | 1명 | 추천 플랜 |
 | 패밀리 | `family` | 19,900원 | 2명 | 120회 (가구 기준) | 6회 | 1명 | |
@@ -62,16 +62,28 @@
 - **추적 방식**: `myeonddara_usage` 테이블 (연도별 집계, 구조 확인 필요)
 - **무료 플랜**: 명따라 없음 (PLAN_ENTITLEMENTS 기준)
 
-### 2-4. ⚠️ 리스크: Free/Basic 명칭 혼선
+### 2-4. ✅ 해소됨: Free/Basic 명칭 혼선 (Migration 043, 2026-05-21)
 
-**현황**:
+**해소 전 현황**:
 ```typescript
-// src/app/api/ai-consult/route.ts (서버) + src/app/parent/counseling/page.tsx (클라이언트)
-const FREE_PLAN_NAMES = new Set(["free", "basic"]);
+// 구 코드 (036 버그수정 당시)
+const FREE_PLAN_NAMES = new Set(["free", "basic"]);  // "basic"을 무료로 취급하는 임시 우회
 const isFree = !plan || FREE_PLAN_NAMES.has(plan.plan_name);
 ```
 
-- **신규 가입자 실제 DB 상태**: `plan_name = "basic"`  
+**정규화 완료 후**:
+```typescript
+// 현재 코드 (043 정규화 이후)
+const FREE_PLAN_NAMES = new Set(["free"]);  // free=무료, basic=유료베이직으로 명확 분리
+const isFree = !plan || FREE_PLAN_NAMES.has(plan.plan_name);
+```
+
+**변경 내용**:
+- `supabase/migrations/043_normalize_free_basic_plan_names.sql`: 기존 `plan_name='basic'` 전체 → `'free'` 보정
+- `src/app/auth/callback/route.ts`: 신규 가입자 `plan_name="free"` 생성
+- `src/app/api/ai-consult/route.ts`, `src/app/parent/counseling/page.tsx`: `FREE_PLAN_NAMES=["free"]` 단일화
+
+- **신규 가입자 실제 DB 상태**: ~~`plan_name = "basic"`~~ → `plan_name = "free"`  
   (`auth/callback`이 신규 가입 시 `plan_name="basic"`으로 row를 생성)
 - **코드상 처리**: `"basic"`을 무료로 취급, `FREE_LIMIT = 3` 적용
 - **문제**: `"basic"`이 유료 베이직(9,900원)과 동일한 DB 키를 사용하므로, 결제 연동 시 유/무료 구분이 불명확해짐
@@ -282,8 +294,8 @@ const isFree = !plan || FREE_PLAN_NAMES.has(plan.plan_name);
 ### 6-2. 권한 코드 중심 소스
 
 ```typescript
-// src/types/family.ts
-const FREE_PLAN_NAMES = new Set(["free", "basic"]); // 서버·클라이언트 동일
+// [043 정규화 완료] free=무료, basic=유료베이직으로 명확 분리
+const FREE_PLAN_NAMES = new Set(["free"]); // 서버·클라이언트 동일 (basic 제거됨)
 const FREE_LIMIT = 3; // AI 상담 월 한도 (하드코딩 — DB 값 무시)
 
 // PLAN_ENTITLEMENTS — 클라이언트 조기 검증·UI 잠금 기준
@@ -394,7 +406,7 @@ const FREE_LIMIT = 3; // AI 상담 월 한도 (하드코딩 — DB 값 무시)
 
 ### 10-2. 정책 확정 체크리스트
 
-- [ ] **Free/Basic 명칭 정리** — 신규 가입자 plan_name `"free"` 또는 `"basic"` 중 최종 결정
+- [x] **Free/Basic 명칭 정리** — `free`=무료, `basic`=유료베이직으로 분리 완료 (Migration 043, 2026-05-21)
 - [ ] **요금제 최종 확정** — 가격·기능·자녀 수 확정
 - [ ] **무료 플랜 정책 확정** — 베타 종료 후 무료 체험 기준
 - [ ] **정기결제 결제일 기준** — 가입일 기준 vs 매월 고정일

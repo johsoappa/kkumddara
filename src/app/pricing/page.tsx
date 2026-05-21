@@ -354,9 +354,9 @@ function PlanCard({ plan, onStart }: { plan: Plan; onStart: () => void }) {
 // ─── 베타 무료 체험 안내 카드 ────────────────────────────
 //
 // [정책]
-//   - 신규 가입자 실제 plan_name = "basic" (auth/callback 기준)
+//   - 신규 가입자 실제 plan_name = "free" (auth/callback 기준, 043 정규화 완료)
 //   - "무료 플랜" 표현 금지 — 베타 기간 체험 맥락으로만 안내
-//   - 결제 연동 전 free/basic 정책 재검토 예정 (별도 작업)
+//   - basic = 유료 베이직 (결제 연동 시 사용 예정)
 function FreePlanBox({ onStart }: { onStart: () => void }) {
   return (
     <div
