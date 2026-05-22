@@ -25,6 +25,7 @@ import { cookies } from "next/headers";
 import type { ManseryeokResult } from "@/lib/manseryeok";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rateLimit";
 import { validateName, validateUUID, validateGender } from "@/lib/validation";
+import { FEATURE_FLAGS } from "@/lib/featureFlags";
 
 // ── Vercel 함수 최대 실행 시간 (Hobby: 10s 캡, Pro: 최대 300s)
 // OpenAI 응답 대기를 위해 30s 확보. Hobby는 10s에서 자동 캡.
@@ -398,32 +399,43 @@ export async function POST(req: NextRequest) {
   const analysis = normalizePhase2Result(parsed);
 
   // ── 9. 사용량 차감 (select→update/insert 2단계) ───
-  if (existingRowId) {
-    const { error: updateErr } = await supabase
-      .from("myeonddara_usage")
-      .update({ count: usedCount + 1, updated_at: new Date().toISOString() })
-      .eq("id", existingRowId);
-    if (updateErr) {
-      console.error("[api/myeonddara] UPDATE 실패:", updateErr.message, updateErr.code);
-      return errRes("사용량 기록 실패. AI 분석은 완료됐어요.", "USAGE_ERR", 502);
+  // TODO(정식 오픈 전): FEATURE_FLAGS.MYEONDDARA_PHASE2_DEDUCT_USAGE → true 변경
+  // 현재 false = 베타 기간 차감 유예 중
+  // 유예 범위: 차감만 유예. free 차단(plan 확인, §6)은 유예 대상 아님.
+  if (FEATURE_FLAGS.MYEONDDARA_PHASE2_DEDUCT_USAGE) {
+    if (existingRowId) {
+      const { error: updateErr } = await supabase
+        .from("myeonddara_usage")
+        .update({ count: usedCount + 1, updated_at: new Date().toISOString() })
+        .eq("id", existingRowId);
+      if (updateErr) {
+        console.error("[api/myeonddara] UPDATE 실패:", updateErr.message, updateErr.code);
+        return errRes("사용량 기록 실패. AI 분석은 완료됐어요.", "USAGE_ERR", 502);
+      }
+    } else {
+      const payload = hasChildIdCol
+        ? { parent_id: parentId, child_id: childId, used_year: currentYear, count: 1 }
+        : { parent_id: parentId, used_year: currentYear, count: 1 };
+      const { error: insertErr } = await supabase
+        .from("myeonddara_usage")
+        .insert(payload);
+      if (insertErr) {
+        console.error("[api/myeonddara] INSERT 실패:", insertErr.message, insertErr.code);
+        return errRes("사용량 기록 실패. AI 분석은 완료됐어요.", "USAGE_ERR", 502);
+      }
     }
+    const remaining = PER_CHILD_YEARLY_LIMIT - (usedCount + 1);
+    console.log("[api/myeonddara] ⑦ 사용량 차감 완료 — remaining:", remaining);
+    console.log("[api/myeonddara] ⑧ sessionStorage 저장 payload 키: myeonddara_result");
+    console.log("[api/myeonddara] ⑨ 최종 응답 반환");
+    return NextResponse.json({ analysis, remaining });
   } else {
-    const payload = hasChildIdCol
-      ? { parent_id: parentId, child_id: childId, used_year: currentYear, count: 1 }
-      : { parent_id: parentId, used_year: currentYear, count: 1 };
-    const { error: insertErr } = await supabase
-      .from("myeonddara_usage")
-      .insert(payload);
-    if (insertErr) {
-      console.error("[api/myeonddara] INSERT 실패:", insertErr.message, insertErr.code);
-      return errRes("사용량 기록 실패. AI 분석은 완료됐어요.", "USAGE_ERR", 502);
-    }
+    // 베타 기간 차감 유예 — myeonddara_usage 미증가, remaining 변동 없음
+    console.info("[api/myeonddara] ⑦ Phase 2 베타 사용량 차감 유예 (MYEONDDARA_PHASE2_DEDUCT_USAGE=false)",
+      { childId, year: currentYear });
+    console.log("[api/myeonddara] ⑧ sessionStorage 저장 payload 키: myeonddara_result");
+    console.log("[api/myeonddara] ⑨ 최종 응답 반환 (차감 유예 — remaining 변동 없음)");
+    const remaining = PER_CHILD_YEARLY_LIMIT - usedCount;
+    return NextResponse.json({ analysis, remaining });
   }
-
-  const remaining = PER_CHILD_YEARLY_LIMIT - (usedCount + 1);
-  console.log("[api/myeonddara] ⑦ 사용량 차감 완료 — remaining:", remaining);
-  console.log("[api/myeonddara] ⑧ sessionStorage 저장 payload 키: myeonddara_result");
-  console.log("[api/myeonddara] ⑨ 최종 응답 반환");
-
-  return NextResponse.json({ analysis, remaining });
 }

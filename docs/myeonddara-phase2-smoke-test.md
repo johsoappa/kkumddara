@@ -200,35 +200,39 @@ Phase 2 테스트 시 OpenAI 응답은 아래 기준을 **모두** 만족해야 
 
 Phase 2 스모크 테스트 중 **운영 사용자의 사용량 차감이 발생하지 않아야 합니다.**
 
-### 8-1. 현재 차감 구조
+### 8-1. 현재 차감 구조 (베타 유예 플래그 적용 후)
 
 ```
 Phase 2 흐름:
   POST /api/myeonddara
     → 인증 확인
-    → 플랜 확인
+    → 플랜 확인 (free=0 → 403, 변경 불가)
     → 사용량 확인 (차감 전)
     → OpenAI 호출 (여기서 실패 시 차감 없음)
     → JSON 파싱 (여기서 실패 시 차감 없음)
     → 구조 검증 (여기서 실패 시 차감 없음)
-    → ★ 사용량 차감 (이 시점에서만 차감 발생)
+    → ★ FEATURE_FLAGS.MYEONDDARA_PHASE2_DEDUCT_USAGE 분기
+         true  → 사용량 차감 + remaining 갱신 (정식 오픈)
+         false → 차감 유예 + remaining 변동 없음 (현재 베타)
     → 응답 반환
 ```
 
-- timeout(504) → 차감 없음
-- BILLING_REQUIRED(402) → 차감 없음
-- PARSE_ERROR(502) → 차감 없음
-- AI_ERROR(502) → 차감 없음
-- AI_TIMEOUT(504) → 차감 없음
-- USAGE_ERR(502) → 차감 실패, 응답도 차단
+**베타 유예 플래그 현재 상태**: `MYEONDDARA_PHASE2_DEDUCT_USAGE = false` (차감 유예 중)
+
+- timeout(504) → 차감 없음 (플래그 무관)
+- BILLING_REQUIRED(402) → 차감 없음 (플래그 무관)
+- PARSE_ERROR(502) → 차감 없음 (플래그 무관)
+- AI_ERROR(502) → 차감 없음 (플래그 무관)
+- AI_TIMEOUT(504) → 차감 없음 (플래그 무관)
+- USAGE_ERR(502) → 플래그 true 시에만 해당 (베타 유예 중 발생 안 함)
 
 ### 8-2. 테스트 시 준수 사항
 
 - [ ] Production에 `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true` 배포 금지
 - [ ] 운영 학부모 계정으로 반복 API 호출 금지
 - [ ] 테스트용 자녀 프로필 사용 (운영 자녀와 분리)
-- [ ] 테스트 1회 = 사용량 1회 차감 발생 가능성 인지
-- [ ] 사용량 차감이 발생하는 실 테스트는 OZ.대표 승인 후 진행
+- [x] 베타 기간 사용량 차감 유예 → `MYEONDDARA_PHASE2_DEDUCT_USAGE=false` 적용 완료
+- [ ] 정식 오픈 전 `MYEONDDARA_PHASE2_DEDUCT_USAGE=true` 전환 및 동작 확인 필요
 - [ ] 가능하면 local 또는 Preview 환경에서만 테스트
 
 ---
@@ -361,7 +365,7 @@ Phase 2 흐름:
 |---|---|---|
 | `@anthropic-ai/sdk` `package.json` 잔재 | P2 | 미사용 dependency. 기능 영향 없음. Provider 안정화 후 별도 정리 |
 | premium yearly_limit DB값 정합성 | ✅ 완료 | migration 047: free=0 / basic=3 / premium=3 / family=6 / family_plus=9 |
-| 베타 사용량 차감 유예 정책 | P1 | OZ.대표 결정 필요. 유예 시 추가 코드 작업 필요 |
+| 베타 사용량 차감 유예 정책 | ✅ 완료 | `FEATURE_FLAGS.MYEONDDARA_PHASE2_DEDUCT_USAGE=false` 적용. 정식 오픈 시 true 전환 필요 |
 | Phase 2 실제 OpenAI 샘플 응답 검증 | P1 | 로컬 테스트 후 결과 문서화 필요 |
 | interestAreas title 직업명 포함 여부 반복 검증 | P1 | 3회 이상 샘플 테스트 권장 |
 

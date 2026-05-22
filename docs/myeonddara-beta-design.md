@@ -856,5 +856,64 @@ free 플랜의 `myeonddara_yearly_limit=0` 정책과 충돌 — free 사용자�
 
 ---
 
-*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트, 2026-05-22 스모크 테스트 준비 업데이트, 2026-05-22 yearly_limit 정책 정리 업데이트, 2026-05-22 FreePlanBox 문구 보정.*  
+---
+
+## 21. Phase 2 베타 사용량 차감 유예 정책 (2026-05-22)
+
+### 21-1. 정책 결론
+
+명따라 Phase 2 제한 베타 기간에는 **사용량 차감을 유예**한다.
+
+- 테스트 중 `myeonddara_usage.count`를 증가시키지 않는다.
+- 연간 사용 가능 횟수(자녀당 연 3회)가 줄어들지 않는다.
+- API 호출 자체는 서버 콘솔 로그로 추적 가능하다.
+- 정식 오픈 시 플래그를 `true`로 전환하여 차감 재활성화한다.
+
+### 21-2. 유예 범위 명확화
+
+| 항목 | 유예 여부 |
+|---|---|
+| `myeonddara_usage` 차감 | ✅ 유예 (증가 안 함) |
+| free 차단 (`myeonddara_yearly_limit=0`) | ❌ 유예 아님 — 유지 |
+| 베이직 이상 플랜 접근 제한 | ❌ 유예 아님 — 유지 |
+| OpenAI API 호출 자체 | ❌ 유예 아님 — Phase 2 활성화 시 호출 |
+
+### 21-3. 구현 방법
+
+**방향 A 채택** — `FEATURE_FLAGS.MYEONDDARA_PHASE2_DEDUCT_USAGE = false`
+
+| 파일 | 변경 내용 |
+|---|---|
+| `src/lib/featureFlags.ts` | `MYEONDDARA_PHASE2_DEDUCT_USAGE: false` 추가 |
+| `src/app/api/myeonddara/route.ts` | `FEATURE_FLAGS` import, 차감 블록(§9)을 플래그로 감싸기 |
+
+```typescript
+// 유예 시 동작 (false)
+console.info("[api/myeonddara] Phase 2 베타 사용량 차감 유예", { childId, year })
+const remaining = PER_CHILD_YEARLY_LIMIT - usedCount  // 변동 없음
+return NextResponse.json({ analysis, remaining })
+
+// 차감 활성화 시 동작 (true)
+await supabase.from("myeonddara_usage").update/insert(...)
+const remaining = PER_CHILD_YEARLY_LIMIT - (usedCount + 1)
+return NextResponse.json({ analysis, remaining })
+```
+
+### 21-4. 정식 오픈 전 재활성화 방법
+
+1. `src/lib/featureFlags.ts` — `MYEONDDARA_PHASE2_DEDUCT_USAGE: false → true`
+2. `docs/myeonddara-phase2-smoke-test.md` 체크리스트 전항목 통과 확인
+3. `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true` Vercel 등록
+4. 배포 후 `myeonddara_usage` UPDATE/INSERT 정상 동작 확인
+5. 연간 사용량 차감 후 `remaining` 값 감소 확인
+
+### 21-5. 베타 기간 사용자 안내 기준
+
+- 베타 기간 동안 명따라 사용량은 차감되지 않는다.
+- 정식 오픈 후에는 플랜별 제공 횟수에 따라 차감될 수 있다.
+- 화면 문구 추가 여부는 Phase 2 활성화 작업에서 별도 결정한다.
+
+---
+
+*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트, 2026-05-22 스모크 테스트 준비 업데이트, 2026-05-22 yearly_limit 정책 정리 업데이트, 2026-05-22 FreePlanBox 문구 보정, 2026-05-22 Phase 2 베타 사용량 차감 유예 정책.*  
 *Phase 2 활성화, 요금제 정책 변경, child.birth_date 추가 등 주요 사항 변경 시 이 문서를 함께 갱신하세요.*
