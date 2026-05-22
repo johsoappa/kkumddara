@@ -361,7 +361,7 @@ export async function POST(req: NextRequest) {
 
   // ── 11. 사용량 증가 (upsert) ────────────────────────────
   // [022 안전장치] usage 저장 실패 시 AI 응답 반환 금지 (한도 우회 방지)
-  // Anthropic API 성공 + usage upsert 성공 시에만 응답 반환
+  // OpenAI API 성공 + usage upsert 성공 시에만 응답 반환
   const { error: usageErr } = await supabase
     .from("ai_consult_usage")
     .upsert(

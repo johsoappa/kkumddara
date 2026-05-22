@@ -4,7 +4,7 @@
 // 명따라 메인 입력 화면 (/myeonddara)
 //
 // [Phase 1/2 전환]
-//   NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true → Claude API 호출
+//   NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true → OpenAI API 호출
 //   미설정 또는 false → 만세력 계산 후 직접 결과 이동 (Phase 1)
 //
 // [상태별 분기]
@@ -27,7 +27,7 @@ import { supabase } from "@/lib/supabase";
 import { MYEONDDARA_SAJU_KEY, MYEONDDARA_RESULT_KEY } from "@/data/myeonddara";
 
 // ── Feature Flag ────────────────────────────────────────────────
-// true  → Phase 2 (Claude API 호출, 사용량 차감)
+// true  → Phase 2 (OpenAI API 호출, 사용량 차감)
 // false → Phase 1 (만세력 계산 결과만 표시, API 미호출)
 const PHASE2_ENABLED =
   process.env.NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED === "true";
@@ -36,7 +36,7 @@ const PHASE2_ENABLED =
 // 브라우저 콘솔 + Next.js SSR 서버 로그 모두 노출됩니다.
 console.log(
   PHASE2_ENABLED
-    ? "[myeonddara] phase2 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true (Claude API 활성)"
+    ? "[myeonddara] phase2 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true (OpenAI API 활성)"
     : "[myeonddara] phase1 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED 미설정 or false (API 미호출)"
 );
 
@@ -270,7 +270,7 @@ export default function MyeonddaraPage() {
 
         // 크레딧 부족 → Phase 1 fallback (에러 없이 만세력 결과 표시)
         if (err.code === "BILLING_REQUIRED") {
-          console.warn("[명따라] Anthropic 크레딧 부족 → Phase 1 fallback");
+          console.warn("[명따라] OpenAI 크레딧/API 오류 → Phase 1 fallback");
           sessionStorage.setItem(MYEONDDARA_SAJU_KEY, JSON.stringify({ saju, inputData }));
           setAnalyzing(false);
           router.push("/myeonddara/result");

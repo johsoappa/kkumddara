@@ -7,7 +7,7 @@
 //
 // [재활성화 방법]
 //   AI_CONSULT_ENABLED: false → true 로 변경 후 배포
-//   추가로 Vercel 환경변수 ANTHROPIC_API_KEY 등록 확인 필요
+//   추가로 Vercel 환경변수 OPENAI_API_KEY 등록 확인 필요
 // ====================================================
 
 export const FEATURE_FLAGS = {

@@ -698,12 +698,66 @@ Phase 2는 여전히 비활성화 상태(`NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED`
 - [x] ~~result/page.tsx 타입·렌더링 교체 (CareerItem/ClaudeAnalysis → MyeonddaraPhase2Result)~~ ✅ 2026-05-22
 - [x] ~~tsc --noEmit 통과~~ ✅ 2026-05-22
 - [x] ~~npm run build 통과~~ ✅ 2026-05-22
-- [ ] Phase 2 실제 Claude API 응답 + JSON 파싱 검증 (API Key 세팅 후)
+- [x] ~~Phase 2 AI Provider Claude → OpenAI 전환~~ ✅ 2026-05-22 (§17 참고)
+- [ ] Phase 2 실제 OpenAI API 응답 + JSON 파싱 검증 (OPENAI_API_KEY 세팅 후)
 - [ ] premium yearly_limit DB값 3 또는 9 확정 및 코드 반영 (OZ.대표 결정)
 - [ ] 베타 기간 사용량 차감 유예 여부 결정 (OZ.대표 결정)
 - [ ] `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true` 설정 + 재배포
 
 ---
 
-*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트.*  
+## 17. Phase 2 AI Provider OpenAI 전환 업데이트 이력 (2026-05-22)
+
+### 17-1. 전환 사유
+
+현재 운영 환경에서 Claude API(ANTHROPIC_API_KEY)가 연결되어 있지 않고,  
+꿈따라 AI 상담(`/api/ai-consult`)에서 이미 OpenAI(`OPENAI_API_KEY`, `gpt-4o-mini`)를 사용 중이다.  
+Provider를 통합해 안정적으로 Phase 2를 테스트하고 베타 오픈할 기반을 마련하기 위해 전환했다.  
+Phase 2는 이번 작업 후에도 여전히 비활성 상태(`NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED` 미설정)다.
+
+### 17-2. 변경 파일 요약
+
+| 파일 | 변경 내용 |
+|---|---|
+| `src/app/api/myeonddara/route.ts` | `import Anthropic` 제거, `import OpenAI` 추가, `CLAUDE_MODEL` → `OPENAI_MODEL = "gpt-4o-mini"`, `ANTHROPIC_API_KEY` → `OPENAI_API_KEY`, `anthropic.messages.create()` → `openai.chat.completions.create()`, `response_format: json_object` 추가, Promise.race timeout(20s) 추가, `OpenAI.APIError` 에러 분기, `isValidPhase2Result()` + `normalizePhase2Result()` + fallback 상수 추가, `export const maxDuration = 30` 추가 |
+| `src/app/myeonddara/page.tsx` | 주석/로그의 "Claude API" → "OpenAI API", "Anthropic 크레딧 부족" → "OpenAI 크레딧/API 오류" 보정 |
+| `src/lib/featureFlags.ts` | 주석의 `ANTHROPIC_API_KEY` → `OPENAI_API_KEY` 보정 |
+| `src/app/api/ai-consult/route.ts` | 주석 잔재 "Anthropic API 성공" → "OpenAI API 성공" 보정 |
+
+### 17-3. OpenAI 호출 구조 (ai-consult와 동일 패턴)
+
+- 모델: `gpt-4o-mini` (`OPENAI_MODEL` 상수)
+- 환경변수: `OPENAI_API_KEY` (서버 전용, `NEXT_PUBLIC_` 없음)
+- timeout: `Promise.race` + 20,000ms `AI_TIMEOUT_MS`
+- JSON 안정화: `response_format: { type: "json_object" }` + 마크다운 코드블록 방어적 제거
+- 에러 분기: `OpenAI.APIError` 상태코드별 처리 (401/402/403/429)
+- 크레딧 부족(402/403): `BILLING_REQUIRED` 반환 → 프론트 Phase 1 fallback
+
+### 17-4. fallback 구조 (§14 기준 구현)
+
+| fallback 항목 | 트리거 | 기본값 |
+|---|---|---|
+| `disclaimer` | 누락 또는 빈 문자열 | "이 리포트는 아이의 진로를 결정하는 자료가 아니라, 부모와 자녀가 대화를 시작하기 위한 참고 자료입니다." |
+| `parentQuestions` | 누락 또는 빈 배열 | 기본 질문 3개 (§14-3 기준) |
+| `recommendedActivities` | 누락 또는 빈 배열 | 기본 활동 2개 (§14-4 기준) |
+| `interestAreas` 미달 | 배열 길이 0 또는 누락 | `PARSE_ERROR` 반환 (잘못된 결과를 정상처럼 노출하지 않음) |
+
+### 17-5. Vercel 배포 시 필수 확인
+
+- `OPENAI_API_KEY` Vercel 환경변수 등록 필요 (ai-consult와 동일 키 공유 가능)
+- `ANTHROPIC_API_KEY`는 myeonddara에서 더 이상 사용하지 않음
+- Phase 2 활성화 시: `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true` 추가
+
+### 17-6. 미변경 항목
+
+- interestAreas 결과 구조 유지
+- 직업 추천/fitPercent/순위/운세 금지 기준 유지
+- Phase 2 활성화 플래그 false 유지
+- 사용량 차감 로직 무변경
+- DB/RLS/migration 무변경
+- AI 상담(`/api/ai-consult`) 무변경
+
+---
+
+*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트.*  
 *Phase 2 활성화, 요금제 정책 변경, child.birth_date 추가 등 주요 사항 변경 시 이 문서를 함께 갱신하세요.*
