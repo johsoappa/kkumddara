@@ -161,7 +161,7 @@ const PARENT_FEATURES: ParentFeature[] = [
     id:          "myeonddara",
     icon:        <Sparkles size={20} strokeWidth={1.8} />,
     label:       "명따라",
-    description: "사주 기반으로 아이의 성향과 진로를 분석해요.",
+    description: "아이의 성향 키워드를 참고해 부모 대화의 실마리를 찾아보세요.",
     href:        "/myeonddara",
   },
   {

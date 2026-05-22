@@ -40,6 +40,10 @@ console.log(
     : "[myeonddara] phase1 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED 미설정 or false (API 미호출)"
 );
 
+// TODO(Phase2 활성화 전): subscription_plan.myeonddara_yearly_limit DB값을 실제 한도 계산에 사용하도록 변경 필요.
+// 현재는 free=0 차단(gate)에만 DB값을 사용하고, 실제 횟수 한도는 3회 고정.
+// DB 기준: free=0, basic=3, premium=9, family=6, family_plus=9 → 플랜별 child당 limit 산식 확정 후 보정.
+// docs/myeonddara-beta-design.md §8 참고.
 const PER_CHILD_YEARLY_LIMIT = 3;
 
 const OHAENG_BADGES = [
@@ -355,10 +359,9 @@ export default function MyeonddaraPage() {
       <span className="text-5xl leading-none block mb-3">✨</span>
       <h2 className="text-2xl font-bold text-white mb-2">명따라</h2>
       <p className="text-sm text-white/80 leading-relaxed mb-3">
-        아이의 생년월일시로<br />
-        타고난 기질과 적성을 분석해드려요.<br />
-        동양 철학의 지혜로<br />
-        진로의 방향을 찾아보세요.
+        아이를 이해하는 참고 리포트로<br />
+        부모 대화의 실마리를 찾아보세요.<br />
+        <span className="text-white/60 text-xs">진로를 정해주는 기능이 아니라,<br />대화를 시작하는 베타 기능입니다.</span>
       </p>
       <p className="text-xs text-white/60 mb-4">
         연 3회 제공 · 1학기(3월) · 2학기(9월) · 연말(12월)

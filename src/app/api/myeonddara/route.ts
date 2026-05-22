@@ -26,6 +26,10 @@ import type { ManseryeokResult } from "@/lib/manseryeok";
 import { checkRateLimit, getClientIp, rateLimitResponse } from "@/lib/rateLimit";
 import { validateName, validateUUID, validateGender } from "@/lib/validation";
 
+// TODO(Phase2 활성화 전): subscription_plan.myeonddara_yearly_limit DB값을 실제 한도 계산에 사용하도록 변경 필요.
+// 현재는 free=0 차단(gate)에만 DB값 사용. 실제 횟수는 child당 3회 고정.
+// DB 기준: free=0, basic=3, premium=9, family=6, family_plus=9 → 플랜별 per-child limit 산식 확정 후 보정.
+// docs/myeonddara-beta-design.md §8 참고.
 const PER_CHILD_YEARLY_LIMIT = 3;
 
 const CLAUDE_MODEL = "claude-sonnet-4-20250514";

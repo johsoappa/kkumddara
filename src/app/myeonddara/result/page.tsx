@@ -365,7 +365,7 @@ export default function MyeonddaraResultPage() {
                 <h3 className="text-sm font-bold text-base-text">명따라 AI 기질 분석</h3>
                 <p className="text-xs text-base-muted leading-relaxed">
                   현재는 기본 만세력 결과만 제공됩니다.<br />
-                  타고난 기질 · 강점 · 추천 직업군 등<br />
+                  성향 키워드 · 강점 · 관심을 넓혀볼 분야 등<br />
                   심화 AI 해석은 준비 중입니다.
                 </p>
                 <span
@@ -381,9 +381,9 @@ export default function MyeonddaraResultPage() {
           {/* ── Phase 2: Claude 분석 카드들 ──────────── */}
           {hasAnalysis && analysis && (
             <>
-              {/* 타고난 기질 */}
+              {/* 성향 키워드 (구: 타고난 기질) */}
               <div className="bg-white rounded-card-lg shadow-card p-5">
-                <h3 className="text-sm font-bold text-base-text mb-3">타고난 기질</h3>
+                <h3 className="text-sm font-bold text-base-text mb-3">성향 키워드</h3>
                 {analysis.personalityTags?.length > 0 && (
                   <div className="flex flex-wrap gap-2 mb-3">
                     {analysis.personalityTags.map((tag) => (
@@ -423,7 +423,7 @@ export default function MyeonddaraResultPage() {
                   {analysis.weaknesses?.length > 0 && (
                     <div>
                       <h4 className="text-xs font-bold text-base-muted mb-2 flex items-center gap-1">
-                        <span>⚠️</span> 주의점
+                        <span>🌱</span> 균형 포인트
                       </h4>
                       <ul className="flex flex-col gap-1.5">
                         {analysis.weaknesses.map((w) => (
@@ -438,30 +438,21 @@ export default function MyeonddaraResultPage() {
                 </div>
               </div>
 
-              {/* 추천 직업군 */}
+              {/* 관심을 넓혀볼 분야 (구: 추천 직업군 — fitPercent/순위 제거, 분야 제안 중심으로 보정) */}
+              {/* TODO(Phase2 활성화 전): careers 구조를 interestAreas 분야 제안으로 교체 필요. docs/myeonddara-beta-design.md §8-2 참고. */}
               {analysis.careers?.length > 0 && (
                 <div className="bg-white rounded-card-lg shadow-card p-5">
-                  <h3 className="text-sm font-bold text-base-text mb-3">추천 직업군</h3>
+                  <h3 className="text-sm font-bold text-base-text mb-1">관심을 넓혀볼 분야</h3>
+                  <p className="text-[11px] text-base-muted mb-3 leading-relaxed">
+                    직업을 정하는 것이 아니라, 아이와 함께 탐색해볼 활동 방향이에요.
+                  </p>
                   <div className="flex flex-col gap-3">
                     {analysis.careers.slice(0, 3).map((career) => (
                       <div key={career.rank}
                         className="rounded-card border border-base-border p-4 flex items-start gap-3">
-                        <div className="flex flex-col items-center gap-1 shrink-0">
-                          <span className="text-[10px] font-bold text-brand-red">{career.rank}위</span>
-                          <span className="text-2xl leading-none">{career.emoji}</span>
-                        </div>
+                        <span className="text-2xl leading-none shrink-0">{career.emoji}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center justify-between mb-1">
-                            <p className="text-sm font-bold text-base-text">{career.name}</p>
-                            <span className="text-xs font-bold shrink-0 ml-2"
-                              style={{ color: "#E84B2E" }}>
-                              {career.fitPercent}%
-                            </span>
-                          </div>
-                          <div className="w-full bg-base-off rounded-full h-1.5 mb-1.5 overflow-hidden">
-                            <div className="h-full rounded-full"
-                              style={{ width: `${career.fitPercent}%`, backgroundColor: "#E84B2E" }} />
-                          </div>
+                          <p className="text-sm font-bold text-base-text mb-1">{career.name}</p>
                           <p className="text-xs text-base-muted">{career.reason}</p>
                         </div>
                       </div>
@@ -483,10 +474,10 @@ export default function MyeonddaraResultPage() {
                 </div>
               )}
 
-              {/* 오늘의 진로 운세 */}
+              {/* 오늘의 대화 힌트 (구: 오늘의 진로 운세 — "운세" 표현 제거) */}
               <div className="rounded-card-lg p-5 text-center"
                 style={{ background: "linear-gradient(135deg, #1A3A6B, #2C5F8A)" }}>
-                <p className="text-xs font-semibold text-white/70 mb-1 tracking-wide">✨ 오늘의 진로 운세</p>
+                <p className="text-xs font-semibold text-white/70 mb-1 tracking-wide">💬 오늘의 대화 힌트</p>
                 <p className="text-xs text-white/50 mb-3">{todayLabel}</p>
                 <p className="text-sm font-medium text-white leading-relaxed mb-4">
                   {analysis.fortuneMessage}

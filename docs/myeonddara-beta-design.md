@@ -595,13 +595,58 @@ Phase 2 결과 리포트를 DB에 저장하는 구조로 변경할 경우 처리
 - [ ] Claude 프롬프트에서 `weaknesses` → `balance_points` 변경
 - [ ] 결과 화면 "추천 직업군" → "관심 분야" 변경
 - [ ] 결과 화면 fitPercent 퍼센트 표시 제거
-- [ ] 결과 화면 "오늘의 진로 운세" → "부모님께 응원 한마디" 등으로 변경
-- [ ] 결과 화면 상단 참고용 안내 문구 강화
+- [x] ~~결과 화면 "오늘의 진로 운세" → "오늘의 대화 힌트"로 변경~~ ✅ 2026-05-22
+- [x] ~~"추천 직업군" → "관심을 넓혀볼 분야" + fitPercent/순위 제거~~ ✅ 2026-05-22
+- [ ] 결과 화면 상단 참고용 안내 문구 강화 (Phase 2 결과 섹션)
 - [ ] 베타 기간 사용량 차감 정책 확정 (OZ.대표 결정)
 - [ ] Phase 2 Claude API 비용 예상치 검토
 - [ ] Phase 2 빌드 + 타입 검증
+- [ ] careers 구조를 interestAreas 분야 제안으로 교체 (Claude 프롬프트 포함)
 
 ---
 
-*이 문서는 2026-05-21 기준 코드베이스 조사 결과를 반영합니다.*  
+## 15. 문구·사용량 정책 정리 업데이트 이력 (2026-05-22)
+
+### 15-1. 완료된 문구 보정
+
+| 위치 | 변경 전 | 변경 후 |
+|---|---|---|
+| `parent/home` 명따라 카드 | "사주 기반으로 아이의 성향과 진로를 분석해요." | "아이의 성향 키워드를 참고해 부모 대화의 실마리를 찾아보세요." |
+| `/myeonddara` IntroCard | "타고난 기질과 적성을 분석해드려요. 동양 철학의 지혜로 진로의 방향을 찾아보세요." | "아이를 이해하는 참고 리포트로 부모 대화의 실마리를 찾아보세요. (진로를 정해주는 기능이 아니라 대화를 시작하는 베타 기능)" |
+| `result/page.tsx` Phase 2 | "타고난 기질" (섹션 타이틀) | "성향 키워드" |
+| `result/page.tsx` Phase 2 | "주의점" (섹션 타이틀) | "균형 포인트" |
+| `result/page.tsx` Phase 2 | "추천 직업군" + fitPercent % + 순위 | "관심을 넓혀볼 분야" (% 제거, 순위 제거, 분야 제안 중심) |
+| `result/page.tsx` Phase 2 | "✨ 오늘의 진로 운세" | "💬 오늘의 대화 힌트" |
+| `result/page.tsx` Phase 1 | "타고난 기질 · 강점 · 추천 직업군 등" | "성향 키워드 · 강점 · 관심을 넓혀볼 분야 등" |
+
+### 15-2. 사용량 정책 정리 방향
+
+**채택: 방향 B (현재 3회 고정 유지 + TODO 주석 명시)**
+
+- `PER_CHILD_YEARLY_LIMIT = 3` 하드코딩 유지
+- `subscription_plan.myeonddara_yearly_limit` DB값은 현재 gate(0 = 차단) 역할만 수행
+- DB 실제값(premium=9, family=6 등)과 실제 코드 한도(3회 고정) 불일치가 존재함
+- 방향 A(DB값 기반 한도 계산)로의 전환은 플랜별 per-child 산식 확정 후 별도 작업 필요
+- 관련 코드 위치: `src/app/myeonddara/page.tsx` L43, `src/app/api/myeonddara/route.ts` L29
+
+**OZ.대표 확정 필요: planlimit 산식**
+- basic(1명): child당 3회 → yearly_limit=3 ✅ 일치
+- premium(1명): child당 3회 → yearly_limit=9 ⚠️ 불일치 (9는 3명×3회 기준)
+- family(2명): child당 3회 → yearly_limit=6 ✅ 일치
+- family_plus(3명): child당 3회 → yearly_limit=9 ✅ 일치
+
+→ premium의 yearly_limit을 3으로 보정하거나, 코드에서 child_count를 나누어 산출하는 방식 중 선택 필요.
+
+### 15-3. Phase 2 활성화 전 남은 필수 작업
+
+| 작업 | 우선순위 |
+|---|---|
+| Claude 프롬프트 보정 (careers→interestAreas, weaknesses→balancePoints, fortuneMessage 타이틀) | P1 |
+| premium yearly_limit DB값 3 또는 9 확정 및 코드 반영 | P1 — OZ.대표 결정 |
+| 결과 화면 Phase 2 섹션 상단 참고 안내 문구 강화 | P1 |
+| 베타 기간 사용량 차감 유예 여부 결정 | P1 — OZ.대표 결정 |
+
+---
+
+*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트.*  
 *Phase 2 활성화, 요금제 정책 변경, child.birth_date 추가 등 주요 사항 변경 시 이 문서를 함께 갱신하세요.*
