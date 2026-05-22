@@ -497,6 +497,13 @@ export default function MyeonddaraResultPage() {
                   </p>
                 </div>
               )}
+
+              {/* ⑦ AI 생성 면책 안내 (Phase 2 결과 전용) */}
+              {analysis.disclaimer && (
+                <p className="text-[11px] text-base-muted text-center leading-relaxed px-4">
+                  {analysis.disclaimer}
+                </p>
+              )}
             </>
           )}
 
