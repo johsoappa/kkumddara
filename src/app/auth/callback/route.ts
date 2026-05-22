@@ -166,7 +166,7 @@ export async function GET(request: NextRequest) {
             plan_name:                "free",  // [043] free=무료, basic=유료베이직으로 명칭 분리
             child_limit:              1,
             ai_consult_monthly_limit: 3,       // MVP 무료 AI 상담 한도 3회
-            myeonddara_yearly_limit:  0,       // 무료 플랜: 면따라 사용 불가
+            myeonddara_yearly_limit:  1,       // 무료 플랜: 명따라 베타 체험 1회 (048: 0→1)
           });
         if (planErr) {
           console.error("[auth/callback] subscription_plan INSERT 실패:", planErr.message);

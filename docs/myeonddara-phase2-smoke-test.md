@@ -122,7 +122,9 @@ OPENAI_API_KEY=<실제 키, 코드에 직접 넣지 않음>
 | T-07 | 한도 초과 차단 | 연 3회 사용 완료된 자녀 선택 | `LIMIT_EXCEEDED` 429 반환, 차감 없음 |
 | T-08 | Phase 1 정상 유지 | `PHASE2_ENABLED=false` 상태 | API 미호출, 규칙 기반 결과 정상 표시 |
 | T-09 | 인증 없는 접근 | 비로그인 상태 | `AUTH_REQUIRED` 401 반환 |
-| T-10 | 플랜 차단 | free 플랜 계정 | `PLAN_BLOCKED` 403 반환, 차감 없음 |
+| T-10 | 플랜 차단 | `myeonddara_yearly_limit=0` 인 계정 | `PLAN_BLOCKED` 403 반환, 차감 없음 |
+| T-11 | free 1회 체험 | free 플랜 계정 (미사용) | Phase 1 결과 정상 표시, usage +1 기록 |
+| T-12 | free 한도 초과 | free 플랜 계정 (1회 사용 완료) | `NO_REMAINING_USAGE` 429, 잠금 화면 + 요금제 살펴보기 버튼 |
 
 ---
 
@@ -206,7 +208,7 @@ Phase 2 스모크 테스트 중 **운영 사용자의 사용량 차감이 발생
 Phase 2 흐름:
   POST /api/myeonddara
     → 인증 확인
-    → 플랜 확인 (free=0 → 403, 변경 불가)
+    → 플랜 확인 (yearlyLimit=0 → 403 / free=1 → 허용, 1회 체험)
     → 사용량 확인 (차감 전)
     → OpenAI 호출 (여기서 실패 시 차감 없음)
     → JSON 파싱 (여기서 실패 시 차감 없음)
@@ -383,5 +385,5 @@ Phase 2 흐름:
 
 ---
 
-*이 문서는 2026-05-22 최초 작성.*
+*이 문서는 2026-05-22 최초 작성, 2026-05-23 Free 1회 체험 정책 전환 반영 (T-10~T-12, §8-1 업데이트).*
 *Phase 2 실제 활성화 시 이 문서의 체크리스트를 완료 처리하고, 활성화 이력을 `docs/myeonddara-beta-design.md`에 기록하세요.*

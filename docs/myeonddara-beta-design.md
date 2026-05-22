@@ -915,5 +915,59 @@ return NextResponse.json({ analysis, remaining })
 
 ---
 
-*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트, 2026-05-22 스모크 테스트 준비 업데이트, 2026-05-22 yearly_limit 정책 정리 업데이트, 2026-05-22 FreePlanBox 문구 보정, 2026-05-22 Phase 2 베타 사용량 차감 유예 정책.*  
+## 22. Free 1회 체험 정책 전환 (2026-05-23)
+
+### 22-1. 정책 변경 요약
+
+| 항목 | 이전 | 이후 |
+|---|---|---|
+| 무료 플랜 명따라 한도 | `myeonddara_yearly_limit = 0` (완전 차단) | `myeonddara_yearly_limit = 1` (베타 체험 1회) |
+| 무료 사용자 진입 | plan_name=free 조건으로 403 차단 | yearlyLimit=0 조건만 차단, free(1)은 허용 |
+| 체험 후 안내 | 차단 메시지 없음 | "무료 체험 1회를 모두 사용했어요." + 요금제 살펴보기 버튼 |
+| pricing 페이지 문구 | "명따라 리포트는 정식 오픈 후 유료 플랜에서 제공 예정" | "명따라 참고 리포트 1회 체험" |
+
+### 22-2. 변경 파일 목록
+
+| 파일 | 변경 내용 |
+|---|---|
+| `supabase/migrations/048_enable_free_myeonddara_one_time_trial.sql` | 기존 free 행 `myeonddara_yearly_limit` 0→1 UPDATE |
+| `src/app/auth/callback/route.ts` | 신규 가입 기본값 `myeonddara_yearly_limit: 0 → 1` |
+| `src/app/api/myeonddara/usage/route.ts` | Phase 1 전용 사용량 기록 API 신규 생성 |
+| `src/app/myeonddara/page.tsx` | effectiveLimit/isFreeUser 상태, free 안내 카드, Phase 1 usage API 호출, 잠금 화면 업셀 버튼 |
+| `src/app/api/myeonddara/route.ts` | plan_name=free 조건 제거, effectiveYearlyLimit 산식 추가 |
+| `src/app/pricing/page.tsx` | FreePlanBox 명따라 항목 문구 보정 |
+
+### 22-3. effectiveYearlyLimit 산식
+
+```typescript
+const PER_CHILD_YEARLY_LIMIT = 3; // 자녀당 유료 표준
+
+const effectiveYearlyLimit = plan.myeonddara_yearly_limit < PER_CHILD_YEARLY_LIMIT
+  ? plan.myeonddara_yearly_limit   // free(=1), 특수 플랜
+  : PER_CHILD_YEARLY_LIMIT;        // 유료 표준: 자녀당 3회
+```
+
+- free: DB값 그대로 (=1)
+- basic/premium: 3 (DB=3, PER_CHILD 이상이므로 PER_CHILD로 캡)
+- family(DB=6)/family_plus(DB=9): 3 (자녀당 3회 기준)
+
+### 22-4. Phase 1 usage API와 Phase 2 차감 유예 플래그 분리
+
+- **Phase 1 경로** (`/api/myeonddara/usage`): OpenAI 미호출, 규칙 기반 리포트 완료 후 사용량 +1
+- **Phase 2 경로** (`/api/myeonddara`): OpenAI 호출, `MYEONDDARA_PHASE2_DEDUCT_USAGE=false` 시 차감 유예
+- 두 경로는 완전히 독립적. `MYEONDDARA_PHASE2_DEDUCT_USAGE=false`는 free 1회 제한을 무력화하지 않음.
+- Phase 2 현재 비활성 (`NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED` 미설정)
+
+### 22-5. 정식 오픈 전 확인 항목
+
+- [ ] migration 048을 Supabase 프로덕션에 적용했는가?
+- [ ] 기존 free 사용자 `myeonddara_yearly_limit`이 1로 갱신되었는가?
+- [ ] `myeonddara_usage` 테이블에 `child_id` 컬럼(migration 011)이 적용되어 있는가?
+- [ ] free 사용자가 명따라 결과 화면까지 진입 가능한가?
+- [ ] 1회 사용 후 잠금 화면 + "요금제 살펴보기" 버튼이 표시되는가?
+- [ ] 유료 사용자 흐름(3회 한도)이 기존과 동일하게 동작하는가?
+
+---
+
+*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트, 2026-05-22 스모크 테스트 준비 업데이트, 2026-05-22 yearly_limit 정책 정리 업데이트, 2026-05-22 FreePlanBox 문구 보정, 2026-05-22 Phase 2 베타 사용량 차감 유예 정책, 2026-05-23 Free 1회 체험 정책 전환.*  
 *Phase 2 활성화, 요금제 정책 변경, child.birth_date 추가 등 주요 사항 변경 시 이 문서를 함께 갱신하세요.*

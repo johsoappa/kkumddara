@@ -241,9 +241,15 @@ export async function POST(req: NextRequest) {
     .select("myeonddara_yearly_limit, plan_name")
     .eq("parent_id", parentId)
     .maybeSingle();
-  if (!plan || plan.plan_name === "free" || plan.myeonddara_yearly_limit === 0) {
+  if (!plan || plan.myeonddara_yearly_limit === 0) {
     return errRes("명따라는 베이직 이상 플랜에서 이용할 수 있어요.", "PLAN_BLOCKED", 403);
   }
+
+  // effectiveYearlyLimit: free(=1) → 1, 유료(≥3) → PER_CHILD_YEARLY_LIMIT(=3, 자녀당)
+  // family(=6)/family_plus(=9)는 총 한도이므로 자녀당은 3으로 고정
+  const effectiveYearlyLimit = plan.myeonddara_yearly_limit < PER_CHILD_YEARLY_LIMIT
+    ? plan.myeonddara_yearly_limit  // free 등 특수 플랜
+    : PER_CHILD_YEARLY_LIMIT;       // 유료 표준: 자녀당 3회
 
   // ── 7. 사용량 확인 (스키마 자동 감지) ────────────
   const currentYear = new Date().getFullYear();
@@ -277,9 +283,10 @@ export async function POST(req: NextRequest) {
     existingRowId = usageByParent?.id    ?? null;
   }
 
-  if (usedCount >= PER_CHILD_YEARLY_LIMIT) {
+  if (usedCount >= effectiveYearlyLimit) {
+    const displayLimit = plan.plan_name === "free" ? 1 : PER_CHILD_YEARLY_LIMIT;
     return errRes(
-      "이번 연도 명따라 분석 횟수를 모두 사용했어요. (연 3회)",
+      `이번 연도 명따라 분석 횟수를 모두 사용했어요. (연 ${displayLimit}회)`,
       "LIMIT_EXCEEDED", 429
     );
   }
@@ -424,7 +431,7 @@ export async function POST(req: NextRequest) {
         return errRes("사용량 기록 실패. AI 분석은 완료됐어요.", "USAGE_ERR", 502);
       }
     }
-    const remaining = PER_CHILD_YEARLY_LIMIT - (usedCount + 1);
+    const remaining = effectiveYearlyLimit - (usedCount + 1);
     console.log("[api/myeonddara] ⑦ 사용량 차감 완료 — remaining:", remaining);
     console.log("[api/myeonddara] ⑧ sessionStorage 저장 payload 키: myeonddara_result");
     console.log("[api/myeonddara] ⑨ 최종 응답 반환");
@@ -435,7 +442,7 @@ export async function POST(req: NextRequest) {
       { childId, year: currentYear });
     console.log("[api/myeonddara] ⑧ sessionStorage 저장 payload 키: myeonddara_result");
     console.log("[api/myeonddara] ⑨ 최종 응답 반환 (차감 유예 — remaining 변동 없음)");
-    const remaining = PER_CHILD_YEARLY_LIMIT - usedCount;
+    const remaining = effectiveYearlyLimit - usedCount;
     return NextResponse.json({ analysis, remaining });
   }
 }

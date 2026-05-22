@@ -99,6 +99,12 @@ export default function MyeonddaraPage() {
   const [selectedChildId, setSelected]  = useState<string | null>(null);
   const [showSelector, setShowSelector] = useState(false);
 
+  // ── 플랜별 자녀당 실효 한도 ───────────────────────
+  // free=1 (베타 체험), 유료=PER_CHILD_YEARLY_LIMIT(=3)
+  const [effectiveLimit, setEffectiveLimit] = useState(PER_CHILD_YEARLY_LIMIT);
+  // free 사용자 여부 (안내 문구 분기용)
+  const [isFreeUser, setIsFreeUser] = useState(false);
+
   // ── 에러 ───────────────────────────────────────────
   const [submitError, setSubmitError]   = useState<string | null>(null);
 
@@ -106,7 +112,7 @@ export default function MyeonddaraPage() {
   const selectedChild  = children.find((c) => c.id === selectedChildId);
   const remainingCount =
     selectedChild != null
-      ? Math.max(0, PER_CHILD_YEARLY_LIMIT - selectedChild.usedCount)
+      ? Math.max(0, effectiveLimit - selectedChild.usedCount)
       : null;
 
   // ── 초기 로드 ──────────────────────────────────────
@@ -134,11 +140,17 @@ export default function MyeonddaraPage() {
       const isFree      = !plan || plan.plan_name === "free";
       const yearlyLimit = plan?.myeonddara_yearly_limit ?? 0;
 
-      if (isFree || yearlyLimit === 0) {
+      // yearlyLimit=0 → 차단 (free=1이면 허용)
+      if (yearlyLimit === 0) {
         setBlocked(true);
         setBlockMsg("명따라는 베이직 이상 플랜에서 이용할 수 있어요.\n연 3회 (1학기·2학기·연말) 제공됩니다.");
         setBlockType("plan"); setCheckDone(true); return;
       }
+
+      // effectiveLimit: free=1 (베타 체험), 유료=PER_CHILD_YEARLY_LIMIT(3)
+      const thisEffectiveLimit = isFree ? yearlyLimit : PER_CHILD_YEARLY_LIMIT;
+      setEffectiveLimit(thisEffectiveLimit);
+      setIsFreeUser(isFree);
 
       const { data: childRows } = await supabase
         .from("child").select("id, name, avatar_emoji, grade_level, school_grade")
@@ -170,12 +182,16 @@ export default function MyeonddaraPage() {
       });
 
       setChildren(options);
-      const defaultChild = options.find((c) => c.usedCount < PER_CHILD_YEARLY_LIMIT) ?? options[0];
+      const defaultChild = options.find((c) => c.usedCount < thisEffectiveLimit) ?? options[0];
       setSelected(defaultChild.id);
 
-      if (options.every((c) => c.usedCount >= PER_CHILD_YEARLY_LIMIT)) {
+      if (options.every((c) => c.usedCount >= thisEffectiveLimit)) {
         setBlocked(true);
-        setBlockMsg("이번 연도 명따라 분석 횟수를 모두 사용했어요.\n1학기(3월) · 2학기(9월) · 연말(12월)\n총 3회 제공됩니다.");
+        setBlockMsg(
+          isFree
+            ? "무료 체험 1회를 모두 사용했어요.\n정식 오픈 후 유료 플랜에서 자녀당 연 3회 이용할 수 있어요.\n지금은 직업 탐색과 주간 리포트를 계속 이용해 보세요."
+            : "이번 연도 명따라 분석 횟수를 모두 사용했어요.\n1학기(3월) · 2학기(9월) · 연말(12월)\n총 3회 제공됩니다."
+        );
         setBlockType("limit");
       }
       setCheckDone(true);
@@ -188,14 +204,18 @@ export default function MyeonddaraPage() {
     if (!checkDone || blockType === "plan" || blockType === "auth") return;
     const child = children.find((c) => c.id === selectedChildId);
     if (!child) return;
-    if (child.usedCount >= PER_CHILD_YEARLY_LIMIT) {
+    if (child.usedCount >= effectiveLimit) {
       setBlocked(true);
-      setBlockMsg("이번 연도 명따라 분석 횟수를 모두 사용했어요.\n1학기(3월) · 2학기(9월) · 연말(12월)\n총 3회 제공됩니다.");
+      setBlockMsg(
+        effectiveLimit === 1
+          ? "무료 체험 1회를 모두 사용했어요.\n정식 오픈 후 유료 플랜에서 자녀당 연 3회 이용할 수 있어요.\n지금은 직업 탐색과 주간 리포트를 계속 이용해 보세요."
+          : "이번 연도 명따라 분석 횟수를 모두 사용했어요.\n1학기(3월) · 2학기(9월) · 연말(12월)\n총 3회 제공됩니다."
+      );
       setBlockType("limit");
     } else {
       setBlocked(false); setBlockMsg(""); setBlockType(null);
     }
-  }, [selectedChildId, children, checkDone, blockType]);
+  }, [selectedChildId, children, checkDone, blockType, effectiveLimit]);
 
   // ── 폼 제출 ────────────────────────────────────────────────────
   const handleSubmit = async (data: SajuInputData) => {
@@ -239,6 +259,46 @@ export default function MyeonddaraPage() {
     if (!PHASE2_ENABLED) {
       console.log("[명따라] Phase 1 모드 — API 미호출, 결과 이동");
       sessionStorage.setItem(MYEONDDARA_SAJU_KEY, JSON.stringify({ saju, inputData }));
+
+      // ── Phase 1 usage 기록 (free 1회 제한 적용) ──
+      // OpenAI 미호출이므로 별도 usage API로 기록
+      try {
+        const usageRes = await fetch("/api/myeonddara/usage", {
+          method:  "POST",
+          headers: { "Content-Type": "application/json" },
+          body:    JSON.stringify({ childId: selectedChildId, action: "consume" }),
+        });
+        if (!usageRes.ok) {
+          const usageErr: { error?: string; code?: string } = await usageRes.json().catch(() => ({}));
+          console.warn("[명따라] Phase 1 usage 기록 실패:", usageErr.code, usageErr.error);
+          // NO_REMAINING_USAGE = 서버 기준 차단 (중복 제출 등)
+          if (usageErr.code === "NO_REMAINING_USAGE") {
+            setBlocked(true);
+            setBlockMsg(
+              effectiveLimit === 1
+                ? "무료 체험 1회를 모두 사용했어요.\n정식 오픈 후 유료 플랜에서 자녀당 연 3회 이용할 수 있어요."
+                : "이번 연도 명따라 분석 횟수를 모두 사용했어요."
+            );
+            setBlockType("limit");
+            return;
+          }
+          // 기타 실패 → 결과 이동은 허용 (client-side 이미 통과)
+        } else {
+          const { remaining } = await usageRes.json() as { remaining: number };
+          console.log("[명따라] Phase 1 usage 기록 완료 — remaining:", remaining);
+          setChildren((prev) =>
+            prev.map((c) =>
+              c.id === selectedChildId
+                ? { ...c, usedCount: effectiveLimit - remaining }
+                : c
+            )
+          );
+        }
+      } catch (e) {
+        console.warn("[명따라] Phase 1 usage API 네트워크 오류 (무시):", e);
+        // 네트워크 오류 → 결과 이동은 허용 (client-side 이미 통과)
+      }
+
       router.push("/myeonddara/result");
       return;
     }
@@ -287,7 +347,7 @@ export default function MyeonddaraPage() {
             setChildren((prev) =>
               prev.map((c) =>
                 c.id === selectedChildId
-                  ? { ...c, usedCount: PER_CHILD_YEARLY_LIMIT }
+                  ? { ...c, usedCount: effectiveLimit }
                   : c
               )
             );
@@ -320,7 +380,7 @@ export default function MyeonddaraPage() {
       setChildren((prev) =>
         prev.map((c) =>
           c.id === selectedChildId
-            ? { ...c, usedCount: PER_CHILD_YEARLY_LIMIT - remaining }
+            ? { ...c, usedCount: effectiveLimit - remaining }
             : c
         )
       );
@@ -365,7 +425,9 @@ export default function MyeonddaraPage() {
         <span className="text-white/60 text-xs">진로를 정해주는 기능이 아니라,<br />대화를 시작하는 베타 기능입니다.</span>
       </p>
       <p className="text-xs text-white/60 mb-4">
-        연 3회 제공 · 1학기(3월) · 2학기(9월) · 연말(12월)
+        {isFreeUser
+          ? "베타 체험 1회 제공 · 참고용 진로 리포트"
+          : "연 3회 제공 · 1학기(3월) · 2학기(9월) · 연말(12월)"}
       </p>
       <div className="flex justify-center gap-1 flex-nowrap">
         {OHAENG_BADGES.map((b) => (
@@ -487,7 +549,7 @@ export default function MyeonddaraPage() {
                 {showSelector && (
                   <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-base-border rounded-card shadow-card z-10">
                     {children.map((child) => {
-                      const rem = Math.max(0, PER_CHILD_YEARLY_LIMIT - child.usedCount);
+                      const rem = Math.max(0, effectiveLimit - child.usedCount);
                       return (
                         <button key={child.id}
                           onClick={() => { setSelected(child.id); setShowSelector(false); }}
@@ -508,6 +570,15 @@ export default function MyeonddaraPage() {
               </div>
             )}
 
+            {/* ── C. 무료 1회 체험 안내 (차단 전, 1회 남음) ─ */}
+            {authState === "parent" && checkDone && !blocked && isFreeUser && (
+              <div className="rounded-card px-4 py-3 text-xs text-center leading-relaxed"
+                style={{ backgroundColor: "#FFF0EB", color: "#9B4619" }}>
+                무료 플랜에서는 명따라 베타 체험 1회를 사용할 수 있어요.<br />
+                결과는 진로를 정하는 자료가 아니라, 부모 대화를 돕는 참고 리포트입니다.
+              </div>
+            )}
+
             {/* ── C. 플랜/한도 차단 ───────────────────── */}
             {authState === "parent" && checkDone && blocked && (
               <div className="bg-white rounded-card-lg shadow-card p-6 text-center flex flex-col items-center gap-3">
@@ -519,7 +590,8 @@ export default function MyeonddaraPage() {
                 <p className="text-xs text-base-muted leading-relaxed whitespace-pre-line">
                   {blockMsg.split("\n").slice(1).join("\n")}
                 </p>
-                {blockType === "plan" && (
+                {/* plan 차단 또는 free 1회 소진 → 요금제 안내 */}
+                {(blockType === "plan" || (blockType === "limit" && isFreeUser)) && (
                   <button onClick={() => router.push("/pricing")}
                     className="mt-1 px-5 py-2.5 rounded-button text-sm font-bold text-white"
                     style={{ backgroundColor: "#E84B2E" }}>

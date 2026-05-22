@@ -381,7 +381,7 @@ function FreePlanBox({ onStart }: { onStart: () => void }) {
           "베이직 수준의 핵심 기능 체험",
           "자녀 1명 진로 탐색 관리",
           "진로 탐색 50개 직업 전체 열람",
-          "명따라 리포트는 정식 오픈 후 유료 플랜에서 제공 예정",
+          "명따라 참고 리포트 1회 체험",
         ].map((item) => (
           <li key={item} className="flex items-center gap-2">
             <span className="text-xs text-base-muted">•</span>
