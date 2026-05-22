@@ -374,12 +374,12 @@ fortuneMessage → parent_encouragement      ("부모 응원 메시지")
 |---|---|---|
 | free | 0 | 0이면 접근 차단 (gate 역할) |
 | basic | 3 | 0이 아니면 허용 (실제 한도는 코드 상수로 제어) |
-| premium | 9 | 0이 아니면 허용 |
+| premium | 3 *(migration 047 보정: 9→3)* | 0이 아니면 허용 |
 | family | 6 | 0이 아니면 허용 |
-| family_plus | 9 | 0이 아니면 허용 |
+| family_plus | 9 *(migration 047 보정: 0→9)* | 0이 아니면 허용 |
 
 > **⚠️ P1 — 불일치 주의**  
-> `myeonddara_yearly_limit`의 DB 값(premium=9, family=6 등)은 실제 한도 계산에 사용되지 않는다.  
+> `myeonddara_yearly_limit`의 DB 값은 실제 한도 계산에 사용되지 않는다.  
 > 실제 한도는 `PER_CHILD_YEARLY_LIMIT = 3`으로 child당 3회 고정이다.  
 > DB 값은 현재 "0이면 차단" gate 역할만 한다.  
 > **OZ.대표 확정 필요**: 향후 플랜별로 횟수를 달리할 계획이 있다면 DB 값 기반으로 로직 변경이 필요하다.
@@ -772,14 +772,14 @@ Phase 2를 실제로 켜기 전 확인해야 할 테스트 기준, 정상/실패
 | Phase 2 활성화 | **비활성** (`NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED` 미설정) |
 | 스모크 테스트 문서 | ✅ `docs/myeonddara-phase2-smoke-test.md` 생성 완료 |
 | Vercel OPENAI_API_KEY | OZ.대표 직접 확인 필요 |
-| premium yearly_limit 정책 | 미확정 (OZ.대표 결정 필요) |
+| premium yearly_limit 정책 | ✅ 확정 (migration 047: premium=3, family_plus=9) |
 | 베타 사용량 차감 유예 | 미확정 (OZ.대표 결정 필요) |
 
 ### 18-2. 활성화 전 필수 절차
 
 1. `docs/myeonddara-phase2-smoke-test.md` 체크리스트 전항목 통과
 2. Vercel `OPENAI_API_KEY` 등록 확인
-3. premium yearly_limit 정책 확정
+3. ~~premium yearly_limit 정책 확정~~ ✅ migration 047 완료
 4. 베타 사용량 차감 유예 여부 결정
 5. 로컬/Preview 환경에서 interestAreas 샘플 응답 검증
 6. 직업명·퍼센트·순위·운세 표현 미포함 확인
@@ -792,5 +792,37 @@ Vercel 환경변수에서 `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED` 삭제 후 재
 
 ---
 
-*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트, 2026-05-22 스모크 테스트 준비 업데이트.*  
+## 19. yearly_limit 정책 정리 업데이트 이력 (2026-05-22)
+
+### 19-1. 변경 배경
+
+migration 008에서 premium.myeonddara_yearly_limit=9로 설정된 값이 실제 플랜 정책과 불일치함이 확인됨.  
+- premium은 "자녀 1명 집중" 플랜이며, 정책은 "자녀당 연 3회"이므로 yearly_limit=3이 정확함.  
+- family_plus는 migration 019에서 plan_name constraint만 추가, yearly_limit 미설정으로 0(기본값) 상태.
+
+### 19-2. 변경 내용
+
+| 항목 | 변경 전 | 변경 후 | 방법 |
+|---|---|---|---|
+| `premium.myeonddara_yearly_limit` | 9 | **3** | migration 047 |
+| `family_plus.myeonddara_yearly_limit` | 0 | **9** | migration 047 |
+| `route.ts` TODO 주석 | "premium=9" | "premium=3 (migration 047 완료)" | 코드 주석 |
+| `page.tsx` TODO 주석 | "premium=9" | "premium=3 (migration 047 완료)" | 코드 주석 |
+
+### 19-3. 변경하지 않은 항목
+
+- `child_limit` — 변경 금지 (§9-3)
+- `PER_CHILD_YEARLY_LIMIT = 3` — 유지 (Phase 2 활성화 전 DB 기반 전환 불필요)
+- pricing/page.tsx — 이미 모든 유료 플랜에 "연 3회" 표시, 변경 없음
+- free 플랜 FreePlanBox "명따라 연 3회" 문구 — P1 별도 처리 항목, 이번 범위 외
+
+### 19-4. migration 파일
+
+`supabase/migrations/047_fix_myeonddara_yearly_limit_policy.sql`
+
+멱등성 보장: 동일 migration 재실행 시 결과 동일. `ELSE myeonddara_yearly_limit` 처리로 목록 외 플랜 값 보존.
+
+---
+
+*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트, 2026-05-22 스모크 테스트 준비 업데이트, 2026-05-22 yearly_limit 정책 정리 업데이트.*  
 *Phase 2 활성화, 요금제 정책 변경, child.birth_date 추가 등 주요 사항 변경 시 이 문서를 함께 갱신하세요.*

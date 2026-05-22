@@ -283,7 +283,7 @@ Phase 2 흐름:
 
 ### 10-4. 정책 결정 (OZ.대표 결정 필요)
 
-- [ ] premium yearly_limit 정책 확정 (3회 고정 유지 또는 DB값 기반 산식)
+- [x] premium yearly_limit 정책 확정 → migration 047 완료 (premium=3, family_plus=9)
 - [ ] 베타 기간 사용량 차감 유예 여부 결정
 - [ ] 테스트 계정 지정
 - [ ] 제한 베타 오픈 대상 범위 결정 (전체 오픈 vs 특정 계정)
@@ -348,7 +348,7 @@ Phase 2 흐름:
 |---|---|---|
 | 1 | Vercel Production에 `OPENAI_API_KEY` 등록 여부 | Vercel 대시보드 → Settings → Environment Variables |
 | 2 | AI 상담 기능 정상 작동 여부 | `/parent/counseling` 직접 사용 확인 |
-| 3 | premium yearly_limit 정책 확정 | `basic=3회`, `premium=9 or 3회`, `family=6회` 정책 결정 |
+| 3 | premium yearly_limit 정책 확정 | ✅ migration 047 완료: premium=3, family_plus=9 |
 | 4 | 베타 기간 사용량 차감 유예 여부 결정 | 유예 시 별도 코드 작업 필요 |
 | 5 | 제한 베타 활성화 시점 결정 | 이 문서 체크리스트 완료 후 결정 |
 | 6 | 테스트 계정 지정 | 운영 사용자와 분리된 테스트 계정 필요 |
@@ -360,7 +360,7 @@ Phase 2 흐름:
 | 항목 | 등급 | 비고 |
 |---|---|---|
 | `@anthropic-ai/sdk` `package.json` 잔재 | P2 | 미사용 dependency. 기능 영향 없음. Provider 안정화 후 별도 정리 |
-| premium yearly_limit DB값 정합성 | P1 | basic=3 ✅ / premium=9 (코드 3과 불일치) / family=6 ✅ / family_plus=9 ✅ |
+| premium yearly_limit DB값 정합성 | ✅ 완료 | migration 047: free=0 / basic=3 / premium=3 / family=6 / family_plus=9 |
 | 베타 사용량 차감 유예 정책 | P1 | OZ.대표 결정 필요. 유예 시 추가 코드 작업 필요 |
 | Phase 2 실제 OpenAI 샘플 응답 검증 | P1 | 로컬 테스트 후 결과 문서화 필요 |
 | interestAreas title 직업명 포함 여부 반복 검증 | P1 | 3회 이상 샘플 테스트 권장 |

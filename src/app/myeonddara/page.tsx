@@ -42,7 +42,8 @@ console.log(
 
 // TODO(Phase2 활성화 전): subscription_plan.myeonddara_yearly_limit DB값을 실제 한도 계산에 사용하도록 변경 필요.
 // 현재는 free=0 차단(gate)에만 DB값을 사용하고, 실제 횟수 한도는 3회 고정.
-// DB 기준: free=0, basic=3, premium=9, family=6, family_plus=9 → 플랜별 child당 limit 산식 확정 후 보정.
+// DB 기준: free=0, basic=3, premium=3, family=6, family_plus=9 → 플랜별 child당 limit 산식 확정 후 보정.
+// (migration 047 적용 완료: premium 9→3, family_plus 0→9)
 // docs/myeonddara-beta-design.md §8 참고.
 const PER_CHILD_YEARLY_LIMIT = 3;
 
