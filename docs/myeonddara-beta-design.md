@@ -759,5 +759,38 @@ Phase 2는 이번 작업 후에도 여전히 비활성 상태(`NEXT_PUBLIC_MYEON
 
 ---
 
-*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트.*  
+## 18. Phase 2 활성화 전 스모크 테스트 준비 (2026-05-22)
+
+Phase 2를 실제로 켜기 전 확인해야 할 테스트 기준, 정상/실패 응답 기준, 사용량 차감 방지 기준, 롤백 절차를 별도 문서로 분리하여 작성했다.
+
+**스모크 테스트 기준 문서**: `docs/myeonddara-phase2-smoke-test.md`
+
+### 18-1. 요약
+
+| 항목 | 현재 상태 |
+|---|---|
+| Phase 2 활성화 | **비활성** (`NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED` 미설정) |
+| 스모크 테스트 문서 | ✅ `docs/myeonddara-phase2-smoke-test.md` 생성 완료 |
+| Vercel OPENAI_API_KEY | OZ.대표 직접 확인 필요 |
+| premium yearly_limit 정책 | 미확정 (OZ.대표 결정 필요) |
+| 베타 사용량 차감 유예 | 미확정 (OZ.대표 결정 필요) |
+
+### 18-2. 활성화 전 필수 절차
+
+1. `docs/myeonddara-phase2-smoke-test.md` 체크리스트 전항목 통과
+2. Vercel `OPENAI_API_KEY` 등록 확인
+3. premium yearly_limit 정책 확정
+4. 베타 사용량 차감 유예 여부 결정
+5. 로컬/Preview 환경에서 interestAreas 샘플 응답 검증
+6. 직업명·퍼센트·순위·운세 표현 미포함 확인
+7. **위 항목 완료 후** `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true` Vercel 등록 + 재배포
+
+### 18-3. 롤백 방법
+
+Vercel 환경변수에서 `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED` 삭제 후 재배포.
+코드 revert 없이 즉시 Phase 1으로 복귀됩니다.
+
+---
+
+*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트, 2026-05-22 스모크 테스트 준비 업데이트.*  
 *Phase 2 활성화, 요금제 정책 변경, child.birth_date 추가 등 주요 사항 변경 시 이 문서를 함께 갱신하세요.*

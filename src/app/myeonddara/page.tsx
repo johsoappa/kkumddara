@@ -234,7 +234,7 @@ export default function MyeonddaraPage() {
       calendarType:   data.calendarType,
     };
 
-    // ── Phase 1: Claude 비활성화 → 바로 결과 이동 ──────
+    // ── Phase 1: Phase 2 비활성화 → 바로 결과 이동 ──────
     if (!PHASE2_ENABLED) {
       console.log("[명따라] Phase 1 모드 — API 미호출, 결과 이동");
       sessionStorage.setItem(MYEONDDARA_SAJU_KEY, JSON.stringify({ saju, inputData }));
