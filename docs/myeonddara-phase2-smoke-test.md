@@ -385,5 +385,72 @@ Phase 2 흐름:
 
 ---
 
-*이 문서는 2026-05-22 최초 작성, 2026-05-23 Free 1회 체험 정책 전환 반영 (T-10~T-12, §8-1 업데이트).*
+---
+
+## 15. 정적 검토 결과 (2026-05-23)
+
+> 이 섹션은 로컬 `.env.local`에 `OPENAI_API_KEY` 미설정 상태에서 코드 정적 검토만 수행한 결과입니다.
+> live OpenAI 응답 품질 검증(T-01~T-09)은 OPENAI_API_KEY 확보 후 별도 진행이 필요합니다.
+
+### 15-1. S-01~S-08 정적 검토 결과
+
+| 항목 | 결과 | 확인 위치 |
+|---|---|---|
+| S-01 PHASE2_ENABLED=false | ✅ | `.env.local` 명시, 빌드로그 "phase1 mode" 확인 |
+| S-02 OPENAI_API_KEY 체크 | ✅ | `route.ts` L317-321: 미설정 시 503, 차감 없음 |
+| S-03 isValidPhase2Result() | ✅ | `route.ts` L109-111: interestAreas 배열+길이>0 |
+| S-04 normalizePhase2Result() | ✅ | `route.ts` L127-141: disclaimer/parentQuestions/recommendedActivities fallback 3종 |
+| S-05 사용량 차감 위치 | ✅ | `route.ts` L412: FEATURE_FLAGS.MYEONDDARA_PHASE2_DEDUCT_USAGE=false → 차감 skip 확인 |
+| S-06 Phase 1 분기 | ✅ | `page.tsx` L259: `if (!PHASE2_ENABLED)` → /api/myeonddara 미호출 확인 |
+| S-07 response_format | ✅ | `route.ts` L341: `{ type: "json_object" }` |
+| S-08 timeout | ✅ | `route.ts` L329-331: Promise.race + AI_TIMEOUT_MS=20_000 |
+
+### 15-2. 추가 구조 확인
+
+| 항목 | 결과 | 비고 |
+|---|---|---|
+| free 차단 로직 | ✅ | `route.ts` L244: yearlyLimit===0 → PLAN_BLOCKED 403 |
+| Phase 1 free 차단 로직 | ✅ | `page.tsx` L144: yearlyLimit===0 → blocked |
+| free=1 허용 | ✅ | yearlyLimit=0 조건만 차단, free(1)은 통과 |
+| BILLING_REQUIRED fallback | ✅ | `page.tsx` L333-339: Phase 1 결과로 자동 fallback |
+| JSON 파싱 실패 처리 | ✅ | `route.ts` L396-399: PARSE_ERROR 502, 차감 없음 |
+| 구조 검증 실패 처리 | ✅ | `route.ts` L402-404: interestAreas 없음 → PARSE_ERROR 502 |
+| interestAreas 최대 표시 | ✅ | `result/page.tsx` L423: `.slice(0, 3)` 안전 처리 |
+| OPENAI_API_KEY 로컬 상태 | ⚠️ | `.env.local` 미설정 → live 테스트 불가 |
+| MYEONDDARA_PHASE2_DEDUCT_USAGE | ✅ | `featureFlags.ts` L49: false (차감 유예 유지) |
+| 프롬프트 금지 표현 명시 | ✅ | `route.ts` SYSTEM_PROMPT: 직업명/fitPercent/운세/단정 금지 명시 |
+
+### 15-3. 발견된 이슈
+
+| 등급 | 이슈 | 위치 | 상태 |
+|---|---|---|---|
+| P2 | `analysis.disclaimer`가 result/page.tsx에서 미렌더링 | `result/page.tsx` | 하단 정적 면책 문구(L511-514)로 대체 표시 중 → 기능적 차단 없음. 별도 작업으로 분리 |
+
+### 15-4. Live 테스트 대기 항목 (OPENAI_API_KEY 필요)
+
+아래 항목은 Vercel Preview 또는 OPENAI_API_KEY가 로컬에 추가된 후 진행해야 합니다.
+
+- T-01: OpenAI 응답 생성 여부
+- T-02: 필수 필드 전체 존재 여부
+- T-03: interestAreas.title에 직업명 미포함 확인
+- T-04: fitPercent / % 패턴 미포함 확인
+- T-05: 운세/운명 표현 미포함 확인
+- T-06: disclaimer 표시 (AI 생성 or fallback)
+- T-07: 한도 초과 시 LIMIT_EXCEEDED 429 반환 확인
+- T-08: Phase 1 정상 유지 (PHASE2_ENABLED=false 기준 — ✅ 이미 빌드로 확인됨)
+- T-09: 인증 없는 접근 → AUTH_REQUIRED 401
+
+### 15-5. Phase 2 제한 베타 활성화 판단 (정적 검토 기준)
+
+정적 검토 기준 P0/P1 오류 없음. live 테스트 항목(T-01~T-07) 통과 후 제한 베타 가능.
+
+**활성화 전 필수 작업:**
+1. `OPENAI_API_KEY`를 Vercel Preview 또는 로컬에 설정하여 T-01~T-07 live 테스트 실행
+2. 테스트 결과 이 문서 §15-4 항목 체크 처리
+3. P0/P1 없음 최종 확인
+4. Vercel 환경변수에 `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true` 추가 (Preview → Production 순)
+
+---
+
+*이 문서는 2026-05-22 최초 작성, 2026-05-23 Free 1회 체험 정책 전환 반영 (T-10~T-12, §8-1 업데이트), 2026-05-23 정적 검토 결과 기록 (§15).*
 *Phase 2 실제 활성화 시 이 문서의 체크리스트를 완료 처리하고, 활성화 이력을 `docs/myeonddara-beta-design.md`에 기록하세요.*
