@@ -18,24 +18,22 @@ import { MYEONDDARA_SAJU_KEY, MYEONDDARA_RESULT_KEY } from "@/data/myeonddara";
 import type { ManseryeokResult } from "@/lib/manseryeok";
 import { buildRuleBasedGuide } from "@/lib/myeonddara-rules";
 
-// ── Claude 분석 타입 ────────────────────────────────────────────
-interface CareerItem {
-  rank:       number;
-  emoji:      string;
-  name:       string;
-  reason:     string;
-  fitPercent: number;
+// ── Phase 2 Claude 분석 타입 ─────────────────────────────────────
+interface InterestArea {
+  title:               string;
+  reason:              string;
+  activities:          string[];
+  conversationQuestion:string;
 }
-interface ClaudeAnalysis {
-  dominantOhaeng:     string;
-  ilganDescription:   string;
-  personalityTags:    string[];
-  personalitySummary: string;
-  strengths:          string[];
-  weaknesses:         string[];
-  careers:            CareerItem[];
-  fortuneMessage:     string;
-  parentMessage:      string;
+interface MyeonddaraPhase2Result {
+  summary:              string;
+  strengthKeywords:     string[];
+  balancePoints:        string[];
+  interestAreas:        InterestArea[];
+  todayHint:            string;
+  parentQuestions:      string[];
+  recommendedActivities:string[];
+  disclaimer:           string;
 }
 interface InputData {
   name:           string;
@@ -50,7 +48,7 @@ interface Session {
   saju:        ManseryeokResult;
   inputData:   InputData;
   hasAnalysis: boolean;
-  analysis?:   ClaudeAnalysis;
+  analysis?:   MyeonddaraPhase2Result;
 }
 
 // ── 오행 메타 ──────────────────────────────────────────────────
@@ -82,7 +80,7 @@ export default function MyeonddaraResultPage() {
       const sajuRaw   = sessionStorage.getItem(MYEONDDARA_SAJU_KEY);
 
       if (resultRaw) {
-        const parsed = JSON.parse(resultRaw) as { saju: ManseryeokResult; analysis: ClaudeAnalysis; inputData: InputData };
+        const parsed = JSON.parse(resultRaw) as { saju: ManseryeokResult; analysis: MyeonddaraPhase2Result; inputData: InputData };
         console.log("[명따라/result] Phase 2 세션 로드:", parsed.saju.summary);
         setSession({ ...parsed, hasAnalysis: true });
       } else if (sajuRaw) {
@@ -214,10 +212,10 @@ export default function MyeonddaraResultPage() {
                 </div>
               ))}
             </div>
-            {/* Phase 2: 일간 설명 */}
-            {hasAnalysis && analysis?.ilganDescription && (
+            {/* Phase 2: 성향 요약 한 줄 */}
+            {hasAnalysis && analysis?.summary && (
               <p className="text-xs text-white/70 mt-4 leading-relaxed">
-                {analysis.ilganDescription}
+                {analysis.summary}
               </p>
             )}
           </div>
@@ -381,108 +379,124 @@ export default function MyeonddaraResultPage() {
           {/* ── Phase 2: Claude 분석 카드들 ──────────── */}
           {hasAnalysis && analysis && (
             <>
-              {/* 성향 키워드 (구: 타고난 기질) */}
-              <div className="bg-white rounded-card-lg shadow-card p-5">
-                <h3 className="text-sm font-bold text-base-text mb-3">성향 키워드</h3>
-                {analysis.personalityTags?.length > 0 && (
-                  <div className="flex flex-wrap gap-2 mb-3">
-                    {analysis.personalityTags.map((tag) => (
-                      <span key={tag}
+              {/* ① 강점 키워드 */}
+              {analysis.strengthKeywords?.length > 0 && (
+                <div className="bg-white rounded-card-lg shadow-card p-5">
+                  <h3 className="text-sm font-bold text-base-text mb-3">강점 키워드</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {analysis.strengthKeywords.map((kw) => (
+                      <span key={kw}
                         className="text-xs font-semibold px-3 py-1.5 rounded-full"
                         style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}>
-                        {tag}
+                        {kw}
                       </span>
                     ))}
                   </div>
-                )}
-                {analysis.personalitySummary && (
-                  <p className="text-sm text-base-text leading-relaxed">
-                    {analysis.personalitySummary}
-                  </p>
-                )}
-              </div>
-
-              {/* 강점 / 주의점 */}
-              <div className="bg-white rounded-card-lg shadow-card p-5">
-                <div className="flex flex-col gap-4">
-                  {analysis.strengths?.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-bold text-base-muted mb-2 flex items-center gap-1">
-                        <span>💪</span> 강점
-                      </h4>
-                      <ul className="flex flex-col gap-1.5">
-                        {analysis.strengths.map((s) => (
-                          <li key={s} className="flex items-start gap-2 text-sm text-base-text">
-                            <span className="text-brand-red mt-0.5 text-xs">✓</span>
-                            <span>{s}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-                  {analysis.weaknesses?.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-bold text-base-muted mb-2 flex items-center gap-1">
-                        <span>🌱</span> 균형 포인트
-                      </h4>
-                      <ul className="flex flex-col gap-1.5">
-                        {analysis.weaknesses.map((w) => (
-                          <li key={w} className="flex items-start gap-2 text-sm text-base-text">
-                            <span className="text-orange-400 mt-0.5 text-xs">•</span>
-                            <span>{w}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
                 </div>
-              </div>
+              )}
 
-              {/* 관심을 넓혀볼 분야 (구: 추천 직업군 — fitPercent/순위 제거, 분야 제안 중심으로 보정) */}
-              {/* TODO(Phase2 활성화 전): careers 구조를 interestAreas 분야 제안으로 교체 필요. docs/myeonddara-beta-design.md §8-2 참고. */}
-              {analysis.careers?.length > 0 && (
+              {/* ② 균형 포인트 */}
+              {analysis.balancePoints?.length > 0 && (
+                <div className="bg-white rounded-card-lg shadow-card p-5">
+                  <h4 className="text-sm font-bold text-base-text mb-3 flex items-center gap-1">
+                    <span>🌱</span> 균형 포인트
+                  </h4>
+                  <ul className="flex flex-col gap-2">
+                    {analysis.balancePoints.map((bp, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-base-text">
+                        <span className="text-orange-400 mt-0.5 text-xs shrink-0">•</span>
+                        <span>{bp}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* ③ 관심을 넓혀볼 분야 (interestAreas) */}
+              {analysis.interestAreas?.length > 0 && (
                 <div className="bg-white rounded-card-lg shadow-card p-5">
                   <h3 className="text-sm font-bold text-base-text mb-1">관심을 넓혀볼 분야</h3>
                   <p className="text-[11px] text-base-muted mb-3 leading-relaxed">
-                    직업을 정하는 것이 아니라, 아이와 함께 탐색해볼 활동 방향이에요.
+                    직업을 정하는 게 아니라, 아이와 함께 탐색해볼 활동 방향이에요.
                   </p>
-                  <div className="flex flex-col gap-3">
-                    {analysis.careers.slice(0, 3).map((career) => (
-                      <div key={career.rank}
-                        className="rounded-card border border-base-border p-4 flex items-start gap-3">
-                        <span className="text-2xl leading-none shrink-0">{career.emoji}</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-bold text-base-text mb-1">{career.name}</p>
-                          <p className="text-xs text-base-muted">{career.reason}</p>
-                        </div>
+                  <div className="flex flex-col gap-4">
+                    {analysis.interestAreas.slice(0, 3).map((area, i) => (
+                      <div key={i} className="rounded-card border border-base-border p-4 flex flex-col gap-2">
+                        <p className="text-sm font-bold text-base-text">{area.title}</p>
+                        <p className="text-xs text-base-muted leading-relaxed">{area.reason}</p>
+                        {area.activities?.length > 0 && (
+                          <ul className="flex flex-col gap-1 mt-1">
+                            {area.activities.map((act, j) => (
+                              <li key={j} className="flex items-start gap-2 text-xs text-base-text">
+                                <span className="text-brand-red mt-0.5 shrink-0">✓</span>
+                                <span>{act}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        {area.conversationQuestion && (
+                          <div className="mt-1 px-3 py-2 rounded-card text-xs leading-relaxed"
+                            style={{ backgroundColor: "#FFF8F4", color: "#7A3A20" }}>
+                            💬 <span className="font-semibold">대화 힌트</span>: {area.conversationQuestion}
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* 부모님께 드리는 말씀 */}
-              {analysis.parentMessage && (
-                <div className="rounded-card-lg p-5 border border-orange-200"
-                  style={{ backgroundColor: "#FFF8F4" }}>
-                  <p className="text-xs font-bold mb-2" style={{ color: "#E84B2E" }}>
-                    💌 부모님께 드리는 말씀
+              {/* ④ 부모 대화 질문 */}
+              {analysis.parentQuestions?.length > 0 && (
+                <div className="bg-white rounded-card-lg shadow-card p-5">
+                  <h3 className="text-sm font-bold text-base-text mb-1">부모 대화 질문</h3>
+                  <p className="text-[11px] text-base-muted mb-3 leading-relaxed">
+                    아이와 자연스럽게 이야기를 시작할 때 써보세요.
                   </p>
-                  <p className="text-sm text-base-text leading-relaxed">
-                    {analysis.parentMessage}
-                  </p>
+                  <ul className="flex flex-col gap-2">
+                    {analysis.parentQuestions.map((q, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-base-text">
+                        <span
+                          className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                          style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}>
+                          {i + 1}
+                        </span>
+                        <span>{q}</span>
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               )}
 
-              {/* 오늘의 대화 힌트 (구: 오늘의 진로 운세 — "운세" 표현 제거) */}
-              <div className="rounded-card-lg p-5 text-center"
-                style={{ background: "linear-gradient(135deg, #1A3A6B, #2C5F8A)" }}>
-                <p className="text-xs font-semibold text-white/70 mb-1 tracking-wide">💬 오늘의 대화 힌트</p>
-                <p className="text-xs text-white/50 mb-3">{todayLabel}</p>
-                <p className="text-sm font-medium text-white leading-relaxed mb-4">
-                  {analysis.fortuneMessage}
-                </p>
-              </div>
+              {/* ⑤ 추천 활동 */}
+              {analysis.recommendedActivities?.length > 0 && (
+                <div className="rounded-card-lg p-5 border border-orange-200"
+                  style={{ backgroundColor: "#FFF8F4" }}>
+                  <p className="text-xs font-bold mb-2" style={{ color: "#E84B2E" }}>
+                    💌 이번 주 함께 해보세요
+                  </p>
+                  <ul className="flex flex-col gap-2">
+                    {analysis.recommendedActivities.map((act, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-base-text">
+                        <span className="text-brand-red mt-0.5 text-xs shrink-0">✓</span>
+                        <span>{act}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* ⑥ 오늘의 대화 힌트 */}
+              {analysis.todayHint && (
+                <div className="rounded-card-lg p-5 text-center"
+                  style={{ background: "linear-gradient(135deg, #1A3A6B, #2C5F8A)" }}>
+                  <p className="text-xs font-semibold text-white/70 mb-1 tracking-wide">💬 오늘의 대화 힌트</p>
+                  <p className="text-xs text-white/50 mb-3">{todayLabel}</p>
+                  <p className="text-sm font-medium text-white leading-relaxed">
+                    {analysis.todayHint}
+                  </p>
+                </div>
+              )}
             </>
           )}
 

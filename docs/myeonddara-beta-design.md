@@ -590,18 +590,18 @@ Phase 2 결과 리포트를 DB에 저장하는 구조로 변경할 경우 처리
 
 ### 14-2. Phase 2 활성화 체크리스트 (활성화 전 필수)
 
-- [ ] Claude 프롬프트에서 `careers` → `interest_areas` 구조 변경
-- [ ] Claude 프롬프트에서 `fitPercent` 제거
-- [ ] Claude 프롬프트에서 `weaknesses` → `balance_points` 변경
-- [ ] 결과 화면 "추천 직업군" → "관심 분야" 변경
-- [ ] 결과 화면 fitPercent 퍼센트 표시 제거
+- [x] ~~Claude 프롬프트에서 `careers` → `interestAreas` 구조 변경~~ ✅ 2026-05-22
+- [x] ~~Claude 프롬프트에서 `fitPercent` 제거~~ ✅ 2026-05-22
+- [x] ~~Claude 프롬프트에서 `weaknesses` → `balancePoints` 변경~~ ✅ 2026-05-22
+- [x] ~~결과 화면 "추천 직업군" → "관심을 넓혀볼 분야" 변경~~ ✅ 2026-05-22
+- [x] ~~결과 화면 fitPercent 퍼센트 표시 제거~~ ✅ 2026-05-22
 - [x] ~~결과 화면 "오늘의 진로 운세" → "오늘의 대화 힌트"로 변경~~ ✅ 2026-05-22
 - [x] ~~"추천 직업군" → "관심을 넓혀볼 분야" + fitPercent/순위 제거~~ ✅ 2026-05-22
+- [x] ~~careers 구조를 interestAreas 분야 제안으로 교체 (Claude 프롬프트 포함)~~ ✅ 2026-05-22
+- [x] ~~Phase 2 빌드 + 타입 검증~~ ✅ 2026-05-22
 - [ ] 결과 화면 상단 참고용 안내 문구 강화 (Phase 2 결과 섹션)
 - [ ] 베타 기간 사용량 차감 정책 확정 (OZ.대표 결정)
 - [ ] Phase 2 Claude API 비용 예상치 검토
-- [ ] Phase 2 빌드 + 타입 검증
-- [ ] careers 구조를 interestAreas 분야 제안으로 교체 (Claude 프롬프트 포함)
 
 ---
 
@@ -639,14 +639,71 @@ Phase 2 결과 리포트를 DB에 저장하는 구조로 변경할 경우 처리
 
 ### 15-3. Phase 2 활성화 전 남은 필수 작업
 
-| 작업 | 우선순위 |
-|---|---|
-| Claude 프롬프트 보정 (careers→interestAreas, weaknesses→balancePoints, fortuneMessage 타이틀) | P1 |
-| premium yearly_limit DB값 3 또는 9 확정 및 코드 반영 | P1 — OZ.대표 결정 |
-| 결과 화면 Phase 2 섹션 상단 참고 안내 문구 강화 | P1 |
-| 베타 기간 사용량 차감 유예 여부 결정 | P1 — OZ.대표 결정 |
+| 작업 | 우선순위 | 상태 |
+|---|---|---|
+| Claude 프롬프트 보정 (careers→interestAreas, weaknesses→balancePoints, fortuneMessage 타이틀) | P1 | ✅ 완료 (§16 참고) |
+| 결과 화면 Phase 2 타입·렌더링 교체 (MyeonddaraPhase2Result) | P1 | ✅ 완료 (§16 참고) |
+| premium yearly_limit DB값 3 또는 9 확정 및 코드 반영 | P1 | OZ.대표 결정 필요 |
+| 결과 화면 Phase 2 섹션 상단 참고 안내 문구 강화 | P2 | 미완료 |
+| 베타 기간 사용량 차감 유예 여부 결정 | P1 | OZ.대표 결정 필요 |
 
 ---
 
-*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트.*  
+## 16. Phase 2 결과 구조 interestAreas 전환 업데이트 이력 (2026-05-22)
+
+### 16-1. 변경 요약
+
+기존 `ClaudeAnalysis` 타입(careers + fitPercent + weaknesses + fortuneMessage 기반)을  
+`MyeonddaraPhase2Result` 타입(interestAreas + strengthKeywords + balancePoints + todayHint 기반)으로 완전 교체.  
+Phase 2는 여전히 비활성화 상태(`NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED` 미설정).
+
+### 16-2. 타입 변경
+
+| 항목 | 이전 | 이후 |
+|---|---|---|
+| 인터페이스명 | `CareerItem` + `ClaudeAnalysis` | `InterestArea` + `MyeonddaraPhase2Result` |
+| 직업 추천 | `careers[{rank, emoji, name, fitPercent, reason}]` | 제거 |
+| 관심 분야 | (없음) | `interestAreas[{title, reason, activities, conversationQuestion}]` |
+| 성향 키워드 | `personalityTags` | `strengthKeywords` |
+| 주의점 | `weaknesses` | `balancePoints` |
+| 오늘 메시지 | `fortuneMessage` | `todayHint` |
+| 성향 요약 | `ilganDescription` + `personalitySummary` | `summary` (단일 필드) |
+| 부모 질문 | `parentMessage` (단일 문장) | `parentQuestions` (배열) |
+| 추천 활동 | (없음) | `recommendedActivities` |
+| 면책 문구 | (없음) | `disclaimer` |
+
+### 16-3. SYSTEM_PROMPT 변경 핵심
+
+- 직업명 추천 명시적 금지 지시 추가
+- fitPercent/순위/운세 표현 명시적 금지 지시 추가
+- `interestAreas.title` = 활동·관심 분야명 (직업명 아님) 지침 추가
+- `interestAreas.activities` = 실제 해볼 수 있는 구체 활동 2개 지침 추가
+- `interestAreas.conversationQuestion` = 부모 대화 질문 1개 지침 추가
+
+### 16-4. result/page.tsx Phase 2 렌더링 구조 변경
+
+| 섹션 | 이전 | 이후 |
+|---|---|---|
+| 4주 카드 하단 | `ilganDescription` | `summary` |
+| 성향 카드 | `personalityTags` + `personalitySummary` (혼합) | `strengthKeywords` (키워드만) |
+| 주의점 | `weaknesses` 배열 | `balancePoints` 배열 |
+| 관심 분야 | `careers` 루프 (직업명 `career.name` 노출) | `interestAreas` 루프 (title + reason + activities + conversationQuestion) |
+| 부모 메시지 | `parentMessage` 단일 문장 | `parentQuestions` 번호 목록 |
+| 추천 활동 | (없음) | `recommendedActivities` 목록 |
+| 오늘 힌트 | `fortuneMessage` | `todayHint` |
+
+### 16-5. Phase 2 활성화 전 체크리스트 (갱신)
+
+- [x] ~~Claude 프롬프트 보정 (careers→interestAreas, fitPercent 제거, 직업명 금지 지시)~~ ✅ 2026-05-22
+- [x] ~~result/page.tsx 타입·렌더링 교체 (CareerItem/ClaudeAnalysis → MyeonddaraPhase2Result)~~ ✅ 2026-05-22
+- [x] ~~tsc --noEmit 통과~~ ✅ 2026-05-22
+- [x] ~~npm run build 통과~~ ✅ 2026-05-22
+- [ ] Phase 2 실제 Claude API 응답 + JSON 파싱 검증 (API Key 세팅 후)
+- [ ] premium yearly_limit DB값 3 또는 9 확정 및 코드 반영 (OZ.대표 결정)
+- [ ] 베타 기간 사용량 차감 유예 여부 결정 (OZ.대표 결정)
+- [ ] `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true` 설정 + 재배포
+
+---
+
+*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트.*  
 *Phase 2 활성화, 요금제 정책 변경, child.birth_date 추가 등 주요 사항 변경 시 이 문서를 함께 갱신하세요.*
