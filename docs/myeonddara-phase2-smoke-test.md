@@ -452,5 +452,105 @@ Phase 2 흐름:
 
 ---
 
-*이 문서는 2026-05-22 최초 작성, 2026-05-23 Free 1회 체험 정책 전환 반영 (T-10~T-12, §8-1 업데이트), 2026-05-23 정적 검토 결과 기록 (§15).*
+---
+
+## 16. Preview Live 테스트 준비 현황 (2026-05-23)
+
+### 16-1. 테스트 브랜치 정보
+
+| 항목 | 값 |
+|---|---|
+| 브랜치 | `test/phase2-smoke` |
+| commit | `84397e4` |
+| Vercel Preview URL | `https://kkumddara-git-test-phase2-smoke-johsoappa.vercel.app` |
+| 배포 상태 | ✅ success (GitHub commit status 확인) |
+| PHASE2_ENABLED | `true` (next.config.js에 임시 하드코딩 — test 브랜치 전용) |
+| MYEONDDARA_PHASE2_DEDUCT_USAGE | `false` (featureFlags.ts 변경 없음) |
+| main 병합 | ❌ 금지 — 테스트 완료 후 브랜치 삭제 예정 |
+
+### 16-2. 빌드 검증 결과
+
+test/phase2-smoke 브랜치 로컬 빌드에서 Phase 2 활성화 확인:
+
+```
+[myeonddara] phase2 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true (OpenAI API 활성)
+✓ Compiled successfully
+✓ Generating static pages (41/41)
+```
+
+main 브랜치 빌드는 Phase 2 비활성 유지 확인:
+
+```
+[myeonddara] phase1 mode — NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED 미설정 or false (API 미호출)
+```
+
+### 16-3. 차단 항목 (OZ.대표 직접 수행 필요)
+
+| 항목 | 사유 |
+|---|---|
+| Preview URL 브라우저 접근 | Vercel 배포 보호 → Vercel 로그인 필요 |
+| 카카오 OAuth 로그인 | 브라우저 세션 필요 |
+| OpenAI Live 호출 확인 | 인증된 세션 + 브라우저 필요 |
+| used_count 사전/사후 비교 | Supabase SQL Editor 접근 필요 |
+
+### 16-4. OZ.대표가 직접 수행할 Preview Live 테스트 절차
+
+**준비:**
+1. Supabase SQL Editor에서 테스트 child의 사전 used_count 확인
+   ```sql
+   SELECT child_id, used_year, count FROM public.myeonddara_usage
+   WHERE used_year = 2026 ORDER BY updated_at DESC LIMIT 5;
+   ```
+
+**테스트:**
+1. 브라우저에서 아래 URL 접속 (Vercel 로그인 필요)
+   `https://kkumddara-git-test-phase2-smoke-johsoappa.vercel.app`
+2. 꿈따라 테스트 계정으로 카카오 로그인
+3. `/myeonddara` 진입 → 헤더에 `"올해 N회 남음"` 배지 확인 (Phase 2 활성 지표)
+4. 입력값 입력 (이름: 테스트아이, 생년월일: 2015-03-12, 양력, 시간 모름, 성별 선택)
+5. 분석 시작 → 로딩 오버레이 표시 확인
+6. 결과 화면 진입 후 확인:
+   - [ ] `summary` — 사주 카드 하단에 표시
+   - [ ] `interestAreas` — "관심을 넓혀볼 분야" 카드 (1~3개)
+   - [ ] `interestAreas.title` — 직업명 아닌 활동 분야명
+   - [ ] `parentQuestions` — "부모 대화 질문" 카드
+   - [ ] `recommendedActivities` — "이번 주 함께 해보세요" 카드
+   - [ ] `todayHint` — "오늘의 대화 힌트" 카드
+   - [ ] `analysis.disclaimer` — AI 생성 면책 문구 (새로 추가)
+   - [ ] 하단 정적 면책 문구 — "명따라는 만세력 기반..."
+
+**금지 표현 검수:**
+   - [ ] "%" / "퍼센트" / 순위 없음
+   - [ ] 직업명 직접 추천 없음
+   - [ ] "운세" / "운명" / "반드시" 없음
+   - [ ] 진로 단정 없음
+
+**사후 확인:**
+7. Supabase SQL에서 테스트 child의 사후 used_count 확인 → 변동 없어야 함
+8. Vercel Function Logs에서 차감 유예 로그 확인:
+   `[api/myeonddara] ⑦ Phase 2 베타 사용량 차감 유예 (MYEONDDARA_PHASE2_DEDUCT_USAGE=false)`
+
+### 16-5. 테스트 완료 후 정리
+
+- [ ] 테스트 결과를 이 문서 §16-6에 기록
+- [ ] `test/phase2-smoke` 브랜치 삭제: `git push origin --delete test/phase2-smoke`
+- [ ] 로컬 브랜치 삭제: `git branch -d test/phase2-smoke`
+- [ ] main에는 어떤 Phase 2 활성화 코드도 병합하지 않음 확인
+
+### 16-6. Live 테스트 결과 기록 (OZ.대표 기록 후 기입)
+
+| 항목 | 결과 | 비고 |
+|---|---|---|
+| Phase 2 호출 여부 | — | |
+| JSON 파싱 성공 | — | |
+| interestAreas 구조 | — | |
+| 금지 표현 | — | |
+| disclaimer 표시 | — | |
+| used_count 변동 | — | |
+| 전체 판정 | — | |
+| 테스트 일자 | — | |
+
+---
+
+*이 문서는 2026-05-22 최초 작성, 2026-05-23 Free 1회 체험 정책 전환 반영 (T-10~T-12, §8-1 업데이트), 2026-05-23 정적 검토 결과 기록 (§15), 2026-05-23 Preview 브랜치 배포 및 수동 테스트 절차 기록 (§16).*
 *Phase 2 실제 활성화 시 이 문서의 체크리스트를 완료 처리하고, 활성화 이력을 `docs/myeonddara-beta-design.md`에 기록하세요.*
