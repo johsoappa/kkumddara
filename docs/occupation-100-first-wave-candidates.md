@@ -202,5 +202,18 @@
 
 ---
 
+---
+
+## 9. 후속 단계 — 2차 후보 10개 선정
+
+1차 후보 23개 작업(053·054·quizData) 완료 후 2차 후보 10개 선정이 진행되었다.
+
+- 2차 후보 방향: **스포츠 진로 생태계** (운동선수 외 분야 확장)
+- 2차 후보 문서: [`docs/occupation-100-second-wave-sports-ecosystem-candidates.md`](./occupation-100-second-wave-sports-ecosystem-candidates.md)
+- 상태: 2차 후보 10개 초안 작성 완료 (2026-05-26) — OZ 승인 대기
+
+---
+
 *이 문서는 DB 변경 없이 OZ 승인용으로 작성되었습니다.  
-중복 확인 기준일: 2026-05-25. 승인 후 053 migration 작성으로 이어집니다.*
+중복 확인 기준일: 2026-05-25. 승인 후 053 migration 작성으로 이어집니다.  
+2차 후보 10개는 occupation-100-second-wave-sports-ecosystem-candidates.md 참조.*
