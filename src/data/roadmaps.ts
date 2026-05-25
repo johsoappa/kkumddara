@@ -2253,6 +2253,696 @@ export const ROADMAPS: Record<string, RoadmapData> = {
     ],
   },
 
+  // ── 신규 16개 직업 로드맵 ────────────────────────────────
+
+  "ai-service-planner": {
+    id: "ai-service-planner-roadmap",
+    occupationId: "ai-service-planner",
+    occupationName: "AI 서비스 기획자",
+    occupationEmoji: "🧩",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "aisp-m1", text: "집에서 불편했던 일을 3가지 적어보기" },
+          { id: "aisp-m2", text: "AI가 도와줄 수 있는 일을 가족과 이야기해보기" },
+          { id: "aisp-m3", text: "ChatGPT 직접 써보며 불편한 점 메모하기" },
+          { id: "aisp-m4", text: "IT 서비스 트렌드 뉴스 1개 읽기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "aisp-m5", text: "불편한 일 하나를 골라 해결 아이디어를 그림으로 그려보기" },
+          { id: "aisp-m6", text: "내가 만든 AI 서비스 이름과 기능 3가지 정리하기" },
+          { id: "aisp-m7", text: "좋아하는 앱의 기능 분석해 개선 아이디어 적기" },
+          { id: "aisp-m8", text: "기획서 쓰는 법 유튜브로 입문하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "aisp-m9",  text: "가족에게 AI 서비스 아이디어를 발표해보기" },
+          { id: "aisp-m10", text: "사용자가 걱정할 점과 좋은 점을 각각 2개씩 적기" },
+          { id: "aisp-m11", text: "경쟁 서비스 2개 비교 분석해보기" },
+          { id: "aisp-m12", text: "IT 기획 멘토 또는 관련 직업인 인터뷰 내용 찾아보기" },
+        ],
+      },
+    ],
+  },
+
+  "robotics-engineer": {
+    id: "robotics-engineer-roadmap",
+    occupationId: "robotics-engineer",
+    occupationName: "로봇공학자",
+    occupationEmoji: "🦾",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "rbe-m1", text: "생활 속 로봇이나 자동 기계를 3가지 찾아보기" },
+          { id: "rbe-m2", text: "로봇이 사람을 도와주는 장면 영상으로 찾아보기" },
+          { id: "rbe-m3", text: "로봇 관련 유튜브 채널 구독하기" },
+          { id: "rbe-m4", text: "물리·수학 과목 관심 갖기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "rbe-m5", text: "블록이나 종이로 나만의 로봇 모형 만들어보기" },
+          { id: "rbe-m6", text: "로봇이 움직이는 순서를 1단계부터 5단계까지 적기" },
+          { id: "rbe-m7", text: "아두이노 또는 레고 마인드스톰 입문 자료 탐색하기" },
+          { id: "rbe-m8", text: "코딩 기초 강의 1개 완수하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "rbe-m9",  text: "내가 만든 로봇이 해결할 문제를 정해보기" },
+          { id: "rbe-m10", text: "로봇을 더 안전하게 만들 방법을 가족과 이야기하기" },
+          { id: "rbe-m11", text: "로봇 경진대회 참가 자격 조건 조사하기" },
+          { id: "rbe-m12", text: "로봇공학자 인터뷰 영상 시청 후 감상 적기" },
+        ],
+      },
+    ],
+  },
+
+  "clinical-laboratory-technologist": {
+    id: "clinical-laboratory-technologist-roadmap",
+    occupationId: "clinical-laboratory-technologist",
+    occupationName: "임상병리사",
+    occupationEmoji: "🔬",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "clt-m1", text: "병원에서 검사실이 하는 일을 찾아보기" },
+          { id: "clt-m2", text: "혈액·소변 검사처럼 몸 상태를 확인하는 방법 알아보기" },
+          { id: "clt-m3", text: "과학 실험 동아리 참여하기" },
+          { id: "clt-m4", text: "생물·화학 과목 흥미 키우기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "clt-m5", text: "관찰 기록표 만들어 하루 동안 수분 섭취량 기록해보기" },
+          { id: "clt-m6", text: "정확한 기록이 왜 중요한지 부모와 이야기하기" },
+          { id: "clt-m7", text: "현미경으로 주변 물질 관찰해 보기" },
+          { id: "clt-m8", text: "의료 검사 관련 직업 3가지 조사하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "clt-m9",  text: "검사 결과를 잘못 기록하면 어떤 문제가 생길지 생각해보기" },
+          { id: "clt-m10", text: "꼼꼼함이 필요한 직업 3가지 비교해보기" },
+          { id: "clt-m11", text: "병원 견학 또는 의료 직업 인터뷰 내용 찾아보기" },
+          { id: "clt-m12", text: "임상병리학과 진학 경로 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "life-science-researcher": {
+    id: "life-science-researcher-roadmap",
+    occupationId: "life-science-researcher",
+    occupationName: "생명과학 연구원",
+    occupationEmoji: "🧬",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "lsr-m1", text: "식물이나 곤충을 하나 정해 특징을 관찰해보기" },
+          { id: "lsr-m2", text: "생명과학자가 연구하는 주제를 3가지 찾아보기" },
+          { id: "lsr-m3", text: "생명과학 관련 다큐멘터리 시청하기" },
+          { id: "lsr-m4", text: "생물 과목 흥미 갖기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "lsr-m5", text: "식물이 자라는 조건을 물·햇빛·흙으로 나눠 기록하기" },
+          { id: "lsr-m6", text: "관찰한 내용을 날짜별로 표로 정리하기" },
+          { id: "lsr-m7", text: "과학 실험 키트로 간단한 실험 해보기" },
+          { id: "lsr-m8", text: "생물 실험 동아리 또는 과학 캠프 참여하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "lsr-m9",  text: "작은 실험 계획서 직접 만들어보기" },
+          { id: "lsr-m10", text: "실험 결과가 예상과 다르면 왜 그런지 생각해보기" },
+          { id: "lsr-m11", text: "생명과학 논문 요약본 1개 찾아 읽기" },
+          { id: "lsr-m12", text: "생명과학 연구원 인터뷰 영상 시청하기" },
+        ],
+      },
+    ],
+  },
+
+  "physical-therapist": {
+    id: "physical-therapist-roadmap",
+    occupationId: "physical-therapist",
+    occupationName: "물리치료사",
+    occupationEmoji: "🏃",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "pth-m1", text: "인체 근육과 뼈 구조를 교과서로 살펴보기" },
+          { id: "pth-m2", text: "운동 후 몸이 어떻게 변하는지 기록해보기" },
+          { id: "pth-m3", text: "복지관·노인센터 봉사활동 탐색하기" },
+          { id: "pth-m4", text: "생물·체육 과목 관심 갖기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "pth-m5", text: "스트레칭 루틴을 만들어 1주일 실천하기" },
+          { id: "pth-m6", text: "근육별 역할을 3가지 조사해 메모하기" },
+          { id: "pth-m7", text: "부상 예방 운동 방법 찾아 부모에게 가르쳐주기" },
+          { id: "pth-m8", text: "병원 물리치료실 방문 경험 또는 영상 시청하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "pth-m9",  text: "물리치료사의 하루 일과를 상상해 시간표 만들기" },
+          { id: "pth-m10", text: "물리치료사 인터뷰 내용 찾아 핵심 3가지 정리하기" },
+          { id: "pth-m11", text: "재활 운동이 일상에 미치는 영향 발표자료 만들기" },
+          { id: "pth-m12", text: "물리치료학과 입학 조건 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "nutritionist": {
+    id: "nutritionist-roadmap",
+    occupationId: "nutritionist",
+    occupationName: "영양사",
+    occupationEmoji: "🥗",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "nut-m1", text: "오늘 먹은 음식의 영양소 기록해보기" },
+          { id: "nut-m2", text: "식품 성분표 읽는 방법 배우기" },
+          { id: "nut-m3", text: "생물·가정 과목 관심 갖기" },
+          { id: "nut-m4", text: "영양사가 하는 일 검색하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "nut-m5", text: "가족을 위한 하루 식단 직접 짜보기" },
+          { id: "nut-m6", text: "5대 영양소가 무엇인지 조사해 정리하기" },
+          { id: "nut-m7", text: "좋아하는 음식의 칼로리 비교해보기" },
+          { id: "nut-m8", text: "요리·식품 관련 동아리 참여하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "nut-m9",  text: "학교 급식 메뉴를 영양 기준으로 평가해보기" },
+          { id: "nut-m10", text: "영양 불균형이 생기면 어떤 문제가 생길지 정리하기" },
+          { id: "nut-m11", text: "영양사 인터뷰 영상 시청 후 감상 적기" },
+          { id: "nut-m12", text: "식품영양학과 진학 경로 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "spatial-designer": {
+    id: "spatial-designer-roadmap",
+    occupationId: "spatial-designer",
+    occupationName: "공간 디자이너",
+    occupationEmoji: "🏠",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "spd-m1", text: "내 방에서 가장 편한 공간과 불편한 공간 찾아보기" },
+          { id: "spd-m2", text: "카페·도서관·교실 사진을 보고 공간 차이 비교하기" },
+          { id: "spd-m3", text: "인테리어·건축 유튜브 채널 구독하기" },
+          { id: "spd-m4", text: "미술·디자인 동아리 활동하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "spd-m5", text: "내 책상 배치를 더 편하게 바꿔보기" },
+          { id: "spd-m6", text: "바꾼 이유를 그림이나 글로 설명하기" },
+          { id: "spd-m7", text: "좋아하는 카페 공간을 종이에 스케치하기" },
+          { id: "spd-m8", text: "Canva나 종이로 방 평면도 그려보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "spd-m9",  text: "가족이 쉬기 좋은 공간을 종이에 설계하기" },
+          { id: "spd-m10", text: "공간을 사용하는 사람의 기분을 생각해 디자인 이유 말하기" },
+          { id: "spd-m11", text: "공간 디자이너 포트폴리오 사례 찾아보기" },
+          { id: "spd-m12", text: "실내건축학과 진학 경로 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "interior-designer": {
+    id: "interior-designer-roadmap",
+    occupationId: "interior-designer",
+    occupationName: "인테리어 디자이너",
+    occupationEmoji: "🛋️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "ind-m1", text: "집 안 각 공간의 색과 가구 스타일 관찰하기" },
+          { id: "ind-m2", text: "핀터레스트나 인테리어 잡지로 영감 수집하기" },
+          { id: "ind-m3", text: "종이로 방 평면도 그려보기" },
+          { id: "ind-m4", text: "미술 과목에서 공간 감각 키우기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "ind-m5", text: "가구 재배치 전후 사진 찍어 비교하기" },
+          { id: "ind-m6", text: "색상 조합이 주는 느낌 3가지 비교하기" },
+          { id: "ind-m7", text: "실내 공간 모형을 종이·상자로 만들어보기" },
+          { id: "ind-m8", text: "인테리어 디자이너의 하루 찾아보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "ind-m9",  text: "가족의 취향에 맞는 거실 디자인 제안서 만들기" },
+          { id: "ind-m10", text: "소재·조명·색이 공간에 미치는 영향 정리하기" },
+          { id: "ind-m11", text: "인테리어 디자이너 포트폴리오 사례 분석하기" },
+          { id: "ind-m12", text: "실내디자인학과 진학 경로 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "counselor": {
+    id: "counselor-roadmap",
+    occupationId: "counselor",
+    occupationName: "상담사",
+    occupationEmoji: "💬",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "cou-m1", text: "친구가 속상할 때 어떤 말이 도움되는지 생각해보기" },
+          { id: "cou-m2", text: "잘 들어주는 사람의 특징을 3가지 적기" },
+          { id: "cou-m3", text: "심리학 입문 도서 1권 읽기" },
+          { id: "cou-m4", text: "학교 상담 프로그램 경험해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "cou-m5", text: "가족의 이야기를 3분 동안 끊지 않고 들어보기" },
+          { id: "cou-m6", text: "들은 내용을 '네가 이렇게 느꼈구나'라고 말해보기" },
+          { id: "cou-m7", text: "감정을 표현하는 단어 10개 수집하기" },
+          { id: "cou-m8", text: "공감과 조언의 차이 부모와 이야기하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "cou-m9",  text: "걱정 있는 친구에게 해줄 질문 3개 만들어보기" },
+          { id: "cou-m10", text: "위로가 되는 말과 부담이 되는 말을 비교하기" },
+          { id: "cou-m11", text: "상담사 인터뷰 영상 시청 후 감상 적기" },
+          { id: "cou-m12", text: "심리학과·상담학과 진학 경로 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "special-education-teacher": {
+    id: "special-education-teacher-roadmap",
+    occupationId: "special-education-teacher",
+    occupationName: "특수교사",
+    occupationEmoji: "🌈",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "set-m1", text: "사람마다 배우는 속도와 방법이 다를 수 있다는 점 이야기하기" },
+          { id: "set-m2", text: "도움을 받아야 더 잘할 수 있는 상황 찾아보기" },
+          { id: "set-m3", text: "장애 인식 개선 교육 참여하기" },
+          { id: "set-m4", text: "복지관 봉사활동 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "set-m5", text: "어려운 설명을 더 쉽게 바꿔 말해보기" },
+          { id: "set-m6", text: "친구를 도와줄 때 필요한 태도 3가지 적기" },
+          { id: "set-m7", text: "모두가 함께할 수 있는 놀이 규칙 만들어보기" },
+          { id: "set-m8", text: "특수교사 하루 일과 찾아보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "set-m9",  text: "도움이 필요한 친구에게 어떻게 물어보면 좋을지 연습하기" },
+          { id: "set-m10", text: "특수교사 인터뷰 영상 시청 후 감상 적기" },
+          { id: "set-m11", text: "특수교육학과 진학 경로 조사하기" },
+          { id: "set-m12", text: "장애 이해 관련 도서 1권 읽기" },
+        ],
+      },
+    ],
+  },
+
+  "accountant": {
+    id: "accountant-roadmap",
+    occupationId: "accountant",
+    occupationName: "회계사",
+    occupationEmoji: "🧾",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "acc-m1", text: "용돈이나 간식비를 기록하는 이유 이야기하기" },
+          { id: "acc-m2", text: "돈을 관리하는 직업이 왜 필요한지 알아보기" },
+          { id: "acc-m3", text: "수학·경제 과목 흥미 키우기" },
+          { id: "acc-m4", text: "기업 재무제표가 무엇인지 검색해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "acc-m5", text: "일주일 용돈 사용 기록표 만들어보기" },
+          { id: "acc-m6", text: "필요한 소비와 갖고 싶은 소비 나눠보기" },
+          { id: "acc-m7", text: "엑셀로 간단한 수입·지출 표 만들어보기" },
+          { id: "acc-m8", text: "사칙연산 속도 높이는 연습하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "acc-m9",  text: "가족 행사 예산표를 간단히 만들어보기" },
+          { id: "acc-m10", text: "돈을 아끼는 방법과 잘 쓰는 방법 각각 적기" },
+          { id: "acc-m11", text: "회계사 인터뷰 영상 시청 후 감상 적기" },
+          { id: "acc-m12", text: "공인회계사 자격 취득 경로 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "animation-director": {
+    id: "animation-director-roadmap",
+    occupationId: "animation-director",
+    occupationName: "애니메이션 감독",
+    occupationEmoji: "🎬",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "amd-m1", text: "좋아하는 애니메이션 장면 하나를 골라 느낌 말해보기" },
+          { id: "amd-m2", text: "애니메이션이 만들어지는 과정 간단히 찾아보기" },
+          { id: "amd-m3", text: "그림·만화 동아리 활동하기" },
+          { id: "amd-m4", text: "스톱모션 영상 직접 찍어보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "amd-m5", text: "4칸 만화로 짧은 이야기 만들어보기" },
+          { id: "amd-m6", text: "등장인물의 표정과 움직임을 다르게 그려보기" },
+          { id: "amd-m7", text: "디지털 드로잉 앱으로 캐릭터 만들어보기" },
+          { id: "amd-m8", text: "애니메이션 제작 단계 5가지 조사하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "amd-m9",  text: "내가 만든 이야기를 장면 순서대로 가족에게 설명하기" },
+          { id: "amd-m10", text: "배경음악이나 효과음 넣을 위치 정해보기" },
+          { id: "amd-m11", text: "애니메이션 감독 인터뷰 영상 시청하기" },
+          { id: "amd-m12", text: "만화·애니메이션학과 진학 경로 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "podcast-producer": {
+    id: "podcast-producer-roadmap",
+    occupationId: "podcast-producer",
+    occupationName: "팟캐스트 기획자",
+    occupationEmoji: "🎙️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "pod-m1", text: "라디오나 팟캐스트처럼 목소리로 전달하는 콘텐츠 들어보기" },
+          { id: "pod-m2", text: "사람들이 듣고 싶어 할 주제 3가지 적어보기" },
+          { id: "pod-m3", text: "학교 방송부 활동 탐색하기" },
+          { id: "pod-m4", text: "미디어 트렌드 뉴스 1개 읽기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "pod-m5", text: "1분짜리 이야기 주제를 정해 말하기 연습하기" },
+          { id: "pod-m6", text: "질문 3개와 답변 순서를 적어보기" },
+          { id: "pod-m7", text: "목소리 녹음해 자신의 말투 분석하기" },
+          { id: "pod-m8", text: "진행자가 갖춰야 할 능력 3가지 정리하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "pod-m9",  text: "가족을 인터뷰해 짧은 대화 녹음해보기" },
+          { id: "pod-m10", text: "듣는 사람이 더 재미있게 느끼도록 제목 정해보기" },
+          { id: "pod-m11", text: "팟캐스트 기획자 인터뷰 내용 찾아보기" },
+          { id: "pod-m12", text: "미디어커뮤니케이션학과 진학 경로 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "webtoon-artist": {
+    id: "webtoon-artist-roadmap",
+    occupationId: "webtoon-artist",
+    occupationName: "웹툰 작가",
+    occupationEmoji: "✏️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "wta-m1", text: "좋아하는 웹툰 캐릭터 따라 그려보기" },
+          { id: "wta-m2", text: "8컷 짧은 이야기 만화 그려보기" },
+          { id: "wta-m3", text: "만화 동아리 또는 그림 수업 참여하기" },
+          { id: "wta-m4", text: "웹툰 연재 플랫폼(네이버·카카오) 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "wta-m5", text: "디지털 드로잉 앱(메디방·클립스튜디오) 무료 체험하기" },
+          { id: "wta-m6", text: "나만의 캐릭터 3명 설정하고 외모·성격 기록하기" },
+          { id: "wta-m7", text: "10컷 단편 웹툰 1화 완성하기" },
+          { id: "wta-m8", text: "구도·컷 나누기 기본 원칙 조사하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "wta-m9",  text: "주변 사람에게 내 웹툰 보여주고 피드백 받기" },
+          { id: "wta-m10", text: "도전만화 플랫폼에 1화 업로드해보기" },
+          { id: "wta-m11", text: "웹툰 작가 인터뷰 영상 시청하기" },
+          { id: "wta-m12", text: "만화학과 진학 경로 조사하기" },
+        ],
+      },
+    ],
+  },
+
+  "actor": {
+    id: "actor-roadmap",
+    occupationId: "actor",
+    occupationName: "배우",
+    occupationEmoji: "🎭",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "act-m1", text: "학교 연극·발표 수업 적극 참여하기" },
+          { id: "act-m2", text: "좋아하는 영화·드라마 대사 따라해 보기" },
+          { id: "act-m3", text: "연극 공연 직접 관람하기" },
+          { id: "act-m4", text: "독서로 다양한 인물 상상력 키우기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "act-m5", text: "같은 대사를 기쁨·슬픔·화남으로 각각 연기해보기" },
+          { id: "act-m6", text: "1분 짧은 1인극 만들어 가족 앞에서 발표하기" },
+          { id: "act-m7", text: "표정과 몸짓이 달라지면 느낌이 어떻게 바뀌는지 기록하기" },
+          { id: "act-m8", text: "연극부 또는 뮤지컬 동아리 활동하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "act-m9",  text: "단막극 대본을 찾아 전체 외워 연기해보기" },
+          { id: "act-m10", text: "배우 인터뷰 영상 시청 후 감상 적기" },
+          { id: "act-m11", text: "연극영화학과 진학 경로 조사하기" },
+          { id: "act-m12", text: "오디션 준비 방법 찾아보기" },
+        ],
+      },
+    ],
+  },
+
+  "pilot": {
+    id: "pilot-roadmap",
+    occupationId: "pilot",
+    occupationName: "항공기 조종사",
+    occupationEmoji: "✈️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "지금 당장 시작하기",
+        missions: [
+          { id: "pil-m1", text: "비행 시뮬레이터 게임으로 입문하기" },
+          { id: "pil-m2", text: "항공우주 관련 전시관 방문 또는 영상 탐색하기" },
+          { id: "pil-m3", text: "영어 회화 꾸준히 연습하기" },
+          { id: "pil-m4", text: "수학·물리 과목 기초 탄탄히 하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "pil-m5", text: "비행 원리(양력·추력·항력) 조사해 정리하기" },
+          { id: "pil-m6", text: "비행 시뮬레이터로 이착륙 연습하기" },
+          { id: "pil-m7", text: "조종사가 사용하는 영어 교신 문구 5개 외우기" },
+          { id: "pil-m8", text: "항공사 조종사 채용 조건 조사하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "pil-m9",  text: "조종사의 하루 일과를 상상해 시간표 만들기" },
+          { id: "pil-m10", text: "항공기 조종사 인터뷰 영상 시청 후 감상 적기" },
+          { id: "pil-m11", text: "항공조종학과 진학 경로 조사하기" },
+          { id: "pil-m12", text: "체력·시력 관리 방법 계획 세우기" },
+        ],
+      },
+    ],
+  },
+
 };
 
 export function getRoadmap(occupationId: string): RoadmapData | null {
