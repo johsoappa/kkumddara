@@ -328,6 +328,7 @@
   - prospect_label: 증가 7개, 유지 3개
   - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요 (055 적용 후)**
 - [x] **`src/data/quizData.ts` 30문항 작성 완료** (2026-05-26) — 10개 × 3문항, tsc/build 통과
+- [x] **관심 운동 기반 진로 확장 구조 설계 문서 작성 완료** (2026-05-26) → [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)
 - [ ] `roadmaps` 직접 작성 여부 또는 weekly mission fallback 사용 여부 확정
 
 ---
@@ -336,4 +337,13 @@
 중복 확인 기준일: 2026-05-26.  
 055 migration 초안 작성 완료 (2026-05-26) — OZ가 Supabase SQL Editor에서 적용 후 대표 직업 100개 달성 예정.  
 056 migration 초안 작성 완료 (2026-05-26) — source='manual', 전체 10개 "참고 데이터" 뱃지 표시 예정.  
-quizData 30문항 작성 완료 (2026-05-26) — 10개 × 3문항, tsc/build 통과, 커밋 완료.*
+quizData 30문항 작성 완료 (2026-05-26) — 10개 × 3문항, tsc/build 통과, 커밋 완료.
+
+**스포츠 진로 생태계 10개 직업 활용 방향:**  
+이 문서의 스포츠 진로 생태계 10개 직업은 향후 관심 운동 기반 진로 추천 구조의 연결 직업군으로 활용한다.  
+관심 운동(축구, 수영, 줄넘기 등)을 출발점으로 대표 직업과 연결하는 구조는 → [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md) 참조.
+
+**운동 종목 처리 원칙:**  
+운동 종목(축구, 야구, 줄넘기 등)은 직업이 아니라 관심 분야(진로 출발점)로 관리한다.  
+운동선수 직업군(축구선수, 야구선수 등)은 별도 후속 설계 대상으로 남긴다.  
+`육상선수`는 예시 목록에서 제외하고, `줄넘기 선수`를 초등 접근성 기준으로 포함한다.*
