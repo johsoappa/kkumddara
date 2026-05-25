@@ -2,7 +2,7 @@
 
 > 작성일: 2026-05-25
 > 기준: occupation-100-expansion-audit.md + occupation-100-expansion-plan.md 감사 결과 반영
-> 상태: 053 migration 초안 작성 완료 — OZ 적용 대기 (Production DB 변경 없음)
+> 상태: 053 + 054 migration 초안 작성 완료 — OZ 적용 대기 (Production DB 변경 없음)
 
 ---
 
@@ -171,12 +171,15 @@
 - [x] `occupation_preparations` 작성 범위 확정 (mission_hint 1개 + step_action 2개)
 - [x] 053 migration 범위 확정 (occupation_master + summary + preparations 일괄 삽입 — goyo24_profile/quizData/roadmaps 제외)
 - [x] **`supabase/migrations/053_seed_first_wave_occupations.sql` 초안 작성 완료** (2026-05-25)
-- [ ] `quizData` 3문항 작성 — 053 적용 후 별도 작업
-- [ ] `occupation_goyo24_profile` source 정책 확정 — 053 적용 후 별도 작업
-- [ ] goyo24 실제 데이터와 manual 참고 데이터 구분 (15개 goyo24 가능, 8개 manual 권장)
+- [x] `occupation_goyo24_profile` source 정책 확정 — 전체 23개 `source='manual'` (goyo24 sync mapping 미등록)
+- [x] goyo24 실제 데이터와 manual 참고 데이터 구분 완료 (전체 23개 manual — sync script MANUAL_MAPPING 미등록)
+- [x] **`supabase/migrations/054_seed_goyo24_profiles_for_first_wave_occupations.sql` 초안 작성 완료** (2026-05-25)
+- [ ] OZ가 Supabase SQL Editor에서 053 실행 및 검증 쿼리 확인
+- [ ] OZ가 Supabase SQL Editor에서 054 실행 및 검증 쿼리 확인
+- [ ] `/explore` 신규 직업 23개 상세 페이지 "참고 데이터" 뱃지 노출 확인
+- [ ] `quizData` 3문항 작성 — 054 적용 후 별도 작업
 - [ ] `roadmaps` 직접 작성 여부 또는 weekly mission fallback 사용 여부 확정 (스마트팜만 roadmaps.ts 존재)
 - [ ] 스마트팜 전문가 static → DB 동기화 시 occupations.ts id/category 정합성 재확인
-- [ ] OZ가 Supabase SQL Editor에서 053 실행 및 검증 쿼리 확인
 
 ---
 

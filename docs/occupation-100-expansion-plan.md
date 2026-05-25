@@ -1,9 +1,9 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053 초안 작성 완료)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
-> 상태: 053 migration 초안 작성 완료 — OZ 적용 대기
+> 상태: 053 + 054 migration 초안 작성 완료 — OZ 적용 대기
 
 ---
 
@@ -486,7 +486,14 @@ key = legacy_occupation_id (= URL params.id)
    - ON CONFLICT DO NOTHING 패턴 적용 (멱등성 보장)
    - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요**
 
-6. **quizData 추가** (23개 직업, 각 3문항) — 053 적용 후 별도 작업
+5-1. **`054_seed_goyo24_profiles_for_first_wave_occupations.sql` 초안 작성** ✅ (2026-05-25 완료)
+   - occupation_goyo24_profile 23개 수동 입력 (source='manual', goyo24_occ_code=null)
+   - ON CONFLICT (occupation_id) DO NOTHING 패턴 (기존 goyo24 sync row 보호)
+   - 화면: "참고 데이터" 뱃지 표시 (Goyo24InfoSection source 정책 준수)
+   - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요**
+   - 향후 sync_goyo24_occupations.ts MANUAL_MAPPING 업데이트 시 source='goyo24'로 갱신 가능
+
+6. **quizData 추가** (23개 직업, 각 3문항) — 054 적용 후 별도 작업
 
 7. **occupation_goyo24_profile seed** (source='manual' 패턴, 23개)
 
