@@ -89,12 +89,33 @@ export async function GET(request: NextRequest) {
     },
   });
 
+  // §4-3. 실패 로그 보강 — 에러 상세 확인
+  if (error) {
+    console.error("[auth/kakao/start] ❌ signInWithOAuth failed", {
+      message: error.message,
+      name:    (error as Error).name ?? "unknown",
+      status:  error.status,
+    });
+  }
+
   if (error || !data.url) {
-    console.error("[auth/kakao/start] ❌ signInWithOAuth 실패:", error?.message ?? "data.url 없음");
+    console.error("[auth/kakao/start] ❌ signInWithOAuth 실패 → 홈으로 redirect",
+      error?.message ?? "data.url 없음");
     return NextResponse.redirect(
       new URL("/?error=kakao_start_failed", requestUrl.origin)
     );
   }
+
+  // §4-2. Supabase OAuth URL host/path 확인
+  // 주의: 전체 URL 출력 금지 (access_token, code, code_verifier 등 노출 방지)
+  const oauthUrl = new URL(data.url);
+  console.info("[auth/kakao/start] ② OAuth URL parsed", {
+    host:          oauthUrl.host,
+    pathname:      oauthUrl.pathname,
+    hasRedirectTo: oauthUrl.searchParams.has("redirect_to"),
+    hasProvider:   data.url.includes("provider=kakao") || data.url.includes("/authorize"),
+    cookieCount:   pendingCookies.length,
+  });
 
   console.info("[auth/kakao/start] ✅ OAuth URL 생성 완료 → Supabase로 redirect (쿠키:", pendingCookies.length, "개)");
 
