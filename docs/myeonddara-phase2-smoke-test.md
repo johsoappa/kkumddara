@@ -537,20 +537,30 @@ main 브랜치 빌드는 Phase 2 비활성 유지 확인:
 - [ ] 로컬 브랜치 삭제: `git branch -d test/phase2-smoke`
 - [ ] main에는 어떤 Phase 2 활성화 코드도 병합하지 않음 확인
 
-### 16-6. Live 테스트 결과 기록 (OZ.대표 기록 후 기입)
+### 16-6. Live 테스트 결과 기록
 
 | 항목 | 결과 | 비고 |
 |---|---|---|
-| Phase 2 호출 여부 | — | |
-| JSON 파싱 성공 | — | |
-| interestAreas 구조 | — | |
-| 금지 표현 | — | |
-| disclaimer 표시 | — | |
-| used_count 변동 | — | |
-| 전체 판정 | — | |
-| 테스트 일자 | — | |
+| Preview 접속 | ✅ | Preview URL 접속 성공, 도메인 유지 |
+| Phase 2 호출 여부 | ✅ | `POST /api/myeonddara` 200 OK |
+| JSON 파싱 성공 | ✅ | Phase 2 결과 화면 정상 렌더링 |
+| interestAreas 구조 | ✅ | Phase 2 결과 화면 표시 성공 |
+| Coming Soon 미표시 | ✅ | Phase 2 활성 — 준비중 화면 미표시 |
+| 금지 표현 | — | OZ.대표 결과 화면 목시 확인 (별도 체크 미언급) |
+| disclaimer 표시 | — | OZ.대표 결과 화면 목시 확인 (별도 체크 미언급) |
+| used_count 변동 | ✅ 차감 없음 | Vercel 로그: `[api/myeonddara] 최종 응답 반환 (차감 유예 - remaining 변동 없음)` |
+| 전체 판정 | ✅ **통과** | Phase 2 Preview Live 테스트 통과 |
+| 테스트 계정 | user@test.com | |
+| 테스트 child_id | ed51a4f9-2819-4542-bd3f-c222e3ef79f5 | |
+| 테스트 일자 | 2026-05-25 | |
+
+### 16-7. 테스트 완료 후 정리 현황
+
+- [ ] `test/phase2-smoke` 브랜치 삭제: `git push origin --delete test/phase2-smoke`
+- [ ] 로컬 브랜치 삭제: `git branch -d test/phase2-smoke`
+- [x] main에 Phase 2 활성화 코드 병합 없음 확인
 
 ---
 
-*이 문서는 2026-05-22 최초 작성, 2026-05-23 Free 1회 체험 정책 전환 반영 (T-10~T-12, §8-1 업데이트), 2026-05-23 정적 검토 결과 기록 (§15), 2026-05-23 Preview 브랜치 배포 및 수동 테스트 절차 기록 (§16).*
+*이 문서는 2026-05-22 최초 작성, 2026-05-23 Free 1회 체험 정책 전환 반영 (T-10~T-12, §8-1 업데이트), 2026-05-23 정적 검토 결과 기록 (§15), 2026-05-23 Preview 브랜치 배포 및 수동 테스트 절차 기록 (§16), 2026-05-25 Preview Live 테스트 결과 기록 (§16-6, 전항목 통과).*
 *Phase 2 실제 활성화 시 이 문서의 체크리스트를 완료 처리하고, 활성화 이력을 `docs/myeonddara-beta-design.md`에 기록하세요.*
