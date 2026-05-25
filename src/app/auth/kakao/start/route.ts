@@ -22,6 +22,8 @@
 //   - role 파라미터는 "parent" | "student" 만 허용
 //   - 그 외 값은 "parent" 기본값으로 처리
 //   - PKCE verifier 원문은 로그에 출력하지 않음
+//   - debug=1 모드: 민감 정보 제외한 최소 진단 정보만 JSON 반환
+//     (전체 OAuth URL, code_challenge, state, token, cookie 값 반환 금지)
 // ====================================================
 
 import { createServerClient } from "@supabase/ssr";
@@ -32,6 +34,7 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const rawRole = requestUrl.searchParams.get("role");
+  const debugMode = requestUrl.searchParams.get("debug") === "1";
 
   // role 검증: "parent" | "student" 만 허용
   const role: "parent" | "student" =
@@ -44,8 +47,8 @@ export async function GET(request: NextRequest) {
   console.info("[auth/kakao/start] ① OAuth 시작 요청", {
     role,
     origin: requestUrl.origin,
-    // redirectTo URL 전체 출력 (민감 정보 없음)
     redirectTo,
+    debugMode,
   });
 
   const cookieStore = cookies();
@@ -89,35 +92,74 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  // §4-3. 실패 로그 보강 — 에러 상세 확인
-  if (error) {
-    console.error("[auth/kakao/start] ❌ signInWithOAuth failed", {
-      message: error.message,
-      name:    (error as Error).name ?? "unknown",
-      status:  error.status,
+  // §3-3. 실패 로그 보강 — 에러 상세 확인
+  if (error || !data?.url) {
+    console.error("[auth/kakao/start] ❌ OAuth URL 생성 실패", {
+      errorMessage: error?.message ?? null,
+      errorName:    (error as Error | null)?.name ?? null,
+      errorStatus:  error?.status ?? null,
+      hasData:      !!data,
+      hasUrl:       !!data?.url,
     });
-  }
-
-  if (error || !data.url) {
-    console.error("[auth/kakao/start] ❌ signInWithOAuth 실패 → 홈으로 redirect",
-      error?.message ?? "data.url 없음");
     return NextResponse.redirect(
       new URL("/?error=kakao_start_failed", requestUrl.origin)
     );
   }
 
-  // §4-2. Supabase OAuth URL host/path 확인
-  // 주의: 전체 URL 출력 금지 (access_token, code, code_verifier 등 노출 방지)
+  // §3-1. OAuth URL parsed 로그 강화
+  // 주의: 전체 URL, code_challenge, state 출력 금지
   const oauthUrl = new URL(data.url);
+  const redirectToParam = oauthUrl.searchParams.get("redirect_to");
+  let redirectToHost: string | null = null;
+  let redirectToPathname: string | null = null;
+  if (redirectToParam) {
+    try {
+      const rt = new URL(redirectToParam);
+      redirectToHost     = rt.host;
+      redirectToPathname = rt.pathname;
+    } catch {
+      redirectToHost     = "INVALID_REDIRECT_TO";
+      redirectToPathname = "INVALID_REDIRECT_TO";
+    }
+  }
+
   console.info("[auth/kakao/start] ② OAuth URL parsed", {
-    host:          oauthUrl.host,
-    pathname:      oauthUrl.pathname,
-    hasRedirectTo: oauthUrl.searchParams.has("redirect_to"),
-    hasProvider:   data.url.includes("provider=kakao") || data.url.includes("/authorize"),
-    cookieCount:   pendingCookies.length,
+    host:               oauthUrl.host,
+    pathname:           oauthUrl.pathname,
+    hasRedirectTo:      oauthUrl.searchParams.has("redirect_to"),
+    hasProvider:        oauthUrl.searchParams.has("provider"),
+    provider:           oauthUrl.searchParams.get("provider"),
+    redirectToHost,
+    redirectToPathname,
+    cookieCount:        pendingCookies.length,
+  });
+
+  // §3-2. 실제 redirect Location 로그
+  // 기대값: locationHost = wqrfoxilcawscacppuel.supabase.co
+  //         locationPathname = /auth/v1/authorize
+  console.info("[auth/kakao/start] ③ Redirect response target", {
+    locationHost:     oauthUrl.host,
+    locationPathname: oauthUrl.pathname,
   });
 
   console.info("[auth/kakao/start] ✅ OAuth URL 생성 완료 → Supabase로 redirect (쿠키:", pendingCookies.length, "개)");
+
+  // §4. debug=1 모드: redirect 없이 진단 정보만 JSON 반환
+  // 전체 OAuth URL, code_challenge, state, token, cookie 값 반환 금지
+  if (debugMode) {
+    console.info("[auth/kakao/start] ℹ️ debug=1 모드 — JSON 응답 (redirect 없음)");
+    return NextResponse.json({
+      origin:            requestUrl.origin,
+      redirectTo,
+      oauthHost:         oauthUrl.host,
+      oauthPathname:     oauthUrl.pathname,
+      provider:          oauthUrl.searchParams.get("provider"),
+      hasRedirectTo:     oauthUrl.searchParams.has("redirect_to"),
+      redirectToHost,
+      redirectToPathname,
+      cookieCount:       pendingCookies.length,
+    });
+  }
 
   // 응답: Supabase OAuth URL로 redirect
   const response = NextResponse.redirect(data.url);
