@@ -373,96 +373,130 @@ export default function ReportPage() {
   }, [router]);
 
   // ── 완료 상태 로딩 (리포트 로딩 후 실행) ─────────────────
+  // [주의] recommendedActionId 유무와 무관하게 항상 로드맵 미션 수 집계
+  // recommendedActionId가 없으면 WAC 조회만 스킵하고, 로드맵 집계는 진행
   useEffect(() => {
     if (!report) return;
 
-    // action_id 없으면 저장 불가 → 스킵
-    if (!report.recommendedActionId) {
-      setCompletionLoaded(true);
-      return;
-    }
-
     async function loadCompletions() {
       const thisWeekStart = getWeekStartDate();
-      const prevWeekStart = getPrevWeekStartDate();
+      const lastWeekStart = getPrevWeekStartDate();
+      const childId       = report!.childId;
 
       try {
-        // weekly_activity_completions 는 migration 046 적용 후 types에 추가됨
-        // 그 전까지는 any 캐스팅으로 타입 오류 우회
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const wac = supabase.from("weekly_activity_completions" as any);
+        // ── weekly_activity_completions 집계 (action_id 있을 때만) ──
+        let twCount: number | null = null;
+        let lwCount: number | null = null;
 
-        // 현재 주 완료 여부
-        const { data: currentRow } = await (wac as any)
-          .select("is_completed")
-          .eq("child_id", report!.childId)
-          .eq("action_id", report!.recommendedActionId!)
-          .eq("week_start_date", thisWeekStart)
-          .maybeSingle() as { data: { is_completed: boolean } | null };
+        if (report!.recommendedActionId) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const wac = supabase.from("weekly_activity_completions" as any);
 
-        setIsCompleted((currentRow as { is_completed: boolean } | null)?.is_completed ?? false);
+          // 현재 주 완료 여부 (단일 액션)
+          const { data: currentRow } = await (wac as any)
+            .select("is_completed")
+            .eq("child_id", childId)
+            .eq("action_id", report!.recommendedActionId!)
+            .eq("week_start_date", thisWeekStart)
+            .maybeSingle() as { data: { is_completed: boolean } | null };
 
-        // 이번 주 전체 완료 수
-        const { count: twCount } = await supabase
-          .from("weekly_activity_completions" as any)
-          .select("id", { count: "exact", head: true })
-          .eq("child_id", report!.childId)
-          .eq("week_start_date", thisWeekStart)
-          .eq("is_completed", true) as { count: number | null };
+          setIsCompleted(
+            (currentRow as { is_completed: boolean } | null)?.is_completed ?? false
+          );
 
-        // 지난주 전체 완료 수
-        const { count: lwCount } = await supabase
-          .from("weekly_activity_completions" as any)
-          .select("id", { count: "exact", head: true })
-          .eq("child_id", report!.childId)
-          .eq("week_start_date", prevWeekStart)
-          .eq("is_completed", true) as { count: number | null };
+          // 이번 주 전체 완료 수
+          const { count: tw } = await supabase
+            .from("weekly_activity_completions" as any)
+            .select("id", { count: "exact", head: true })
+            .eq("child_id", childId)
+            .eq("week_start_date", thisWeekStart)
+            .eq("is_completed", true) as { count: number | null };
+          twCount = tw;
 
-        // ── 로드맵 주간 미션 완료 수 추가 집계 ──────────────────
+          // 지난주 전체 완료 수
+          const { count: lw } = await supabase
+            .from("weekly_activity_completions" as any)
+            .select("id", { count: "exact", head: true })
+            .eq("child_id", childId)
+            .eq("week_start_date", lastWeekStart)
+            .eq("is_completed", true) as { count: number | null };
+          lwCount = lw;
+        }
+
+        // ── 로드맵 주간 미션 완료 수 집계 ────────────────────────
         // A. child의 모든 roadmap_progress 행에서 checked_missions 병합
+        //    ※ roadmap_progress에는 occupation_slug 컬럼 없음 → select 금지
         const { data: progressRows } = await supabase
           .from("roadmap_progress")
           .select("checked_missions")
-          .eq("child_id", report!.childId);
+          .eq("child_id", childId);
 
-        const mergedChecked: Record<string, boolean> = {};
+        const mergedCheckedMissions: Record<string, boolean> = {};
         for (const row of progressRows ?? []) {
-          const cm = row.checked_missions as Record<string, boolean> | null;
-          if (cm && typeof cm === "object") {
-            Object.assign(mergedChecked, cm);
+          const checked = row.checked_missions;
+          if (checked && typeof checked === "object" && !Array.isArray(checked)) {
+            for (const [missionId, value] of Object.entries(
+              checked as Record<string, unknown>
+            )) {
+              if (value === true) {
+                mergedCheckedMissions[missionId] = true;
+              }
+            }
           }
         }
 
         // B. 이번 주/지난주 weekly_roadmap_missions 조회
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const { data: weeklyMissionRows } = await (supabase
+        const { data: weeklyRows } = await (supabase
           .from("weekly_roadmap_missions" as any) as any)
-          .select("week_start, missions")
-          .eq("child_id", report!.childId)
-          .in("week_start", [thisWeekStart, prevWeekStart]);
+          .select("week_start, occupation_slug, stage, missions")
+          .eq("child_id", childId)
+          .in("week_start", [lastWeekStart, thisWeekStart]);
 
-        // C. 주차별 완료 미션 ID 집계 (Set으로 중복 제거)
-        const thisWeekCompletedIds = new Set<string>();
-        const prevWeekCompletedIds = new Set<string>();
+        // C. 주차별 완료 미션 수 계산 (Set으로 중복 제거)
+        type WeeklyRow = {
+          week_start:      string;
+          occupation_slug: string;
+          stage:           string;
+          missions:        Array<{ id?: string }>;
+        };
 
-        for (const row of (weeklyMissionRows ?? []) as Array<{ week_start: string; missions: Array<{ id?: string }> }>) {
-          const missions = Array.isArray(row.missions) ? row.missions : [];
-          const isThisWeek = row.week_start === thisWeekStart;
-          for (const mission of missions) {
-            const missionId = mission?.id;
-            if (!missionId) continue;
-            if (mergedChecked[missionId] === true) {
-              (isThisWeek ? thisWeekCompletedIds : prevWeekCompletedIds).add(missionId);
+        const countCompletedRoadmapMissions = (targetWeekStart: string): number => {
+          const counted = new Set<string>();
+          for (const row of (weeklyRows ?? []) as WeeklyRow[]) {
+            if (row.week_start !== targetWeekStart) continue;
+            const missions = Array.isArray(row.missions) ? row.missions : [];
+            for (const mission of missions) {
+              const missionId = mission?.id;
+              if (
+                typeof missionId === "string" &&
+                mergedCheckedMissions[missionId] === true
+              ) {
+                counted.add(missionId);
+              }
             }
           }
-        }
+          return counted.size;
+        };
 
-        const thisWeekRoadmapCount = thisWeekCompletedIds.size;
-        const prevWeekRoadmapCount = prevWeekCompletedIds.size;
+        const thisWeekRoadmapCount = countCompletedRoadmapMissions(thisWeekStart);
+        const lastWeekRoadmapCount = countCompletedRoadmapMissions(lastWeekStart);
 
-        // D. weekly_activity_completions + 로드맵 완료 수 합산
+        // D. 진단 로그 (Production 확인 후 제거 예정)
+        console.info("[report] roadmap mission aggregation", {
+          childId,
+          thisWeekStart,
+          lastWeekStart,
+          progressRowCount:      progressRows?.length ?? 0,
+          checkedMissionCount:   Object.keys(mergedCheckedMissions).length,
+          weeklyRowCount:        (weeklyRows ?? []).length,
+          thisWeekRoadmapCount,
+          lastWeekRoadmapCount,
+        });
+
+        // E. weekly_activity_completions + 로드맵 완료 수 합산
         setThisWeekCount((twCount ?? 0) + thisWeekRoadmapCount);
-        setLastWeekCount((lwCount ?? 0) + prevWeekRoadmapCount);
+        setLastWeekCount((lwCount ?? 0) + lastWeekRoadmapCount);
       } catch (err) {
         console.error("[report] loadCompletions 오류:", err);
       } finally {
