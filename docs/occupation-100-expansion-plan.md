@@ -1,9 +1,9 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053 초안 작성 완료)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
-> 상태: 설계안 (DB 변경 없음 — 문서 전용)
+> 상태: 053 migration 초안 작성 완료 — OZ 적용 대기
 
 ---
 
@@ -212,7 +212,9 @@ migration 052 적용 후 대표 직업 2개, 세부 직업 1개 체계로 전환
 ## 8. 1차 / 2차 확장 전략
 
 > **1차 후보 23개 선정 완료** — 상세 내용은 [`docs/occupation-100-first-wave-candidates.md`](./occupation-100-first-wave-candidates.md) 참조.  
-> 중복 확인 후 6개 대체 적용. OZ 승인 후 053 migration 작성 예정.
+> 중복 확인 후 6개 대체 적용. **`053_seed_first_wave_occupations.sql` 초안 작성 완료 (2026-05-25) — OZ 적용 대기.**
+
+> **053 적용 후 예상 대표 직업 수: 90개** (현재 67개 + 23개 추가)
 
 ### 8-1. 1차 확장 원칙 (현재 67개 → ~90개 목표)
 
@@ -477,13 +479,14 @@ key = legacy_occupation_id (= URL params.id)
    WHERE slug IN ('forensic-scientist', 'coast-guard-officer');
    ```
 
-4. **1차 확장 후보 23개 확정** (OZ.대표 승인)
+4. **1차 확장 후보 23개 확정** ✅ (OZ 승인 완료 — 2026-05-25)
 
-5. **052 occupation_master bulk seed migration 초안 작성**
-   - occupation_master + summary + preparations 일괄 삽입
-   - ON CONFLICT (slug) DO NOTHING 패턴
+5. **`053_seed_first_wave_occupations.sql` 초안 작성** ✅ (2026-05-25 완료)
+   - occupation_master + summary + preparations 일괄 삽입 (23개 × 3테이블)
+   - ON CONFLICT DO NOTHING 패턴 적용 (멱등성 보장)
+   - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요**
 
-6. **quizData 추가** (23개 직업, 각 3문항)
+6. **quizData 추가** (23개 직업, 각 3문항) — 053 적용 후 별도 작업
 
 7. **occupation_goyo24_profile seed** (source='manual' 패턴, 23개)
 
