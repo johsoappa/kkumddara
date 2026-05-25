@@ -1,8 +1,9 @@
 # 꿈따라 대표 직업 100개 확장 — 2차 스포츠 진로 생태계 후보 10개 선정안
 
 > 작성일: 2026-05-26
+> 보정일: 2026-05-26 (055 migration 초안 작성 완료)
 > 기준: occupation-100-expansion-plan.md + 1차 후보 23개 완료(053·054·quizData) 기준
-> 상태: 2차 후보 10개 초안 작성 완료 — OZ 적용 대기 (Production DB 변경 없음)
+> 상태: 055 migration 초안 작성 완료 — OZ 적용 대기 (Production DB 변경 없음)
 
 ---
 
@@ -301,24 +302,31 @@
 
 ---
 
-## 11. 055 migration 전 확인 사항
+## 11. 055 migration 확인 사항
 
-- [ ] OZ 2차 후보 10개 승인
-- [ ] 각 후보 slug 최종 확정
-- [ ] 카테고리 최종 확정
-- [ ] 대표/세부 구분 확정 (전체 `is_representative=true` 적용 예정)
-- [ ] `is_representative=true` 기준 확인
-- [ ] `legacy_occupation_id` 필요 여부 확인 (전체 slug 동일 예정, 별도 매핑 불필요)
-- [ ] `occupation_summary` 작성 범위 확정 (one_liner / easy_description / why_this_job 3종)
-- [ ] `occupation_preparations` 작성 범위 확정 (mission_hint 1개 + step_action 2개)
-- [ ] `quizData` 3문항 작성 범위 확정 (10개 × 3문항 = 30문항)
-- [ ] `occupation_goyo24_profile` source 정책 확정
-- [ ] goyo24 실제 데이터와 manual 참고 데이터 구분
+- [x] OZ 2차 후보 10개 승인 (WO 접수로 승인 확인)
+- [x] 각 후보 slug 최종 확정
+- [x] 카테고리 최종 확정
+- [x] 대표/세부 구분 확정 (전체 `is_representative=true` 적용)
+- [x] `is_representative=true` 기준 확인
+- [x] `legacy_occupation_id` 필요 여부 확인 (전체 slug 동일, 별도 매핑 불필요)
+- [x] `occupation_summary` 작성 범위 확정 (one_liner / easy_description / why_this_job 3종)
+- [x] `occupation_preparations` 작성 범위 확정 (mission_hint 1개 + step_action 2개)
+- [x] **`supabase/migrations/055_seed_second_wave_sports_ecosystem_occupations.sql` 초안 작성 완료** (2026-05-26)
+  - 10개 × (occupation_master + summary 3종 + preparations 3종) = 70 rows
+  - ON CONFLICT DO NOTHING 패턴 적용 (멱등성 보장)
+  - 적용 후 기대: occupation_master 114개, 대표 직업 100개 달성
+  - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요**
+- [ ] OZ가 Supabase SQL Editor에서 055 실행 및 검증 쿼리 확인
+- [ ] `/explore` 신규 직업 10개 상세 페이지 노출 확인
+- [ ] `quizData` 3문항 작성 범위 확정 (10개 × 3문항 = 30문항) — 056 이후 별도 작업
+- [ ] `occupation_goyo24_profile` source 정책 확정 — 056 작업
+- [ ] goyo24 실제 데이터와 manual 참고 데이터 구분 — 056 작업
 - [ ] `roadmaps` 직접 작성 여부 또는 weekly mission fallback 사용 여부 확정
-- [ ] 055 migration 범위 확정 (occupation_master + summary + preparations 일괄 삽입 예정)
 - [ ] 056 migration 범위 확정 (occupation_goyo24_profile 연결 예정)
 
 ---
 
 *이 문서는 DB 변경 없이 OZ 승인용으로 작성되었습니다.  
-중복 확인 기준일: 2026-05-26. 승인 후 055 migration 작성으로 이어집니다.*
+중복 확인 기준일: 2026-05-26.  
+055 migration 초안 작성 완료 (2026-05-26) — OZ가 Supabase SQL Editor에서 적용 후 대표 직업 100개 달성 예정.*

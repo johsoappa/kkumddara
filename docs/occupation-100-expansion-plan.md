@@ -1,9 +1,9 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055 migration 초안 작성 완료)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
-> 상태: 1차 23개 완료(053·054·quizData), 2차 스포츠 진로 생태계 후보 10개 선정 완료 — OZ 승인 대기
+> 상태: 1차 23개 완료(053·054·quizData), 055 migration 초안 작성 완료 — OZ 적용 시 대표 직업 100개 달성
 
 ---
 
@@ -511,9 +511,13 @@ key = legacy_occupation_id (= URL params.id)
    - `docs/occupation-100-second-wave-sports-ecosystem-candidates.md` 작성 완료
    - 카테고리별 배분 준수 (IT 2, 의료 1, 콘텐츠 1, 비즈니스 1, 교육 1, 환경 2, 공공 2)
    - 중복 확인 완료 — 10개 전원 기존 직업과 명확한 중복 없음
-   - **OZ 승인 후 055 migration 작성 예정**
 
-8. **055 migration 작성** — OZ 승인 대기 (occupation_master + summary + preparations 10개)
+8. **055 migration 작성** ✅ (2026-05-26 완료)
+   - `supabase/migrations/055_seed_second_wave_sports_ecosystem_occupations.sql` 초안 작성 완료
+   - occupation_master + summary(3종) + preparations(3종) × 10개 = 70 rows
+   - ON CONFLICT DO NOTHING 패턴 (멱등성 보장)
+   - 적용 후 기대: occupation_master 114개, **대표 직업 100개 달성**
+   - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요**
 
 9. **056 migration 작성** — occupation_goyo24_profile 10개 연결 (source='manual' 또는 goyo24 확인 후)
 
