@@ -55,7 +55,14 @@ import RoadmapStage from "@/components/roadmap/RoadmapStage";
 import TodayMission from "@/components/roadmap/TodayMission";
 import { getRoadmap } from "@/data/roadmaps";
 import { supabase } from "@/lib/supabase";
-import type { RoadmapData, RoadmapStage as RoadmapStageType, StageStatus } from "@/types/roadmap";
+import type {
+  Mission,
+  RoadmapData,
+  RoadmapStage as RoadmapStageType,
+  StageStatus,
+  WeeklyMissionItem,
+  WeeklyMissionsResponse,
+} from "@/types/roadmap";
 import { GRADE_LEVEL_LABEL } from "@/types/family";
 import type { GradeLevel } from "@/types/family";
 
@@ -93,6 +100,12 @@ export default function RoadmapPage() {
   const [hydrated, setHydrated]           = useState(false);
   const [toast, setToast]                 = useState<string | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ── 주간 AI 미션 상태 ──────────────────────────────────────
+  // 현재 stage-current에 대해서만 주간 미션을 관리한다 (MVP 1차 범위).
+  // 미션은 API에서 Mission[] 형식으로 변환해 저장한다.
+  const [weeklyMissions, setWeeklyMissions]       = useState<Mission[] | null>(null);
+  const [weeklyMissionsLoading, setWeeklyLoading] = useState(false);
 
   // ── 초기화: 로드맵 데이터 + 진행 상태 동시 로드 ──────────────
   useEffect(() => {
@@ -140,6 +153,11 @@ export default function RoadmapPage() {
       }
 
       setChildId(resolvedChildId);
+
+      // ── 주간 미션 fetch (childId 확정 후, stage-current 대상) ──
+      if (!cancelled) {
+        fetchWeeklyMissions(resolvedChildId);
+      }
 
       // ── chosen 기록: 방문한 occupation을 선택 상태로 표시 ───────
       // chosen 컬럼이 없으면 에러를 catch하고 무시.
@@ -299,6 +317,51 @@ export default function RoadmapPage() {
         setRoadmapMode("static");
       } else {
         setRoadmapMode("not-found");
+      }
+    }
+
+    // ── 주간 AI 미션 fetch ────────────────────────────────────
+    // GET /api/roadmap/weekly-missions?childId=...&occupationSlug=...&stage=current
+    // 이번 주 미션이 있으면 재사용, 없으면 OpenAI로 생성해서 반환한다.
+    // 완료 버튼 클릭과 무관하다 — 이 함수는 페이지 진입 시 1회만 호출된다.
+    async function fetchWeeklyMissions(resolvedChildId: string) {
+      if (cancelled) return;
+      setWeeklyLoading(true);
+      try {
+        const url =
+          `/api/roadmap/weekly-missions` +
+          `?childId=${encodeURIComponent(resolvedChildId)}` +
+          `&occupationSlug=${encodeURIComponent(occupationId)}` +
+          `&stage=current`;
+
+        const res = await fetch(url);
+        if (!res.ok) {
+          console.warn("[roadmap] 주간 미션 API 오류 — 정적 미션 표시", res.status);
+          return;
+        }
+
+        const data: WeeklyMissionsResponse = await res.json();
+        if (cancelled) return;
+
+        // WeeklyMissionItem[] → Mission[] 변환
+        const missions: Mission[] = (data.missions as WeeklyMissionItem[]).map((m) => ({
+          id:          m.id,
+          text:        m.title,
+          description: m.description,
+          isWeekly:    true,
+        }));
+
+        setWeeklyMissions(missions);
+        console.info("[roadmap] 주간 미션 로드 완료", {
+          count: missions.length,
+          weekStart: data.weekStart,
+          source: data.source,
+        });
+      } catch (err) {
+        console.warn("[roadmap] 주간 미션 fetch 실패 — 정적 미션 표시", err);
+        // 에러 시 weeklyMissions = null 유지 → 정적 미션 표시
+      } finally {
+        if (!cancelled) setWeeklyLoading(false);
       }
     }
 
@@ -518,6 +581,9 @@ export default function RoadmapPage() {
               effectiveStatus={effectiveStatuses[i]}
               completedMissions={displayMissions}
               onToggle={handleToggle}
+              // 주간 AI 미션: 첫 번째 stage(stage-current)에만 적용 (MVP 1차 범위)
+              weeklyMissions={i === 0 && hydrated ? (weeklyMissions ?? undefined) : undefined}
+              isWeeklyLoading={i === 0 && weeklyMissionsLoading}
             />
           ))}
         </div>
