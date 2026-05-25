@@ -1026,7 +1026,7 @@ export const OCCUPATIONS: Occupation[] = [
 
   // ── 환경·미래산업 (6개) ───────────────────────────
   {
-    id: "renewable-energy-engineer",
+    id: "renewable-energy-specialist",
     name: "신재생에너지 전문가",
     emoji: "⚡",
     category: "환경·미래산업",
@@ -1115,7 +1115,7 @@ export const OCCUPATIONS: Occupation[] = [
     id: "vr-ar-developer",
     name: "VR·AR 개발자",
     emoji: "🥽",
-    category: "환경·미래산업",
+    category: "IT·기술",
     description: "가상·증강 현실 콘텐츠와 플랫폼을 만드는 전문가",
     fitScore: 78,
     relatedMajors: [
@@ -1134,7 +1134,7 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
   {
-    id: "carbon-neutral-specialist",
+    id: "carbon-neutrality-specialist",
     name: "탄소중립전문가",
     emoji: "🌿",
     category: "환경·미래산업",
