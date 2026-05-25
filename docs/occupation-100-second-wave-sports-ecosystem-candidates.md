@@ -1,9 +1,9 @@
 # 꿈따라 대표 직업 100개 확장 — 2차 스포츠 진로 생태계 후보 10개 선정안
 
 > 작성일: 2026-05-26
-> 보정일: 2026-05-26 (055 migration 초안 작성 완료)
+> 보정일: 2026-05-26 (055 migration 초안 작성 완료, 056 migration 초안 작성 완료)
 > 기준: occupation-100-expansion-plan.md + 1차 후보 23개 완료(053·054·quizData) 기준
-> 상태: 055 migration 초안 작성 완료 — OZ 적용 대기 (Production DB 변경 없음)
+> 상태: 055 + 056 migration 초안 작성 완료 — OZ 적용 대기 (Production DB 변경 없음)
 
 ---
 
@@ -318,15 +318,21 @@
   - 적용 후 기대: occupation_master 114개, 대표 직업 100개 달성
   - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요**
 - [ ] OZ가 Supabase SQL Editor에서 055 실행 및 검증 쿼리 확인
-- [ ] `/explore` 신규 직업 10개 상세 페이지 노출 확인
-- [ ] `quizData` 3문항 작성 범위 확정 (10개 × 3문항 = 30문항) — 056 이후 별도 작업
-- [ ] `occupation_goyo24_profile` source 정책 확정 — 056 작업
-- [ ] goyo24 실제 데이터와 manual 참고 데이터 구분 — 056 작업
+- [ ] OZ가 Supabase SQL Editor에서 056 실행 및 검증 쿼리 확인
+- [ ] `/explore` 신규 직업 10개 상세 페이지 "참고 데이터" 뱃지 노출 확인
+- [x] **`occupation_goyo24_profile` source 정책 확정** — 전체 10개 `source='manual'` (MANUAL_MAPPING 미등록, 054 전례 동일)
+- [x] goyo24 실제 데이터와 manual 참고 데이터 구분 완료
+- [x] **`supabase/migrations/056_seed_goyo24_profiles_for_second_wave_sports_occupations.sql` 초안 작성 완료** (2026-05-26)
+  - 10개 직업 × 1 profile row = 10 rows (source='manual', goyo24_occ_code=null)
+  - ON CONFLICT (occupation_id) DO NOTHING (기존 goyo24 sync row 보호)
+  - prospect_label: 증가 7개, 유지 3개
+  - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요 (055 적용 후)**
+- [ ] `quizData` 3문항 작성 범위 확정 (10개 × 3문항 = 30문항) — 057 또는 이후 별도 작업
 - [ ] `roadmaps` 직접 작성 여부 또는 weekly mission fallback 사용 여부 확정
-- [ ] 056 migration 범위 확정 (occupation_goyo24_profile 연결 예정)
 
 ---
 
 *이 문서는 DB 변경 없이 OZ 승인용으로 작성되었습니다.  
 중복 확인 기준일: 2026-05-26.  
-055 migration 초안 작성 완료 (2026-05-26) — OZ가 Supabase SQL Editor에서 적용 후 대표 직업 100개 달성 예정.*
+055 migration 초안 작성 완료 (2026-05-26) — OZ가 Supabase SQL Editor에서 적용 후 대표 직업 100개 달성 예정.  
+056 migration 초안 작성 완료 (2026-05-26) — source='manual', 전체 10개 "참고 데이터" 뱃지 표시 예정.*

@@ -1,9 +1,9 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055 migration 초안 작성 완료)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
-> 상태: 1차 23개 완료(053·054·quizData), 055 migration 초안 작성 완료 — OZ 적용 시 대표 직업 100개 달성
+> 상태: 055 migration 초안 완료(대표 직업 100개 달성), 056 migration 초안 완료(미래 참고 지표 연결) — OZ 순서대로 적용 대기
 
 ---
 
@@ -274,7 +274,7 @@ migration 052 적용 후 대표 직업 2개, 세부 직업 1개 체계로 전환
 ### 8-2. 2차 확장 원칙 (~90개 → 100개 목표)
 
 > **2차 후보 10개 선정 완료** — 스포츠 진로 생태계 방향으로 설계. 상세 내용은 [`docs/occupation-100-second-wave-sports-ecosystem-candidates.md`](./occupation-100-second-wave-sports-ecosystem-candidates.md) 참조.  
-> 중복 확인 완료. **OZ 승인 후 055 migration 작성 예정.**
+> 중복 확인 완료. **055 migration 초안 작성 완료. 056 migration 초안 작성 완료.**
 
 **2차 후보 10개 핵심 방향:** 운동선수 외에도 스포츠 분야 안에서 다양한 직업을 발견할 수 있도록 스포츠 데이터·기술·건강·지도·콘텐츠·마케팅·안전·레저 직업군으로 구성한다.
 
@@ -519,7 +519,12 @@ key = legacy_occupation_id (= URL params.id)
    - 적용 후 기대: occupation_master 114개, **대표 직업 100개 달성**
    - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요**
 
-9. **056 migration 작성** — occupation_goyo24_profile 10개 연결 (source='manual' 또는 goyo24 확인 후)
+9. **056 migration 작성** ✅ (2026-05-26 완료)
+   - `supabase/migrations/056_seed_goyo24_profiles_for_second_wave_sports_occupations.sql` 초안 작성 완료
+   - occupation_goyo24_profile 10개 수동 입력 (source='manual', goyo24_occ_code=null)
+   - ON CONFLICT (occupation_id) DO NOTHING 패턴 (기존 goyo24 sync row 보호)
+   - prospect_label: 증가 7개, 유지 3개 / 화면: "참고 데이터" 뱃지 표시
+   - **OZ가 Supabase SQL Editor에서 055 실행 후 이어서 실행 필요**
 
 10. **quizData 추가** (2차 10개 직업, 각 3문항 = 30문항)
 
