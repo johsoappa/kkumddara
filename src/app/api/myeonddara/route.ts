@@ -212,6 +212,29 @@ export async function POST(req: NextRequest) {
     return errRes("명따라는 학부모 계정에서만 이용할 수 있어요.", "PARENT_ONLY", 403);
   }
 
+  // ── 3-1. Phase 2 제한 베타 허용 목록 확인 ──────────
+  // 환경변수 MYEONDDARA_PHASE2_BETA_EMAILS: 쉼표 구분 이메일 목록 (서버 전용, NEXT_PUBLIC_ 아님)
+  //   설정 시 → 목록 내 이메일만 Phase 2 허용, 나머지는 BETA_NOT_ELIGIBLE 403 반환
+  //   미설정 또는 빈 값 → 전체 허용 (정식 오픈 전환 시 이 변수를 삭제하면 됨)
+  const betaEmailsEnv = process.env.MYEONDDARA_PHASE2_BETA_EMAILS;
+  if (betaEmailsEnv && betaEmailsEnv.trim()) {
+    const allowList = betaEmailsEnv
+      .split(",")
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean);
+    const userEmail = (user.email ?? "").toLowerCase();
+    if (allowList.length > 0 && !allowList.includes(userEmail)) {
+      console.info("[api/myeonddara] 베타 허용 목록 미포함 — Phase 1 fallback 안내",
+        { year: new Date().getFullYear() });
+      return errRes(
+        "현재 Phase 2 베타 테스트에 참여 중이지 않아요.",
+        "BETA_NOT_ELIGIBLE",
+        403
+      );
+    }
+    console.info("[api/myeonddara] 베타 허용 목록 확인 완료 — Phase 2 진행");
+  }
+
   // ── 4. parent_id 조회 ─────────────────────────────
   const { data: parentRow } = await supabase
     .from("parent")

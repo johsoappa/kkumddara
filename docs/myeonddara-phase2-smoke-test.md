@@ -556,11 +556,68 @@ main 브랜치 빌드는 Phase 2 비활성 유지 확인:
 
 ### 16-7. 테스트 완료 후 정리 현황
 
-- [ ] `test/phase2-smoke` 브랜치 삭제: `git push origin --delete test/phase2-smoke`
-- [ ] 로컬 브랜치 삭제: `git branch -d test/phase2-smoke`
+- [x] `test/phase2-smoke` 브랜치 삭제 완료 (2026-05-25)
+- [x] 로컬 브랜치 삭제 완료 (2026-05-25)
 - [x] main에 Phase 2 활성화 코드 병합 없음 확인
 
 ---
 
-*이 문서는 2026-05-22 최초 작성, 2026-05-23 Free 1회 체험 정책 전환 반영 (T-10~T-12, §8-1 업데이트), 2026-05-23 정적 검토 결과 기록 (§15), 2026-05-23 Preview 브랜치 배포 및 수동 테스트 절차 기록 (§16), 2026-05-25 Preview Live 테스트 결과 기록 (§16-6, 전항목 통과).*
+## 17. 제한 베타 활성화 설계 (2026-05-25)
+
+> Preview Live 테스트 전항목 통과 후 결정된 활성화 방식.
+> Production 전체 활성화 없이 특정 계정에만 Phase 2를 허용합니다.
+
+### 17-1. 허용 목록 기반 서버 분기 구조
+
+```
+POST /api/myeonddara (Phase 2)
+  → 인증 확인 (3단계)
+  → ★ 베타 허용 목록 확인 (3-1단계, 신규)
+      MYEONDDARA_PHASE2_BETA_EMAILS 설정 시
+        → 허용 목록 포함: Phase 2 진행
+        → 허용 목록 미포함: BETA_NOT_ELIGIBLE 403 반환
+      미설정 또는 빈 값: 전체 허용 (정식 오픈 시 이 변수 삭제로 전환)
+```
+
+클라이언트(`page.tsx`) `BETA_NOT_ELIGIBLE` 수신 시:
+- 사용자에게 오류 노출 없음
+- Phase 1 경로로 자동 전환 (만세력 결과, usage API 호출)
+
+### 17-2. Vercel 환경변수 설정 (OZ.대표 직접 설정)
+
+| 변수명 | 설정 환경 | 값 예시 | 비고 |
+|---|---|---|---|
+| `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED` | Production | `true` | 클라이언트가 Phase 2 경로 진입 허용 |
+| `MYEONDDARA_PHASE2_BETA_EMAILS` | Production | `user@test.com,oz@example.com` | 서버 전용, 쉼표 구분, 공백 허용 |
+
+> **허용 범위 변경 시**: Vercel 대시보드에서 `MYEONDDARA_PHASE2_BETA_EMAILS` 값만 수정 후 재배포.
+> 코드 변경 불필요.
+
+> **정식 전체 오픈 시**: `MYEONDDARA_PHASE2_BETA_EMAILS` 변수를 삭제하면 모든 사용자에게 Phase 2 허용.
+
+### 17-3. 구현 내역 (commit 기준)
+
+| 파일 | 변경 내용 |
+|---|---|
+| `src/app/api/myeonddara/route.ts` | 인증 확인 후 `MYEONDDARA_PHASE2_BETA_EMAILS` allowlist 체크 추가 (§3-1) |
+| `src/app/myeonddara/page.tsx` | `BETA_NOT_ELIGIBLE` 403 수신 시 Phase 1 fallback + usage 기록 처리 추가 |
+
+### 17-4. 비허용 사용자 동작
+
+| 상황 | 동작 |
+|---|---|
+| 허용 목록 미포함 계정이 분석 실행 | 스피너 표시 → Phase 2 API 호출 → `BETA_NOT_ELIGIBLE` 수신 → 자동으로 Phase 1 결과 이동 |
+| Phase 1 usage 처리 | 정상 차감 (허용 목록 미포함도 분석 결과 제공) |
+| 사용자 화면 | Phase 1 결과와 동일 — 오류/안내 없음 |
+
+### 17-5. 정식 오픈 체크리스트
+
+- [ ] `MYEONDDARA_PHASE2_DEDUCT_USAGE=true` 전환 (`featureFlags.ts`)
+- [ ] `MYEONDDARA_PHASE2_BETA_EMAILS` Vercel에서 제거
+- [ ] Production 배포 후 전체 사용자 Phase 2 결과 확인
+- [ ] docs/myeonddara-beta-design.md에 정식 오픈 이력 기록
+
+---
+
+*이 문서는 2026-05-22 최초 작성, 2026-05-23 Free 1회 체험 정책 전환 반영 (T-10~T-12, §8-1 업데이트), 2026-05-23 정적 검토 결과 기록 (§15), 2026-05-23 Preview 브랜치 배포 및 수동 테스트 절차 기록 (§16), 2026-05-25 Preview Live 테스트 결과 기록 (§16-6, 전항목 통과), 2026-05-25 제한 베타 허용 목록 구현 기록 (§17).*
 *Phase 2 실제 활성화 시 이 문서의 체크리스트를 완료 처리하고, 활성화 이력을 `docs/myeonddara-beta-design.md`에 기록하세요.*

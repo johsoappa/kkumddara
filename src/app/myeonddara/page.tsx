@@ -338,6 +338,35 @@ export default function MyeonddaraPage() {
           return;
         }
 
+        // 제한 베타 미허용 → Phase 1 fallback (사용자에게 전환 노출 없음)
+        if (err.code === "BETA_NOT_ELIGIBLE") {
+          console.info("[명따라] 베타 미허용 계정 → Phase 1 fallback (usage 기록 후 이동)");
+          sessionStorage.setItem(MYEONDDARA_SAJU_KEY, JSON.stringify({ saju, inputData }));
+          // Phase 1 usage 기록 (횟수 차감)
+          try {
+            const usageRes = await fetch("/api/myeonddara/usage", {
+              method:  "POST",
+              headers: { "Content-Type": "application/json" },
+              body:    JSON.stringify({ childId: selectedChildId, action: "consume" }),
+            });
+            if (usageRes.ok) {
+              const { remaining } = await usageRes.json() as { remaining: number };
+              setChildren((prev) =>
+                prev.map((c) =>
+                  c.id === selectedChildId
+                    ? { ...c, usedCount: effectiveLimit - remaining }
+                    : c
+                )
+              );
+            }
+          } catch {
+            // 네트워크 오류 → 결과 이동은 허용
+          }
+          setAnalyzing(false);
+          router.push("/myeonddara/result");
+          return;
+        }
+
         // 횟수 초과 / 플랜 차단
         if (res.status === 429 || res.status === 403) {
           setBlocked(true);
