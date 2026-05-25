@@ -57,8 +57,25 @@ interface Goyo24InfoSectionProps {
 }
 
 export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
-  // 프로필이 없으면 섹션 미표시
-  if (!profile) return null;
+  // 프로필이 없으면 "준비 중" 안내 표시 (고용24 제공 뱃지 없이)
+  if (!profile) {
+    return (
+      <section className="card" aria-label="미래를 그리는 참고 지표">
+        <div className="flex items-center gap-2 mb-4">
+          <h3 className="text-sm font-bold text-base-text">미래를 그리는 참고 지표</h3>
+        </div>
+        <div className="flex flex-col items-center py-6 gap-2 text-center">
+          <p className="text-2xl">📊</p>
+          <p className="text-sm font-semibold text-base-text">참고 지표 준비 중이에요</p>
+          <p className="text-xs text-base-muted leading-relaxed">
+            이 직업의 고용 전망·관련 학과·임금 정보를
+            <br />
+            곧 업데이트할 예정이에요.
+          </p>
+        </div>
+      </section>
+    );
+  }
 
   const hasSalary   = profile.salary_median != null;
   const hasProspect = profile.prospect_label != null || profile.prospect_raw != null;
