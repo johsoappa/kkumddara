@@ -392,23 +392,42 @@ export default function RoadmapPage() {
     [roadmap]
   );
 
+  // ── 현재 단계의 실제 표시 미션 (주간 AI 미션 우선, 없으면 정적 미션) ──────
+  // RoadmapStage 컴포넌트가 weeklyMissions 우선으로 렌더링하는 것과 동일한 기준.
+  // todayMission·effectiveStatuses·handleToggle 토스트 모두 이 값을 사용해야
+  // 단계 카드 체크박스 ↔ 하단 오늘의 미션이 같은 missionId로 동기화된다.
+  const currentStageMissions = useMemo<Mission[]>(() => {
+    if (!currentStage) return [];
+    if (hydrated && weeklyMissions && weeklyMissions.length > 0) {
+      return weeklyMissions;
+    }
+    return currentStage.missions;
+  }, [currentStage, weeklyMissions, hydrated]);
+
+  // ── 오늘의 미션: 현재 단계 실제 표시 미션 중 첫 번째 미완료 ───────────────
   const todayMission = useMemo(
-    () => currentStage?.missions.find((m) => !completedMissions.has(m.id)) ?? null,
-    [currentStage, completedMissions]
+    () => currentStageMissions.find((m) => !completedMissions.has(m.id)) ?? null,
+    [currentStageMissions, completedMissions]
   );
 
+  // ── 단계 잠금 해제 기준: 이전 단계의 실제 표시 미션 기준 ─────────────────
+  // stage[0](current) 다음인 stage[1](next) unlock:
+  //   → currentStageMissions(주간 또는 정적) 완료 여부 기준
+  // stage[2](future) unlock:
+  //   → stage[1]의 정적 미션 완료 여부 기준 (weekly 미션은 stage[0]만 대상)
   const effectiveStatuses = useMemo<StageStatus[]>(() => {
     if (!roadmap) return [];
     const missions = hydrated ? completedMissions : new Set<string>();
     return roadmap.stages.map((stage, i) => {
       if (i === 0) return "current";
       const prevStage = roadmap.stages[i - 1];
-      if (!isStageCleared(prevStage.missions, missions)) return stage.status;
+      const prevMissions = i === 1 ? currentStageMissions : prevStage.missions;
+      if (!isStageCleared(prevMissions, missions)) return stage.status;
       if (stage.status === "next")   return "current";
       if (stage.status === "future") return "next";
       return stage.status;
     });
-  }, [roadmap, completedMissions, hydrated]);
+  }, [roadmap, completedMissions, hydrated, currentStageMissions]);
 
   // ── early return: 로딩 중 ────────────────────────────────────
   if (roadmapMode === "loading") {
@@ -482,8 +501,8 @@ export default function RoadmapPage() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(Array.from(next)));
     }
 
-    if (wasAdded && currentStage) {
-      if (isStageCleared(currentStage.missions, next)) {
+    if (wasAdded) {
+      if (isStageCleared(currentStageMissions, next)) {
         showToast("NEXT 단계가 해제됐어요! 🎉");
       }
     }
