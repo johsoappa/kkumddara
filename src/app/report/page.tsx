@@ -418,8 +418,51 @@ export default function ReportPage() {
           .eq("week_start_date", prevWeekStart)
           .eq("is_completed", true) as { count: number | null };
 
-        setThisWeekCount(twCount ?? 0);
-        setLastWeekCount(lwCount ?? 0);
+        // ── 로드맵 주간 미션 완료 수 추가 집계 ──────────────────
+        // A. child의 모든 roadmap_progress 행에서 checked_missions 병합
+        const { data: progressRows } = await supabase
+          .from("roadmap_progress")
+          .select("checked_missions")
+          .eq("child_id", report!.childId);
+
+        const mergedChecked: Record<string, boolean> = {};
+        for (const row of progressRows ?? []) {
+          const cm = row.checked_missions as Record<string, boolean> | null;
+          if (cm && typeof cm === "object") {
+            Object.assign(mergedChecked, cm);
+          }
+        }
+
+        // B. 이번 주/지난주 weekly_roadmap_missions 조회
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const { data: weeklyMissionRows } = await (supabase
+          .from("weekly_roadmap_missions" as any) as any)
+          .select("week_start, missions")
+          .eq("child_id", report!.childId)
+          .in("week_start", [thisWeekStart, prevWeekStart]);
+
+        // C. 주차별 완료 미션 ID 집계 (Set으로 중복 제거)
+        const thisWeekCompletedIds = new Set<string>();
+        const prevWeekCompletedIds = new Set<string>();
+
+        for (const row of (weeklyMissionRows ?? []) as Array<{ week_start: string; missions: Array<{ id?: string }> }>) {
+          const missions = Array.isArray(row.missions) ? row.missions : [];
+          const isThisWeek = row.week_start === thisWeekStart;
+          for (const mission of missions) {
+            const missionId = mission?.id;
+            if (!missionId) continue;
+            if (mergedChecked[missionId] === true) {
+              (isThisWeek ? thisWeekCompletedIds : prevWeekCompletedIds).add(missionId);
+            }
+          }
+        }
+
+        const thisWeekRoadmapCount = thisWeekCompletedIds.size;
+        const prevWeekRoadmapCount = prevWeekCompletedIds.size;
+
+        // D. weekly_activity_completions + 로드맵 완료 수 합산
+        setThisWeekCount((twCount ?? 0) + thisWeekRoadmapCount);
+        setLastWeekCount((lwCount ?? 0) + prevWeekRoadmapCount);
       } catch (err) {
         console.error("[report] loadCompletions 오류:", err);
       } finally {
