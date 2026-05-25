@@ -11,7 +11,8 @@ export type CategoryFilter =
   | "비즈니스·경영"
   | "콘텐츠·미디어"
   | "공공·안전"
-  | "환경·미래산업";
+  | "환경·미래산업"
+  | "항공·운송";
 
 export type OccupationCategory = Exclude<CategoryFilter, "전체">;
 

@@ -1514,12 +1514,12 @@ export const OCCUPATIONS: Occupation[] = [
     ],
   },
 
-  // ── 공공·안전 신규 (1개) ────────────────────────────────
+  // ── 항공·운송 (1개) ────────────────────────────────────
   {
     id: "pilot",
     name: "항공기 조종사",
     emoji: "✈️",
-    category: "공공·안전",
+    category: "항공·운송",
     description: "항공기를 조종해 승객과 화물을 안전하게 목적지에 데려다 주는 전문가",
     fitScore: 75,
     relatedMajors: [
