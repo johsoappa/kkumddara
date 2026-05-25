@@ -4,15 +4,21 @@
 // Goyo24InfoSection — 미래를 그리는 참고 지표
 //
 // [표시 조건]
-//   - occupation_goyo24_profile row가 있는 경우에만 표시
-//   - 데이터가 없으면 섹션 자체 null 반환 (화면 깨짐 없음)
+//   - occupation_goyo24_profile row가 있을 때 데이터 표시
+//   - profile === null → "참고 지표 준비 중" 안내 (뱃지 없음)
+//
+// [source 기반 뱃지/출처 분기]
+//   source = 'goyo24' | 'api' | 'goyo24_api'
+//     → "고용24 제공" 뱃지 + "출처: 고용24" + 동기화 날짜
+//   source = 'manual' (또는 기타)
+//     → "참고 데이터" 뱃지 + "출처: 공개 참고 정보" + 동기화 날짜 없음
 //
 // [표시 항목 순서]
 //   ① 고용 전망 (prospect_label 또는 prospect_raw 있을 때)
 //   ② 관련 학과 예시 (related_majors 1개 이상)
 //   ③ 임금 참고 정보 (salary_median 있을 때)
 //   ④ 공통 안내 문구 (항상 표시)
-//   ⑤ 출처: 고용24 (항상 표시)
+//   ⑤ 출처 (source에 따라 문구 분기)
 //
 // [금지 문구]
 //   추천 대학 / 추천 학과 / 상위 대학 / 인기 대학 / 합격 가능 대학
@@ -84,30 +90,47 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
   // 표시할 데이터가 하나도 없으면 섹션 자체 숨김
   if (!hasSalary && !hasProspect && !hasMajors) return null;
 
+  // ── source 기반 뱃지·출처 분기 ──────────────────────────────
+  // goyo24 API sync 데이터: "고용24 제공" 뱃지 + "출처: 고용24"
+  // manual 수동 입력 데이터: "참고 데이터" 뱃지 + "출처: 공개 참고 정보"
+  const isGoyo24Provided =
+    profile.source === "goyo24" ||
+    profile.source === "api"    ||
+    profile.source === "goyo24_api";
+
   // 관련 학과 최대 5개 표시
   const displayMajors = profile.related_majors.slice(0, 5);
 
-  // 출처 연도 문자열
+  // 임금 기준 연도 문자열 (source에 따라 문구 분기)
   const surveyYearStr = profile.salary_survey_year
-    ? `${profile.salary_survey_year}년 고용24 조사 기준`
+    ? isGoyo24Provided
+      ? `${profile.salary_survey_year}년 고용24 조사 기준`
+      : `${profile.salary_survey_year}년 공개 통계 기준`
     : null;
 
-  // 최근 동기화 날짜 문자열
-  const syncedAtStr = profile.synced_at
-    ? (() => {
-        const d = new Date(profile.synced_at);
-        return `최근 동기화: ${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
-      })()
-    : null;
+  // 최근 동기화 날짜 — goyo24 sync 데이터만 표시
+  const syncedAtStr =
+    isGoyo24Provided && profile.synced_at
+      ? (() => {
+          const d = new Date(profile.synced_at);
+          return `최근 동기화: ${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, "0")}.${String(d.getDate()).padStart(2, "0")}`;
+        })()
+      : null;
 
   return (
     <section className="card" aria-label="미래를 그리는 참고 지표">
       {/* 섹션 헤더 */}
       <div className="flex items-center gap-2 mb-4">
         <h3 className="text-sm font-bold text-base-text">미래를 그리는 참고 지표</h3>
-        <span className="text-[10px] text-base-muted bg-base-card px-2 py-0.5 rounded-full">
-          고용24 제공
-        </span>
+        {isGoyo24Provided ? (
+          <span className="text-[10px] text-base-muted bg-base-card px-2 py-0.5 rounded-full">
+            고용24 제공
+          </span>
+        ) : (
+          <span className="text-[10px] text-base-muted bg-base-card px-2 py-0.5 rounded-full">
+            참고 데이터
+          </span>
+        )}
       </div>
 
       <div className="flex flex-col gap-4">
@@ -197,7 +220,9 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
               <p className="text-[11px] text-base-muted mt-2 leading-relaxed">
                 {surveyYearStr
                   ? `${surveyYearStr} 참고값입니다.`
-                  : "고용24 조사 기준 참고값입니다."}
+                  : isGoyo24Provided
+                  ? "고용24 조사 기준 참고값입니다."
+                  : "공개 통계 기준 참고값입니다."}
               </p>
             </div>
           </div>
@@ -210,10 +235,10 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
         실제 임금 및 고용 상황은 경력, 지역, 경제 상황에 따라 달라질 수 있습니다.
       </p>
 
-      {/* ⑤ 출처 */}
+      {/* ⑤ 출처 (source에 따라 분기) */}
       <div className="mt-2 pt-3 border-t border-base-border">
         <p className="text-[10px] text-base-muted">
-          출처: 고용24
+          {isGoyo24Provided ? "출처: 고용24" : "출처: 공개 참고 정보"}
         </p>
         {syncedAtStr && (
           <p className="text-[10px] text-base-muted mt-0.5">{syncedAtStr}</p>
