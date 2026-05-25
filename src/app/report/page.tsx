@@ -424,25 +424,31 @@ export default function ReportPage() {
         }
 
         // ── 로드맵 주간 미션 완료 수 집계 ────────────────────────
-        // A. child의 모든 roadmap_progress 행에서 checked_missions 병합
-        //    ※ roadmap_progress에는 occupation_slug 컬럼 없음 → select 금지
+        // A. child의 모든 roadmap_progress 행을 occupation_id 기준 Map으로 구성
+        //    ※ roadmap_progress 실제 컬럼: id, child_id, occupation_id,
+        //      checked_missions, chosen, last_visited_at, created_at, updated_at
+        //    ※ occupation_slug 컬럼 없음 → select 금지
+        //    ※ weekly_roadmap_missions.occupation_slug = roadmap_progress.occupation_id
         const { data: progressRows } = await supabase
           .from("roadmap_progress")
-          .select("checked_missions")
+          .select("occupation_id, checked_missions")
           .eq("child_id", childId);
 
-        const mergedCheckedMissions: Record<string, boolean> = {};
+        // occupation_id → 완료된 missionId Set
+        const checkedByOccupation = new Map<string, Set<string>>();
         for (const row of progressRows ?? []) {
-          const checked = row.checked_missions;
-          if (checked && typeof checked === "object" && !Array.isArray(checked)) {
-            for (const [missionId, value] of Object.entries(
-              checked as Record<string, unknown>
-            )) {
-              if (value === true) {
-                mergedCheckedMissions[missionId] = true;
-              }
+          const occupationId = row.occupation_id as string | null;
+          const checked      = row.checked_missions;
+          if (!occupationId || !checked || typeof checked !== "object" || Array.isArray(checked)) {
+            continue;
+          }
+          const set = checkedByOccupation.get(occupationId) ?? new Set<string>();
+          for (const [missionId, value] of Object.entries(checked as Record<string, unknown>)) {
+            if (value === true || value === "true") {
+              set.add(missionId);
             }
           }
+          checkedByOccupation.set(occupationId, set);
         }
 
         // B. 이번 주/지난주 weekly_roadmap_missions 조회
@@ -453,7 +459,9 @@ export default function ReportPage() {
           .eq("child_id", childId)
           .in("week_start", [lastWeekStart, thisWeekStart]);
 
-        // C. 주차별 완료 미션 수 계산 (Set으로 중복 제거)
+        // C. 주차별 완료 미션 수 계산
+        //    매칭 키: occupation_slug(wrm) === occupation_id(rp)
+        //    중복 제거 키: `${occupationSlug}:${missionId}`
         type WeeklyRow = {
           week_start:      string;
           occupation_slug: string;
@@ -461,35 +469,37 @@ export default function ReportPage() {
           missions:        Array<{ id?: string }>;
         };
 
-        const countCompletedRoadmapMissions = (targetWeekStart: string): number => {
+        const countRoadmapCompletedForWeek = (targetWeekStart: string): number => {
           const counted = new Set<string>();
           for (const row of (weeklyRows ?? []) as WeeklyRow[]) {
             if (row.week_start !== targetWeekStart) continue;
+            const occupationSlug = row.occupation_slug;
+            const checkedSet     = checkedByOccupation.get(occupationSlug);
+            if (!checkedSet) continue;
             const missions = Array.isArray(row.missions) ? row.missions : [];
             for (const mission of missions) {
               const missionId = mission?.id;
-              if (
-                typeof missionId === "string" &&
-                mergedCheckedMissions[missionId] === true
-              ) {
-                counted.add(missionId);
+              if (typeof missionId !== "string") continue;
+              if (checkedSet.has(missionId)) {
+                counted.add(`${occupationSlug}:${missionId}`);
               }
             }
           }
           return counted.size;
         };
 
-        const thisWeekRoadmapCount = countCompletedRoadmapMissions(thisWeekStart);
-        const lastWeekRoadmapCount = countCompletedRoadmapMissions(lastWeekStart);
+        const thisWeekRoadmapCount = countRoadmapCompletedForWeek(thisWeekStart);
+        const lastWeekRoadmapCount = countRoadmapCompletedForWeek(lastWeekStart);
 
         // D. 진단 로그 (Production 확인 후 제거 예정)
-        console.info("[report] roadmap mission aggregation", {
+        console.info("[report] roadmap weekly aggregation", {
           childId,
           thisWeekStart,
           lastWeekStart,
-          progressRowCount:      progressRows?.length ?? 0,
-          checkedMissionCount:   Object.keys(mergedCheckedMissions).length,
-          weeklyRowCount:        (weeklyRows ?? []).length,
+          progressRowCount:     progressRows?.length ?? 0,
+          progressOccupations:  Array.from(checkedByOccupation.keys()),
+          weeklyRowCount:       (weeklyRows ?? []).length,
+          weeklyOccupations:    ((weeklyRows ?? []) as WeeklyRow[]).map((r) => r.occupation_slug),
           thisWeekRoadmapCount,
           lastWeekRoadmapCount,
         });
