@@ -73,10 +73,26 @@
 > ⚠️ 환경·미래산업이 4개로 가장 부족. 목표 11개까지 7개 추가 필요. 1차 확장에서 우선 배정 권장.
 
 **공공·안전 (대표 5개 + 세부 9개)**
-- 대표: police-officer, firefighter, forensic-scientist, diplomat, coast-guard-officer
-- 세부: railway-police-officer, cyber-investigator, train-controller, railway-maintenance-technician, army-soldier, navy-sailor, air-force-pilot, marine-soldier + 1개
 
-> ⚠️ migration 기준 대표 8개였으나 실측은 5개. train-driver / military-soldier / airline-pilot이 다른 카테고리로 이동한 것으로 보임. 추가 실측 확인 필요.
+대표 직업 5개 — Supabase SQL Editor 실측 확인 (2026-05-25):
+
+| slug | legacy_occupation_id | name_ko | is_active | is_representative |
+|---|---|---|---|---|
+| diplomat | diplomat | 외교관 | true | true |
+| firefighter | firefighter | 소방관 | true | true |
+| military-soldier | military-soldier | 군인 | true | true |
+| police-officer | police-officer | 경찰관 | true | true |
+| train-driver | train-driver | 철도 기관사 | true | true |
+
+세부 직업 9개: railway-police-officer, cyber-investigator, train-controller, railway-maintenance-technician, army-soldier, navy-sailor, air-force-pilot, marine-soldier + 1개 미확인
+
+> ⚠️ forensic-scientist(법의학자), coast-guard-officer(해양경비대원)가 대표 목록에 없음. is_representative=false이거나 다른 category로 이동된 것으로 추정. 052 전에 아래 쿼리로 추가 확인 필요:
+> ```sql
+> SELECT slug, name_ko, category, is_representative
+> FROM occupation_master
+> WHERE slug IN ('forensic-scientist', 'coast-guard-officer');
+> ```
+> airline-pilot은 항공·운송 카테고리로 분리됨 (대표 1개).
 
 **항공·운송 (1개)**
 

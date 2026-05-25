@@ -163,7 +163,7 @@ Supabase 실측 결과 `항공·운송` 카테고리가 9번째 정식 카테고
 | 9 | 공공·안전 | 구조대원 | rescue-specialist | 대표 | 1차 | firefighter 보완, 학생 관심 높음 | 중간 | |
 | 10 | 공공·안전 | 군무원 | military-civil-servant | 대표 | 1차 | 군 관련 직업군 보완, 시험 경로 명확 | 높음 | |
 | 11 | 공공·안전 | 경호원 | security-guard | 대표 | 1차 | 학생 관심 높음, 직업 이미지 명확 | 중간 | |
-| 12 | 공공·안전 | 해양경찰관 | maritime-police-officer | 대표 | 2차 | coast-guard-officer와 중복 여부 확인 필요 | 높음 | DB 확인 후 결정 |
+| 12 | 공공·안전 | 해양경찰관 | maritime-police-officer | 대표 | 1차 | coast-guard-officer가 is_representative=false로 확인 시 대표로 신규 추가 가능 | 높음 | forensic-scientist/coast-guard-officer 실측 후 결정 |
 | 13 | 항공·운송 | 항공정비사 | aircraft-maintenance-technician | 대표 | 1차 | 항공기 조종사와 쌍 구성, 직업 이미지 명확 | 높음 | |
 | 14 | 항공·운송 | 물류관리사 | logistics-manager | 대표 | 1차 | 물류·운송 분야, 공개지표 풍부 | 높음 | |
 | 15 | 항공·운송 | 선박항해사 | ship-navigator | 대표 | 2차 | 해양 운송 분야 | 중간 | |
@@ -434,7 +434,12 @@ key = legacy_occupation_id (= URL params.id)
 
 2. **항공·운송 UI 필터 확인** — `/explore` 카테고리 필터에 `항공·운송` 탭이 노출되는지 확인
 
-3. **공공·안전 대표 직업 5개 실측 확인** — train-driver, military-soldier 카테고리 현황 재확인
+3. **forensic-scientist / coast-guard-officer 실측 확인** — is_representative 및 category 현황 확인 후 공공·안전 1차 확장 목록 보정
+   ```sql
+   SELECT slug, name_ko, category, is_representative
+   FROM occupation_master
+   WHERE slug IN ('forensic-scientist', 'coast-guard-officer');
+   ```
 
 4. **1차 확장 후보 23개 확정** (OZ.대표 승인)
 
