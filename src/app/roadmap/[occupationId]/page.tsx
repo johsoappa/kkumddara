@@ -429,6 +429,22 @@ export default function RoadmapPage() {
     });
   }, [roadmap, completedMissions, hydrated, currentStageMissions]);
 
+  // ── 화면에 실제 표시되는 전체 미션 목록 (ProgressCircle 계산 기준) ──────────
+  // 현재 단계: weeklyMissions 우선 (없으면 정적 missions)
+  // next/future 단계: 정적 missions 그대로
+  // 이 목록 기준으로 completedCount/progress를 계산해야
+  // 주간 AI 미션(wm-xxx) 완료 상태가 상단 진행률에 반영된다.
+  const visibleMissions = useMemo<Mission[]>(() => {
+    if (!roadmap) return [];
+    return roadmap.stages.flatMap((stage) => {
+      if (stage.status === "current") {
+        // currentStageMissions가 비어 있으면 정적 미션으로 fallback
+        return currentStageMissions.length > 0 ? currentStageMissions : stage.missions;
+      }
+      return stage.missions;
+    });
+  }, [roadmap, currentStageMissions]);
+
   // ── early return: 로딩 중 ────────────────────────────────────
   if (roadmapMode === "loading") {
     return (
@@ -461,10 +477,11 @@ export default function RoadmapPage() {
     );
   }
 
-  // ── 진행률 계산 (roadmap 보장된 이후) ───────────────────────
-  const completedCount = allMissions.filter((m) => completedMissions.has(m.id)).length;
-  const progress = allMissions.length > 0
-    ? Math.round((completedCount / allMissions.length) * 100)
+  // ── 진행률 계산 (visibleMissions 기준 — 주간 미션 반영) ────────
+  // allMissions(정적)가 아닌 visibleMissions(현재 단계 주간 미션 포함) 기준.
+  const completedCount = visibleMissions.filter((m) => completedMissions.has(m.id)).length;
+  const progress = visibleMissions.length > 0
+    ? Math.round((completedCount / visibleMissions.length) * 100)
     : 0;
 
   // ── 토스트 ───────────────────────────────────────────────────
@@ -569,7 +586,7 @@ export default function RoadmapPage() {
             <p className="text-sm font-bold text-base-text mb-1">진행 현황</p>
             <p className="text-xs text-base-muted">
               전체{" "}
-              <span className="font-semibold text-base-text">{allMissions.length}</span>
+              <span className="font-semibold text-base-text">{visibleMissions.length}</span>
               개 미션 중{" "}
               <span className="font-semibold text-brand-red">{displayCompleted}</span>
               개 완료
