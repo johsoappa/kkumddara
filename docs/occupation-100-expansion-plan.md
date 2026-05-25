@@ -1,0 +1,399 @@
+# 꿈따라 대표 직업 100개 확장 설계안
+
+> 작성일: 2026-05-25  
+> 기준: occupation-100-expansion-audit.md 감사 결과 반영  
+> 상태: 설계안 (DB 변경 없음 — 문서 전용)
+
+---
+
+## 1. 확장 목표
+
+- 대표 직업 100개(`is_representative=true`)를 기준으로 직업 탐색, 로드맵, 퀴즈, 미래 참고 지표, 명따라 추천 연결성을 강화한다.
+- 이번 설계의 기준은 **"대표 직업 100개"**이다.
+- 세부 직업은 검색 보강 및 하위 전문화 목적으로 별도 관리한다.
+- 대표 100개 카운트에는 `is_representative=true`인 직업만 포함한다.
+- 1차 50개 확장 → 운영 안정성 확보 → 2차 50개(일부 이미 존재) 고품질 확장 순서로 진행한다.
+
+---
+
+## 2. 현재 직업 현황 요약
+
+- **현재 occupation_master 전체:** 약 80개 (DB 실측 필요)
+- **현재 활성 직업 (is_active=true):** 약 60개 이상 (DB 실측 필요)
+- **현재 대표 직업 (is_representative=true):** 68개 (migration 기준)
+- **현재 세부 직업 (is_representative=false):** 약 12개
+- **현재 카테고리별 대표 직업 분포:**
+
+| 카테고리 | 현재 대표 직업 수 |
+|---|---:|
+| IT·기술 | 9 |
+| 의료·과학 | 12 |
+| 예술·디자인 | 12 |
+| 콘텐츠·미디어 | 9 |
+| 비즈니스·경영 | 7 |
+| 교육·사회 | 7 |
+| 환경·미래산업 | 4 |
+| 공공·안전 | 8 |
+| **합계** | **68** |
+
+- **대표 직업 100개까지 추가 필요 수:** **32개**
+
+---
+
+## 3. 목표 카테고리 구성
+
+| 카테고리 | 현재 대표 직업 수 | 목표 대표 직업 수 | 추가 필요 수 |
+|---|---:|---:|---:|
+| IT·기술 | 9 | 15 | **+6** |
+| 의료·과학 | 12 | 14 | **+2** |
+| 예술·디자인 | 12 | 13 | **+1** |
+| 콘텐츠·미디어 | 9 | 12 | **+3** |
+| 비즈니스·경영 | 7 | 12 | **+5** |
+| 교육·사회 | 7 | 12 | **+5** |
+| 환경·미래산업 | 4 | 11 | **+7** |
+| 공공·안전 | 8 | 11 | **+3** |
+| **합계** | **68** | **100** | **+32** |
+
+> ⚠️ 의료·과학의 경우 zookeeper(사육사)가 대표 직업으로 적합한지 재검토 후 목표 수 보정 가능
+
+---
+
+## 4. 대표 직업 vs 세부 직업 구분 기준
+
+### 대표 직업 선정 기준
+
+1. 초등·중등 학생과 학부모가 바로 이해할 수 있는 직업명
+2. 독립적인 직업 카드로 노출해도 어색하지 않은 직업
+3. 자체 로드맵, 퀴즈, 준비 활동을 만들 가치가 있는 직업
+4. 카테고리 대표성이 있는 직업
+5. 명따라 또는 AI 상담 결과와 연결했을 때 자연스러운 직업
+6. 검색 수요가 높을 가능성이 있는 직업
+
+### 세부 직업 선정 기준
+
+1. 대표 직업의 하위 전문 분야
+2. 기본 `/explore` 목록에 노출하면 목록이 복잡해지는 직업
+3. 검색 결과에는 노출되어야 하는 직업
+4. 상위 직업의 로드맵을 공유해도 큰 문제가 없는 직업
+5. 추후 프리미엄 상세 로드맵으로 확장 가능한 직업
+
+### 표기 기준
+
+| 기준 | 대표 직업 | 세부 직업 |
+|---|---|---|
+| 기본 `/explore` 목록 | 노출 | 미노출 |
+| 검색 결과 | 노출 | 노출 |
+| `is_active` | true | true |
+| `is_representative` | true | false |
+| `occupation_level` | 1 | 2 |
+| `parent_occupation_id` | null 가능 | 상위 직업 연결 권장 |
+| 카드 표시 | 일반 직업 카드 | 상위 직업명 표시 권장 |
+| 로드맵 | 자체 로드맵 권장 | 상위 직업 fallback 가능 |
+| 퀴즈 | 최소 3문항 필수 | 선택 또는 상위 직업 공유 |
+| 대표 100개 카운트 포함 | 포함 | **미포함** |
+
+---
+
+## 5. 대표 직업 후보군 작성 기준
+
+이번 설계에서 전체 32개 후보를 확정하지 않는다. 아래 표준 컬럼으로 추후 후보군을 작성한다.
+
+### 후보군 표준 컬럼
+
+| 우선순위 | 카테고리 | 직업명 | slug 제안 | 대표/세부 | 확장 단계 | 선정 이유 | 공개지표 가능성 | 비고 |
+|---:|---|---|---|---|---|---|---|---|
+| 1 | 환경·미래산업 | 기후변화 전문가 | climate-change-specialist | 대표 | 1차 | 카테고리 최우선 보강, 학부모 관심 높음 | 중간 | 탄소중립전문가와 차별화 필요 |
+| 2 | 환경·미래산업 | 스마트팜 전문가 | smart-farm-specialist | 대표 | 1차 | occupations.ts에 이미 존재 (static), DB 추가 필요 | 중간 | 농촌진흥청 통계 활용 가능 |
+| 3 | 환경·미래산업 | 해양환경 연구원 | marine-environmental-researcher | 대표 | 1차 | 기후 위기 대응 직업군, 고용24 가능 | 중간 | |
+| 4 | 환경·미래산업 | 에너지 저장 엔지니어 | energy-storage-engineer | 대표 | 2차 | 배터리/ESS 분야, 미래 수요 높음 | 낮음 | 학부모 인식 낮아 2차 적합 |
+| 5 | 환경·미래산업 | 폐기물 처리 전문가 | waste-management-specialist | 대표 | 1차 | 환경부 관련직, 공개지표 풍부 | 높음 | |
+| 6 | 환경·미래산업 | 생태복원 전문가 | ecosystem-restoration-specialist | 대표 | 2차 | 차별화 가능, 학부모 이해 낮음 | 낮음 | |
+| 7 | 환경·미래산업 | 드론 전문가 | drone-specialist | 대표 | 1차 | 학생 흥미 높음, 즉각 탐색 가능 | 중간 | |
+| 8 | 교육·사회 | 중학교 교사 | middle-school-teacher | 대표 | 1차 | elementary-teacher와 쌍 구성, 학부모 친숙 | 높음 | |
+| 9 | 교육·사회 | 특수학교 교사 | special-school-teacher | 대표 | 1차 | special-education-teacher와 구분, 별도 교원자격 | 높음 | |
+| 10 | 교육·사회 | 진로상담 교사 | career-counseling-teacher | 대표 | 1차 | 학부모 탐색 동기 직접 연결 | 높음 | |
+| 11 | 교육·사회 | 청소년 지도사 | youth-counselor | 대표 | 1차 | 방과후·학교 밖 청소년 대상 | 중간 | |
+| 12 | 교육·사회 | 평생교육사 | lifelong-education-specialist | 대표 | 2차 | 성인교육 분야 | 중간 | |
+| 13 | 비즈니스·경영 | 변호사 | lawyer | 대표 | 1차 | 학부모 선호도 최상위, 이해도 높음 | 높음 | |
+| 14 | 비즈니스·경영 | 세무사 | tax-accountant | 대표 | 1차 | accountant와 쌍 구성, 시험 경로 명확 | 높음 | |
+| 15 | 비즈니스·경영 | 부동산 전문가 | real-estate-specialist | 대표 | 1차 | 학부모 관심 높음 | 높음 | |
+| 16 | 비즈니스·경영 | 물류·유통 전문가 | logistics-specialist | 대표 | 1차 | 공급망 분야 성장, 고용24 가능 | 높음 | |
+| 17 | 비즈니스·경영 | 보험계리사 | actuary | 대표 | 2차 | 전문직이지만 학부모 인식 낮음 | 중간 | |
+| 18 | IT·기술 | 데이터 엔지니어 | data-engineer | 대표 | 1차 | data-analyst와 차별화, 실무 수요 높음 | 중간 | |
+| 19 | IT·기술 | 블록체인 개발자 | blockchain-developer | 대표 | 2차 | 미래 직업, 학부모 이해도 낮음 | 낮음 | |
+| 20 | IT·기술 | 앱 개발자 | app-developer | 대표 | 1차 | software-engineer와 구분, 학생 친숙 | 높음 | |
+| 21 | IT·기술 | 시스템 엔지니어 | system-engineer | 대표 | 1차 | IT 인프라, 고용24 데이터 풍부 | 높음 | |
+| 22 | IT·기술 | 양자컴퓨팅 연구원 | quantum-computing-researcher | 대표 | 2차 | 미래 기술, 1차 보류 | 낮음 | |
+| 23 | IT·기술 | 디지털 마케터 | digital-marketer | 대표 | 1차 | marketer와 구분, 실용적 | 높음 | |
+| 24 | 콘텐츠·미디어 | 게임 스트리머 | game-streamer | 대표 | 1차 | 학생 관심 최상위 직업 | 낮음 | creator와 중복 가능성 검토 |
+| 25 | 콘텐츠·미디어 | 유튜버/크리에이터 | youtuber | 대표 | 1차 | creator와 병합 or 별도 운영 검토 | 낮음 | |
+| 26 | 콘텐츠·미디어 | 작가 | writer | 대표 | 1차 | occupations.ts 존재, DB 추가 필요 | 중간 | novelist와 구분 필요 |
+| 27 | 공공·안전 | 해양경찰관 | maritime-police-officer | 대표 | 1차 | coast-guard-officer 이미 존재 — 중복 확인 필요 | 높음 | DB 실측 후 결정 |
+| 28 | 공공·안전 | 교도관 | correctional-officer | 대표 | 1차 | 공공직, 고용24 데이터 풍부 | 높음 | |
+| 29 | 공공·안전 | 구조대원 | rescue-specialist | 대표 | 1차 | firefighter 보완, 학생 관심 높음 | 중간 | |
+| 30 | 의료·과학 | 한의사 | oriental-medicine-doctor | 대표 | 1차 | 전통 의료, 학부모 인식 높음 | 높음 | |
+| 31 | 의료·과학 | 간호조무사 | nursing-assistant | 대표 | 2차 | nurse 세부 → 대표 승격 여부 검토 | 높음 | |
+| 32 | 예술·디자인 | 뮤지컬 배우 | musical-actor | 대표 | 1차 | actor와 차별화, 예술 카테고리 | 중간 | |
+
+> 이 후보군은 초안이며, OZ.대표 최종 결정 전 수정 가능합니다.
+
+---
+
+## 6. 세부 직업 후보군 작성 기준
+
+| 상위 직업 | 세부 직업명 | slug 제안 | 검색 노출 필요성 | 자체 로드맵 필요 여부 | 비고 |
+|---|---|---|---|---|---|
+| doctor | 소아과의사 | pediatrician | 높음 | 상위 직업 공유 가능 | migration 038 기존 존재 |
+| doctor | 정신건강의학과 의사 | psychiatrist | 높음 | 상위 직업 공유 가능 | migration 039 기존 존재 |
+| doctor | 응급의학과 의사 | emergency-physician | 중간 | 상위 직업 공유 가능 | migration 039 기존 존재 |
+| lawyer | 검사 | prosecutor | 높음 | 추후 판단 | lawyer 추가 후 연결 |
+| lawyer | 판사 | judge | 높음 | 추후 판단 | |
+| 군인 | 육군 | army-soldier | 높음 | 상위 직업 공유 가능 | migration 045 기존 존재 |
+| 군인 | 해군 | navy-sailor | 높음 | 상위 직업 공유 가능 | migration 045 기존 존재 |
+
+---
+
+## 7. 1차 50개 / 2차 50개 확장 전략
+
+### 7-1. 1차 확장 원칙 (현재 68개 → ~90개 목표)
+
+현재 대표 직업 68개에 추가로 약 22개를 1차 확장 대상으로 선정한다.
+
+**선정 기준 (우선순위순):**
+1. 초등·중등 학생과 학부모가 즉시 이해할 수 있는 직업
+2. 환경·미래산업 카테고리 우선 보강 (현재 4개 → 8개 목표)
+3. 교육·사회, 비즈니스·경영 균형 보강
+4. 고용24 또는 공개 통계로 임금·전망 자료 작성이 가능한 직업
+5. quizData 3문항, occupation_summary 3종, occupation_preparations 3개 작성 난이도가 낮은 직업
+6. 기존 occupation_master slug과 중복되지 않는 직업
+
+**1차 확장 목표:**
+
+| 카테고리 | 1차 추가 수 | 이후 대표 직업 수 |
+|---|---:|---:|
+| IT·기술 | +4 | 13 |
+| 의료·과학 | +1 | 13 |
+| 예술·디자인 | +1 | 13 |
+| 콘텐츠·미디어 | +2 | 11 |
+| 비즈니스·경영 | +3 | 10 |
+| 교육·사회 | +3 | 10 |
+| 환경·미래산업 | +5 | 9 |
+| 공공·안전 | +3 | 11 |
+| **합계** | **+22** | **~90** |
+
+### 7-2. 2차 확장 원칙 (~90개 → 100개 목표)
+
+**선정 기준 (우선순위순):**
+1. 미래산업·신직업 (AI, 로봇, 바이오, 기후, 우주, 콘텐츠)
+2. 학부모가 잘 모르는 유망 직업
+3. 명따라 Phase 2 결과와 연결성이 높은 직업
+4. 프리미엄 콘텐츠화 가능성이 있는 직업
+5. 세부 직업 검색 대응이 필요한 직업
+
+**2차 확장 목표:**
+
+| 카테고리 | 2차 추가 수 | 최종 대표 직업 수 |
+|---|---:|---:|
+| IT·기술 | +2 | 15 |
+| 의료·과학 | +1 | 14 |
+| 예술·디자인 | 0 | 13 |
+| 콘텐츠·미디어 | +1 | 12 |
+| 비즈니스·경영 | +2 | 12 |
+| 교육·사회 | +2 | 12 |
+| 환경·미래산업 | +2 | 11 |
+| 공공·안전 | 0 | 11 |
+| **합계** | **+10** | **100** |
+
+---
+
+## 8. 직업 1개 추가 표준 템플릿
+
+### 8-1. occupation_master 기준
+
+**필수 확인 필드:**
+
+| 필드 | 설명 | 주의사항 |
+|---|---|---|
+| `slug` | 영문 소문자 + 하이픈 | 기존 slug와 중복 금지 |
+| `name_ko` | 한국어 직업명 | UI 표기와 동일해야 함 |
+| `emoji` | 직업 이모지 1개 | 기존 직업과 동일 이모지 사용 지양 |
+| `category` | 8개 카테고리 중 하나 | 기존 UI 표기와 정확히 일치 (예: `IT·기술`, `환경·미래산업`) |
+| `interest_fields` | `array['it']` 등 | 기존 값 참조 |
+| `is_active` | `true` (노출 즉시) 또는 `false` (검토 후 활성화) | |
+| `is_representative` | 대표 직업: `true`, 세부 직업: `false` | |
+| `occupation_level` | 대표: `1`, 세부: `2` | |
+| `parent_occupation_id` | 세부 직업의 상위 직업 UUID | 대표는 null |
+| `legacy_occupation_id` | URL 라우팅용 ID | `slug`와 동일 값 권장 |
+
+**작성 기준:**
+- `slug`는 영문 소문자와 하이픈만 사용한다.
+- 카테고리명은 기존 UI와 동일한 표기를 사용한다.
+  - ✅ `IT·기술`, `의료·과학`, `예술·디자인`, `콘텐츠·미디어`, `비즈니스·경영`, `교육·사회`, `환경·미래산업`, `공공·안전`
+  - ❌ `IT/기술`, `IT기술`, `의료과학` (하이픈/슬래시 표기 다르면 explore 필터 깨짐)
+- `legacy_occupation_id`는 기존 URL 호환이 필요한 경우만 slug와 다르게 설정한다.
+  - 예: `slug='airline-pilot'`, `legacy_occupation_id='pilot'` (기존 URL /roadmap/pilot 호환)
+
+### 8-2. occupation_summary 기준
+
+**필수 3종 (layer='service'):**
+
+| content_type | 설명 | 길이 기준 |
+|---|---|---|
+| `one_liner` | 직업 한 줄 요약 | 50자 이내 |
+| `easy_description` | 쉬운 설명 (초등 고학년 기준) | 2~3문장, 120자 이내 |
+| `why_this_job` | 이 직업에 관심을 갖는 이유 | 2문장 |
+
+**작성 기준:**
+- 초등 고학년과 학부모가 이해할 수 있는 표현을 사용한다.
+- 아래 표현을 사용하지 않는다:
+  - ❌ "반드시 성공", "고소득 보장", "미래 보장", "취업 보장", "평균 연봉", "최고 연봉"
+  - ✅ "일자리 수요가 있을 것으로 예측되는 분야예요", "다양한 곳에서 일할 수 있어요"
+
+### 8-3. occupation_preparations 기준
+
+**필수 최소 세트 (layer='service'):**
+
+| prep_type | 최소 개수 | 설명 |
+|---|---|---|
+| `mission_hint` | 1개 | 오늘 당장 할 수 있는 탐색 힌트 |
+| `step_action` | 2개 | Stage 1 준비 활동 (display_order=0, 1) |
+
+**작성 기준:**
+- 학생이 실제로 해볼 수 있는 활동 중심 (유튜브 탐색, 독서, 메모 등)
+- 대학 진학이나 자격증 취득보다 탐색·경험 중심으로 작성
+- `grade_group='all'`, `stage_number=1`, `version_no=1`, `is_current=true`, `is_latest=true`, `status='published'`
+
+### 8-4. quizData 기준
+
+```
+key = legacy_occupation_id (= URL params.id)
+예: /explore/lawyer → quizData['lawyer']
+```
+
+**필수 구성:**
+
+```typescript
+'slug-or-legacy-id': [
+  {
+    id: 'slug-q1',
+    question: '질문 (초등 고학년 이해 수준)',
+    options: ['보기1', '보기2', '보기3', '보기4'],
+    correctIndex: 0,   // 0-based index
+    explanation: '정답 설명',
+  },
+  // 최소 3문항
+]
+```
+
+**주의사항:**
+- `correctIndex`와 `options` 배열 순서가 반드시 일치해야 한다.
+- key는 반드시 `legacy_occupation_id`와 일치해야 한다.
+  - airline-pilot의 경우: key는 `'pilot'` (legacy_occupation_id='pilot')
+- 초등 고학년이 이해 가능한 문장 사용 (전문 용어 최소화)
+
+### 8-5. roadmaps 또는 weekly mission fallback 기준
+
+**확인 순서:**
+1. `src/data/roadmaps.ts`에 `legacy_occupation_id` 키로 정적 로드맵이 있는지 확인
+2. 없으면 `weekly_roadmap_missions` (AI 생성) fallback 작동 — slug 기준 자동 생성
+3. `/report` 실천 미션 비교는 `roadmap_progress.occupation_id = legacy_occupation_id` 기준으로 집계됨
+
+**주의사항:**
+- 로드맵 완료 로직(`roadmap_progress.checked_missions`)을 변경하지 않는다.
+- ProgressCircle 계산 로직을 변경하지 않는다.
+- mission id는 기존 `m1~m12` 또는 `wm-YYYY-MM-DD-c-N` 패턴 유지
+- 신규 직업에 정적 roadmaps를 추가하지 않아도 weekly mission fallback으로 운영 가능
+
+### 8-6. occupation_goyo24_profile 기준
+
+| source 값 | 화면 뱃지 | 출처 문구 | 동기화 날짜 표시 |
+|---|---|---|---|
+| `goyo24`, `api`, `goyo24_api` | 고용24 제공 | 출처: 고용24 | 표시 |
+| `manual` | 참고 데이터 | 출처: 공개 참고 정보 | 미표시 |
+| row 없음 | 없음 | — | "참고 지표 준비 중" |
+
+**작성 기준:**
+- 수동 작성 시 반드시 `source='manual'`로 설정한다.
+- 임금 단위는 만원, survey_year는 가장 최근 조사연도 기준
+- `goyo24_occ_code=null`로 시작하고 추후 sync 스크립트 실행 시 갱신
+
+### 8-7. legacy_occupation_id 기준
+
+| 상황 | 설정 방법 |
+|---|---|
+| 신규 직업 (URL 호환 불필요) | `legacy_occupation_id = slug` (동일값) |
+| 기존 URL 호환 필요 | `legacy_occupation_id = 기존 ID` (예: airline-pilot → 'pilot') |
+| static quizData, roadmaps 키와 맞춰야 하는 경우 | `legacy_occupation_id = quizData/roadmaps 기존 키` |
+
+---
+
+## 9. 확장 전 체크리스트
+
+- [ ] `occupation_master` 중복 slug 없음
+- [ ] 카테고리명 기존 UI 표기와 일치
+- [ ] 대표 직업과 세부 직업 구분 명확
+- [ ] 대표 직업은 `is_representative=true`, `occupation_level=1`
+- [ ] 세부 직업은 `is_representative=false`, `occupation_level=2`
+- [ ] 세부 직업의 `parent_occupation_id` 연결 기준 확인
+- [ ] `legacy_occupation_id` 필요한 직업 확인 (URL 호환)
+- [ ] `occupation_summary` one_liner/easy_description/why_this_job 3종 누락 없음
+- [ ] `occupation_preparations` mission_hint 1개 + step_action 2개 이상
+- [ ] 대표 직업 `quizData` 최소 3문항 기준 충족
+- [ ] roadmaps.ts 정적 데이터 or weekly mission fallback 정상 동작 확인
+- [ ] `occupation_goyo24_profile.source` 정책 정상 (`manual` → "참고 데이터" 뱃지)
+- [ ] `/explore` 기본 목록 과밀화 없음 (카테고리 필터 or 페이지네이션 검토)
+- [ ] 검색 결과에서 세부 직업 노출 가능 (is_active=true)
+- [ ] `/roadmap/[occupationId]` 진입 가능 (legacy_occupation_id 일치)
+- [ ] `/report` 집계 영향 없음 (roadmap_progress.occupation_id 매핑 확인)
+- [ ] OpenAI 호출 구조 변경 없음
+- [ ] 요금제 변경 없음
+- [ ] RLS 변경 없음
+- [ ] Auth 변경 없음
+- [ ] `npx tsc --noEmit` 통과
+- [ ] `npm run build` 성공
+
+---
+
+## 10. 사전 보정 필요 항목
+
+확장 작업 시작 전 아래 불일치를 보정해야 한다.
+
+| 항목 | 현재 상태 | 보정 방법 |
+|---|---|---|
+| `vr-ar-developer` 카테고리 | DB: `IT·기술`, occupations.ts: `환경·미래산업` | occupations.ts 수정 or DB category 업데이트 (OZ.대표 결정 필요) |
+| `carbon-neutral-specialist` (ts) vs `carbon-neutrality-specialist` (DB) | slug 불일치 | occupations.ts의 id를 DB slug와 일치시키거나 legacy_occupation_id 연결 |
+| `renewable-energy-engineer` (ts) vs `renewable-energy-specialist` (DB) | slug 불일치 | 동일 방법 |
+| is_active 현황 | migration 026/028 일부 직업 활성 여부 불확실 | DB 실측 쿼리 실행 필요 |
+
+---
+
+## 11. 다음 단계
+
+1. **DB 실측 쿼리 실행** (Supabase SQL Editor)
+   ```sql
+   SELECT category, 
+          count(*) as total, 
+          count(*) FILTER (WHERE is_representative=true AND is_active=true) as rep_active,
+          count(*) FILTER (WHERE is_representative=false) as sub
+   FROM occupation_master 
+   GROUP BY category 
+   ORDER BY category;
+   ```
+
+2. **사전 보정 항목 해소** (occupations.ts slug 불일치 4건)
+
+3. **1차 확장 후보 22개 확정** (OZ.대표 승인)
+
+4. **052 occupation_master bulk seed migration 초안 작성**
+   - occupation_master + summary + preparations 일괄 삽입
+   - ON CONFLICT (slug) DO NOTHING 패턴
+
+5. **quizData 추가** (22개 직업, 각 3문항)
+
+6. **occupation_goyo24_profile seed** (source='manual' 패턴)
+
+7. **Preview/로컬 smoke test** → /explore, /roadmap, /report 흐름 확인
+
+---
+
+*이 문서는 Production DB 변경 없이 설계 목적으로만 작성된 문서입니다. 실제 확장 작업은 별도 migration(052~)에서 진행합니다.*
