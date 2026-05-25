@@ -2,7 +2,7 @@
 
 > 작성일: 2026-05-25
 > 기준: occupation-100-expansion-audit.md + occupation-100-expansion-plan.md 감사 결과 반영
-> 상태: 053 + 054 migration 초안 작성 완료 — OZ 적용 대기 (Production DB 변경 없음)
+> 상태: 053 + 054 migration 초안 작성 완료, quizData 작성 완료 — OZ 적용 대기 (Production DB 변경 없음)
 
 ---
 
@@ -177,7 +177,7 @@
 - [ ] OZ가 Supabase SQL Editor에서 053 실행 및 검증 쿼리 확인
 - [ ] OZ가 Supabase SQL Editor에서 054 실행 및 검증 쿼리 확인
 - [ ] `/explore` 신규 직업 23개 상세 페이지 "참고 데이터" 뱃지 노출 확인
-- [ ] `quizData` 3문항 작성 — 054 적용 후 별도 작업
+- [x] **`quizData` 23개 직업 × 3문항 = 69문항 작성 완료** (2026-05-26)
 - [ ] `roadmaps` 직접 작성 여부 또는 weekly mission fallback 사용 여부 확정 (스마트팜만 roadmaps.ts 존재)
 - [ ] 스마트팜 전문가 static → DB 동기화 시 occupations.ts id/category 정합성 재확인
 

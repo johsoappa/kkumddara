@@ -1,9 +1,9 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
-> 상태: 053 + 054 migration 초안 작성 완료 — OZ 적용 대기
+> 상태: 053 + 054 migration 초안 작성 완료, quizData 작성 완료 — OZ 적용 대기
 
 ---
 
@@ -493,7 +493,10 @@ key = legacy_occupation_id (= URL params.id)
    - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요**
    - 향후 sync_goyo24_occupations.ts MANUAL_MAPPING 업데이트 시 source='goyo24'로 갱신 가능
 
-6. **quizData 추가** (23개 직업, 각 3문항) — 054 적용 후 별도 작업
+6. **quizData 추가** (23개 직업, 각 3문항) ✅ (2026-05-26 완료)
+   - src/data/quizData.ts에 23개 × 3문항 = 69문항 추가
+   - Q1: 하는 일 이해, Q2: 역량·태도 이해, Q3: 탐색 활동 구성
+   - 4지선다, correctIndex 분산, explanation 초등 고학년 수준
 
 7. **occupation_goyo24_profile seed** (source='manual' 패턴, 23개)
 
