@@ -211,6 +211,9 @@ migration 052 적용 후 대표 직업 2개, 세부 직업 1개 체계로 전환
 
 ## 8. 1차 / 2차 확장 전략
 
+> **1차 후보 23개 선정 완료** — 상세 내용은 [`docs/occupation-100-first-wave-candidates.md`](./occupation-100-first-wave-candidates.md) 참조.  
+> 중복 확인 후 6개 대체 적용. OZ 승인 후 053 migration 작성 예정.
+
 ### 8-1. 1차 확장 원칙 (현재 67개 → ~90개 목표)
 
 현재 대표 직업 67개에 추가로 약 23개를 1차 확장 대상으로 선정한다.
@@ -225,20 +228,48 @@ migration 052 적용 후 대표 직업 2개, 세부 직업 1개 체계로 전환
 7. 기존 occupation_master slug과 중복되지 않는 직업
 8. **예술·디자인은 이미 14개로 목표 충족 — 1차 확장 제외**
 
-**1차 확장 목표:**
+**1차 확장 목표 (확정 배분안):**
 
-| 카테고리 | 1차 추가 수 | 이후 대표 직업 수 |
-|---|---:|---:|
-| IT·기술 | +3 | 13 |
-| 의료·과학 | +1 | 13 |
-| 예술·디자인 | 0 | 14 |
-| 콘텐츠·미디어 | +3 | 10 |
-| 비즈니스·경영 | +3 | 10 |
-| 교육·사회 | +3 | 10 |
-| 환경·미래산업 | +5 | 9 |
-| 공공·안전 | +3 | 8 |
-| 항공·운송 | +2 | 3 |
-| **합계** | **+23** | **~90** |
+| 카테고리 | 현재 대표 | 1차 추가 | 1차 후 대표 | 최종 목표 |
+|---|---:|---:|---:|---:|
+| IT·기술 | 10 | +2 | 12 | 14 |
+| 의료·과학 | 12 | +1 | 13 | 14 |
+| 예술·디자인 | 14 | 0 | 14 | 14 |
+| 콘텐츠·미디어 | 7 | +3 | 10 | 11 |
+| 비즈니스·경영 | 7 | +3 | 10 | 11 |
+| 교육·사회 | 7 | +3 | 10 | 11 |
+| 환경·미래산업 | 4 | +5 | 9 | 11 |
+| 공공·안전 | 4 | +4 | 8 | 10 |
+| 항공·운송 | 2 | +2 | 4 | 4 |
+| **합계** | **67** | **+23** | **90** | **100** |
+
+**1차 확정 후보 23개 (중복 확인 완료):**
+
+| 우선순위 | 카테고리 | 직업명 | slug | 비고 |
+|---:|---|---|---|---|
+| 1 | 환경·미래산업 | 스마트팜 전문가 | smart-farm-specialist | static 데이터 존재, DB 추가 필요 |
+| 2 | 환경·미래산업 | 기후데이터 분석가 | climate-data-analyst | |
+| 3 | 환경·미래산업 | 자원순환 전문가 | resource-recycling-specialist | |
+| 4 | 환경·미래산업 | 녹색건축 전문가 | green-building-specialist | |
+| 5 | 환경·미래산업 | 환경 컨설턴트 | environmental-consultant | |
+| 6 | 공공·안전 | 재난안전관리자 | disaster-safety-manager | |
+| 7 | 공공·안전 | 보호관찰관 | probation-officer | 대체 (응급구조사 → 의료·과학 중복) |
+| 8 | 공공·안전 | 교정직 공무원 | correctional-officer | |
+| 9 | 공공·안전 | 일반행정 공무원 | public-administration-officer | |
+| 10 | 항공·운송 | 항공정비사 | aircraft-maintenance-technician | |
+| 11 | 항공·운송 | 물류관리사 | logistics-manager | |
+| 12 | 콘텐츠·미디어 | 영상 감독 | video-director | 대체 (방송 PD → pd-director 중복) |
+| 13 | 콘텐츠·미디어 | 게임 기획자 | game-planner | game-developer와 별개 |
+| 14 | 콘텐츠·미디어 | 스포츠 해설가 | sports-commentator | 대체 (기자 → journalist 중복) |
+| 15 | 비즈니스·경영 | 인사담당자 | human-resources-specialist | |
+| 16 | 비즈니스·경영 | 재무설계사 | financial-planner | |
+| 17 | 비즈니스·경영 | 프로덕트 매니저 | product-manager | |
+| 18 | 교육·사회 | 평생교육사 | lifelong-education-specialist | 대체 (초등교사 → elementary-teacher 중복) |
+| 19 | 교육·사회 | 청소년지도사 | youth-worker | |
+| 20 | 교육·사회 | 방과후교사 | after-school-teacher | |
+| 21 | IT·기술 | 네트워크 엔지니어 | network-engineer | 대체 (데이터 분석가 → data-analyst 중복) |
+| 22 | IT·기술 | 모바일 앱 개발자 | mobile-app-developer | 대체 (정보보안전문가 → cybersecurity-expert 중복) |
+| 23 | 의료·과학 | 방사선사 | radiologic-technologist | |
 
 ### 8-2. 2차 확장 원칙 (~90개 → 100개 목표)
 
