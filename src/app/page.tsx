@@ -15,7 +15,7 @@ import Image from "next/image";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Users, BookOpen, Eye, EyeOff, ArrowLeft, ChevronRight } from "lucide-react";
-import { signUpParent, signUpStudent, signIn, signInWithKakao } from "@/lib/auth";
+import { signUpParent, signUpStudent, signIn } from "@/lib/auth";
 import PasswordConditions, { isPasswordValid } from "@/components/PasswordConditions";
 import PwaInstallBanner from "@/components/common/PwaInstallBanner";
 
@@ -59,6 +59,10 @@ function LandingContent() {
       title: "학부모 프로필 생성에 실패했어요",
       body:  "로그인은 됐지만 학부모 프로필 설정 중 오류가 발생했어요. 운영팀에 문의해 주세요.",
     },
+    kakao_start_failed: {
+      title: "카카오 로그인을 시작할 수 없어요",
+      body:  "잠시 후 다시 시도해 주세요. 문제가 계속되면 운영팀에 문의해 주세요.",
+    },
   };
   const authErrorCode  = searchParams.get("error") ?? "";
   const authErrorInfo  = AUTH_ERROR_MESSAGES[authErrorCode] ?? null;
@@ -86,31 +90,30 @@ function LandingContent() {
   };
 
   // ── 카카오 OAuth 로그인 ──────────────────────────────
-  // [주의] await 없이 호출하면 모바일 브라우저에서 에러를 삼킴.
-  //   → async/await + 명시적 에러 처리로 개선.
-  //   → signInWithOAuth 성공 시 Supabase SDK가 자동으로 카카오 페이지로 이동.
-  //   → kakaoLoading은 navigate 완료 전까지 유지 (중복 클릭 방지).
-  const handleKakaoLogin = async () => {
+  // [구조]
+  //   client-side signInWithOAuth 대신 서버 Route Handler(/auth/kakao/start)를 사용.
+  //   window.location.href = "..." → 전체 페이지 이동
+  //     → async race condition 없음
+  //     → 서버에서 requestUrl.origin 기준으로 redirectTo 생성 (env var 의존 없음)
+  //     → PKCE verifier 쿠키를 서버에서 안정적으로 세팅
+  //
+  // [에러 처리]
+  //   서버 Route Handler 실패 시 /?error=kakao_start_failed 로 redirect됨
+  //   page.tsx AUTH_ERROR_MESSAGES에서 처리
+  const handleKakaoLogin = () => {
     if (!selectedRole || kakaoLoading || loading) return;
     setKakaoLoading(true);
     setError(null);
-    console.info("[auth] 카카오 버튼 클릭", { role: selectedRole });
-    try {
-      const { error: oauthErr } = await signInWithKakao(selectedRole);
-      if (oauthErr) {
-        // signInWithOAuth 자체가 에러를 반환한 경우
-        console.error("[auth] kakao signInWithOAuth 실패", oauthErr.message);
-        setError("카카오 로그인 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
-        setKakaoLoading(false);
-      }
-      // 에러 없으면 SDK가 카카오 인증 페이지로 자동 이동
-      // kakaoLoading은 페이지를 떠날 때까지 true 유지 (버튼 비활성)
-    } catch (e) {
-      // 네트워크 오류 등 예외
-      console.error("[auth] kakao 예외 발생", e);
-      setError("카카오 로그인 연결에 실패했어요. 인터넷 연결을 확인해 주세요.");
-      setKakaoLoading(false);
-    }
+
+    console.info("[auth] 카카오 버튼 클릭 → 서버 라우트로 이동", {
+      role: selectedRole,
+      href:   typeof window !== "undefined" ? window.location.href   : null,
+      origin: typeof window !== "undefined" ? window.location.origin : null,
+    });
+
+    // 전체 페이지 이동: /auth/kakao/start?role=parent|student
+    // 이후 코드는 실행되지 않음 (브라우저가 페이지를 떠남)
+    window.location.href = `/auth/kakao/start?role=${selectedRole}`;
   };
 
   // 버튼 활성화 조건
