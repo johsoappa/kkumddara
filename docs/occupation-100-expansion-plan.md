@@ -1,7 +1,7 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료, quizData 2차 10개 직업 30문항 작성 완료)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
 > 상태: 055 migration 초안 완료(대표 직업 100개 달성), 056 migration 초안 완료(미래 참고 지표 연결) — OZ 순서대로 적용 대기
 
@@ -526,7 +526,10 @@ key = legacy_occupation_id (= URL params.id)
    - prospect_label: 증가 7개, 유지 3개 / 화면: "참고 데이터" 뱃지 표시
    - **OZ가 Supabase SQL Editor에서 055 실행 후 이어서 실행 필요**
 
-10. **quizData 추가** (2차 10개 직업, 각 3문항 = 30문항)
+10. **quizData 추가** (2차 10개 직업, 각 3문항 = 30문항) ✅ (2026-05-26 완료)
+    - src/data/quizData.ts에 10개 × 3문항 = 30문항 추가
+    - correctIndex 분포: 0→8, 1→8, 2→7, 3→7 (균형 분배)
+    - tsc --noEmit 통과 / next build 통과
 
 11. **Preview/로컬 smoke test** → /explore, /roadmap, /report 흐름 확인
 

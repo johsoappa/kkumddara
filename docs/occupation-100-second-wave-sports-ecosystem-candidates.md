@@ -1,9 +1,9 @@
 # 꿈따라 대표 직업 100개 확장 — 2차 스포츠 진로 생태계 후보 10개 선정안
 
 > 작성일: 2026-05-26
-> 보정일: 2026-05-26 (055 migration 초안 작성 완료, 056 migration 초안 작성 완료)
+> 보정일: 2026-05-26 (055 migration 초안 작성 완료, 056 migration 초안 작성 완료, quizData 30문항 작성 완료)
 > 기준: occupation-100-expansion-plan.md + 1차 후보 23개 완료(053·054·quizData) 기준
-> 상태: 055 + 056 migration 초안 작성 완료 — OZ 적용 대기 (Production DB 변경 없음)
+> 상태: 055 + 056 migration 초안 작성 완료 + quizData 완료 — OZ 적용 대기 (Production DB 변경 없음)
 
 ---
 
@@ -327,7 +327,7 @@
   - ON CONFLICT (occupation_id) DO NOTHING (기존 goyo24 sync row 보호)
   - prospect_label: 증가 7개, 유지 3개
   - **OZ가 Supabase SQL Editor에서 직접 실행 및 검증 필요 (055 적용 후)**
-- [ ] `quizData` 3문항 작성 범위 확정 (10개 × 3문항 = 30문항) — 057 또는 이후 별도 작업
+- [x] **`src/data/quizData.ts` 30문항 작성 완료** (2026-05-26) — 10개 × 3문항, tsc/build 통과
 - [ ] `roadmaps` 직접 작성 여부 또는 weekly mission fallback 사용 여부 확정
 
 ---
@@ -335,4 +335,5 @@
 *이 문서는 DB 변경 없이 OZ 승인용으로 작성되었습니다.  
 중복 확인 기준일: 2026-05-26.  
 055 migration 초안 작성 완료 (2026-05-26) — OZ가 Supabase SQL Editor에서 적용 후 대표 직업 100개 달성 예정.  
-056 migration 초안 작성 완료 (2026-05-26) — source='manual', 전체 10개 "참고 데이터" 뱃지 표시 예정.*
+056 migration 초안 작성 완료 (2026-05-26) — source='manual', 전체 10개 "참고 데이터" 뱃지 표시 예정.  
+quizData 30문항 작성 완료 (2026-05-26) — 10개 × 3문항, tsc/build 통과, 커밋 완료.*
