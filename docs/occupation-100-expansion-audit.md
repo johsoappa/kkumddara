@@ -39,8 +39,8 @@
 | 비즈니스·경영 | 7 | 7 | 0 | 목표(11)까지 **4개 추가 필요** |
 | 교육·사회 | 7 | 7 | 0 | 목표(11)까지 **4개 추가 필요** |
 | 환경·미래산업 | 4 | 4 | 0 | 목표(11)까지 **7개 추가 필요 — 가장 부족** |
-| 공공·안전 | 14 | 5 | 9 | 목표(10)까지 **5개 추가 필요** — 세부 직업 9개로 많지만 대표는 5개뿐 |
-| 항공·운송 | 1 | 1 | 0 | 목표(4)까지 **3개 추가 필요** — 9번째 정식 카테고리 |
+| 공공·안전 | 12 | 4 | 8 | 목표(10)까지 **6개 추가 필요** — train-driver/train-controller 항공·운송으로 이동 (052) |
+| 항공·운송 | 3 | 2 | 1 | 목표(4)까지 **2개 추가 필요** — train-driver(대표), train-controller(세부) 편입 (052) |
 | **합계** | **81** | **67** | **14** | **대표 100개까지 33개 추가 필요** |
 
 ### 카테고리별 현재 대표 직업 목록
@@ -72,9 +72,9 @@
 
 > ⚠️ 환경·미래산업이 4개로 가장 부족. 목표 11개까지 7개 추가 필요. 1차 확장에서 우선 배정 권장.
 
-**공공·안전 (대표 5개 + 세부 9개)**
+**공공·안전 (대표 4개 + 세부 8개) — 052 적용 후 기준**
 
-대표 직업 5개 — Supabase SQL Editor 실측 확인 (2026-05-25):
+대표 직업 4개 (train-driver → 항공·운송 이동 후):
 
 | slug | legacy_occupation_id | name_ko | is_active | is_representative |
 |---|---|---|---|---|
@@ -82,25 +82,31 @@
 | firefighter | firefighter | 소방관 | true | true |
 | military-soldier | military-soldier | 군인 | true | true |
 | police-officer | police-officer | 경찰관 | true | true |
-| train-driver | train-driver | 철도 기관사 | true | true |
 
-세부 직업 9개: railway-police-officer, cyber-investigator, train-controller, railway-maintenance-technician, army-soldier, navy-sailor, air-force-pilot, marine-soldier + 1개 미확인
+세부 직업 8개 (train-controller → 항공·운송 이동 후): railway-police-officer, cyber-investigator, railway-maintenance-technician, army-soldier, navy-sailor, air-force-pilot, marine-soldier + 1개 미확인
 
-> ⚠️ forensic-scientist(법의학자), coast-guard-officer(해양경비대원)가 대표 목록에 없음. is_representative=false이거나 다른 category로 이동된 것으로 추정. 052 전에 아래 쿼리로 추가 확인 필요:
-> ```sql
-> SELECT slug, name_ko, category, is_representative
-> FROM occupation_master
-> WHERE slug IN ('forensic-scientist', 'coast-guard-officer');
-> ```
-> airline-pilot은 항공·운송 카테고리로 분리됨 (대표 1개).
+추가 확인 완료:
+- `forensic-scientist`(법의학자): 공공·안전, is_representative=**false** → 세부 직업 정상
+- `coast-guard-officer`(해양경찰): 공공·안전, is_representative=**false** → 세부 직업 정상
+- `maritime-police-officer` 신규 추가 불필요
 
-**항공·운송 (1개)**
+**항공·운송 (대표 2개 + 세부 1개) — 052 적용 후 기준**
+
+대표 직업 2개:
 
 | slug | legacy_occupation_id | name_ko | is_active | is_representative |
 |---|---|---|---|---|
 | airline-pilot | pilot | 항공기 조종사 | true | true |
+| train-driver | train-driver | 철도 기관사 | true | true |
 
-> ✅ 실측 확인 완료. airline-pilot은 항공·운송 카테고리의 유일한 대표 직업으로, 9번째 정식 카테고리로 유지한다.
+세부 직업 1개:
+
+| slug | legacy_occupation_id | name_ko | is_active | is_representative |
+|---|---|---|---|---|
+| train-controller | train-controller | 열차 관제사 | true | false |
+
+> ✅ 정책 확정: 항공·운송 카테고리 = 항공·철도·물류·선박 등 이동·운송 직업군. 공공·안전 = 경찰·소방·군인·외교 등 공공 안전·국가 기능 직업군으로 분리.
+> ⚠️ 052 migration은 작성 완료, Production Supabase 적용은 OZ가 SQL Editor에서 직접 실행 필요.
 
 ---
 
@@ -145,14 +151,14 @@
 
 | 리스크 항목 | 수준 | 상세 |
 |---|---|---|
-| 항공·운송 카테고리 체계 불일치 | 🔴 높음 | 기존 8개 카테고리 체계 설계와 달리 DB에 `항공·운송` 9번째 카테고리 존재. `/explore` UI 필터, 카테고리 정렬, 카테고리별 통계에서 `항공·운송`이 누락되지 않는지 확인 필요 |
-| occupations.ts ↔ DB slug 불일치 | 🔴 높음 | `carbon-neutral-specialist` (ts) vs `carbon-neutrality-specialist` (DB), `renewable-energy-engineer` (ts) vs `renewable-energy-specialist` (DB) — quizData·roadmaps는 DB slug 기준으로 이미 보정되어 있음 |
-| vr-ar-developer 카테고리 불일치 | 🟡 중간 | DB: `IT·기술`, occupations.ts: `환경·미래산업` — /explore 카테고리 필터 결과가 달라질 수 있음 |
-| legacy_occupation_id 없는 신규 직업 | 🟡 중간 | occupation_master에 legacy_occupation_id가 null이면 /explore/{id} 진입 불가. 신규 직업은 slug=legacy_id 동일 설정 권장 |
-| quizData key 불일치 가능성 | 🟡 중간 | quizData key = legacy_occupation_id. airline-pilot(DB slug) → pilot(legacy) → quizData['pilot'] 확인 필요 |
-| 공공·안전 대표 직업 수 감소 | 🟡 중간 | migration 기준 대표 8개였으나 실측 5개. train-driver(철도기관사), military-soldier(군인), airline-pilot(항공기 조종사)이 category 분리된 것으로 추정. 실측 재확인 필요 |
-| /explore 기본 목록 과밀화 | 🟡 중간 | 대표 직업 67개 → 100개로 확장 시 필터 없으면 카드 목록 길어짐. 카테고리 필터 or 페이지네이션 검토 필요 |
-| 로드맵 fallback 없는 직업 | 🟢 낮음 | weekly_roadmap_missions AI fallback 존재 — 신규 직업도 slug 기준 자동 생성 가능 |
+| 항공·운송 카테고리 체계 | ✅ 해소 | CategoryFilter 타입, CategoryTabs.tsx, occupations.ts(pilot) 모두 항공·운송 반영 완료 |
+| occupations.ts slug 불일치 | ✅ 해소 | carbon-neutrality-specialist, renewable-energy-specialist, vr-ar-developer category 보정 완료 (커밋 19cc584) |
+| train-driver/train-controller 카테고리 | ✅ 해소 (DB 적용 대기) | 052 migration 작성 완료. OZ가 Supabase SQL Editor에서 직접 실행 필요 |
+| forensic-scientist / coast-guard-officer | ✅ 해소 | is_representative=false 세부 직업으로 확인됨 — 정상 상태 |
+| legacy_occupation_id 없는 신규 직업 | 🟡 중간 | 신규 직업 추가 시 slug=legacy_id 동일 설정 권장 |
+| quizData key 불일치 가능성 | 🟡 중간 | quizData key = legacy_occupation_id. 신규 직업 추가 시 반드시 확인 필요 |
+| /explore 기본 목록 과밀화 | 🟡 중간 | 대표 직업 67개 → 100개로 확장 시 카테고리 필터 or 페이지네이션 검토 필요 |
+| 로드맵 fallback 없는 직업 | 🟢 낮음 | weekly_roadmap_missions AI fallback 존재 — 신규 직업도 자동 생성 가능 |
 | occupation_goyo24_profile source='manual' 뱃지 | 🟢 낮음 | source='manual'이면 "참고 데이터" 뱃지 표시 (정상 처리) |
 
 ---
@@ -204,13 +210,13 @@
 - **전체 직업 수:** 81개 (전체 활성, is_active=false 없음)
 - **카테고리 체계:** 9개 (IT·기술, 의료·과학, 예술·디자인, 콘텐츠·미디어, 비즈니스·경영, 교육·사회, 환경·미래산업, 공공·안전, 항공·운송)
 - **대표 직업 100개까지 추가 필요 수:** **33개**
-- **우선 보강이 필요한 카테고리:** 환경·미래산업 (+7), 공공·안전 (+5), 콘텐츠·미디어/비즈니스·경영/교육·사회 (+4씩), 항공·운송 (+3)
+- **우선 보강이 필요한 카테고리:** 환경·미래산업 (+7), 공공·안전 (+6), 콘텐츠·미디어/비즈니스·경영/교육·사회 (+4씩), 항공·운송 (+2)
 - **예술·디자인 1차 확장 제외:** 이미 14개로 목표치 충족
 - **1차 확장 전 반드시 보정해야 할 항목:**
-  1. occupations.ts의 id 불일치 2건 보정 (`carbon-neutral-specialist` → `carbon-neutrality-specialist`, `renewable-energy-engineer` → `renewable-energy-specialist`)
-  2. occupations.ts의 vr-ar-developer category 불일치 보정 (`환경·미래산업` → `IT·기술`)
-  3. 항공·운송 카테고리가 `/explore` UI 필터에 정상 노출되는지 확인
-  4. 공공·안전 대표 직업 5개 실측 이유 확인 (train-driver, military-soldier 카테고리 분리 여부)
+  1. ✅ occupations.ts의 id 불일치 2건 보정 (`carbon-neutral-specialist` → `carbon-neutrality-specialist`, `renewable-energy-engineer` → `renewable-energy-specialist`)
+  2. ✅ occupations.ts의 vr-ar-developer category 불일치 보정 (`환경·미래산업` → `IT·기술`)
+  3. ✅ 항공·운송 카테고리 CategoryFilter 타입 및 `/explore` UI 필터에 정상 노출 추가
+  4. ✅ 철도 직업(train-driver, train-controller) 공공·안전 → 항공·운송 카테고리 이동 (migration 052 작성 완료, OZ 수동 실행 대기)
 - **100개 확장 가능 여부 판단:** ✅ 가능 — 표준 세트(occupation_master + summary + preparations + quizData + goyo24_profile) 패턴이 확립되어 있으며, weekly_roadmap_missions AI fallback으로 로드맵 부재 위험 낮음
 
 ---
