@@ -14,9 +14,14 @@
 //   → 서버에서 requestUrl.origin 기준으로 redirectTo 생성
 //     (NEXT_PUBLIC_SITE_URL 의존 없음 → 도메인 불일치 불가)
 //   → createServerClient로 signInWithOAuth (skipBrowserRedirect: true)
-//   → PKCE verifier 쿠키를 response에 세팅
+//   → PKCE verifier 쿠키 + oauth_role 쿠키를 response에 세팅
 //   → Supabase OAuth URL로 redirect
-//   → accounts.kakao.com → /auth/callback?role=parent
+//   → accounts.kakao.com → /auth/callback (query 없음)
+//   → /auth/callback에서 oauth_role 쿠키로 role 복원
+//
+// [변경 이력]
+//   redirectTo에 ?role=... query 제거 (Supabase Redirect URL 완전 일치 보장)
+//   role은 oauth_role 쿠키(httpOnly, maxAge 10분)로 전달
 //
 // [보안]
 //   - role 파라미터는 "parent" | "student" 만 허용
@@ -40,9 +45,10 @@ export async function GET(request: NextRequest) {
   const role: "parent" | "student" =
     rawRole === "parent" || rawRole === "student" ? rawRole : "parent";
 
-  // redirectTo: 요청이 들어온 origin 기준으로 생성
-  // NEXT_PUBLIC_SITE_URL 사용하지 않음 → 도메인 불일치 발생 불가
-  const redirectTo = `${requestUrl.origin}/auth/callback?role=${role}`;
+  // redirectTo: query 없는 순수 경로
+  // Supabase Redirect URLs 등록값과 완전 일치 → Supabase redirect 검증 통과
+  // role은 oauth_role 쿠키로 전달 → /auth/callback에서 복원
+  const redirectTo = `${requestUrl.origin}/auth/callback`;
 
   console.info("[auth/kakao/start] ① OAuth 시작 요청", {
     role,
@@ -131,7 +137,7 @@ export async function GET(request: NextRequest) {
     provider:           oauthUrl.searchParams.get("provider"),
     redirectToHost,
     redirectToPathname,
-    cookieCount:        pendingCookies.length,
+    cookieCount:        pendingCookies.length + 1, // +1 = oauth_role
   });
 
   // §3-2. 실제 redirect Location 로그
@@ -142,7 +148,7 @@ export async function GET(request: NextRequest) {
     locationPathname: oauthUrl.pathname,
   });
 
-  console.info("[auth/kakao/start] ✅ OAuth URL 생성 완료 → Supabase로 redirect (쿠키:", pendingCookies.length, "개)");
+  console.info("[auth/kakao/start] ✅ OAuth URL 생성 완료 → Supabase로 redirect (쿠키:", pendingCookies.length + 1, "개)");
 
   // §4. debug=1 모드: redirect 없이 진단 정보만 JSON 반환
   // 전체 OAuth URL, code_challenge, state, token, cookie 값 반환 금지
@@ -157,17 +163,27 @@ export async function GET(request: NextRequest) {
       hasRedirectTo:     oauthUrl.searchParams.has("redirect_to"),
       redirectToHost,
       redirectToPathname,
-      cookieCount:       pendingCookies.length,
+      cookieCount:       pendingCookies.length + 1,
     });
   }
 
   // 응답: Supabase OAuth URL로 redirect
   const response = NextResponse.redirect(data.url);
 
-  // PKCE verifier 등 쿠키를 redirect response에도 세팅
+  // PKCE verifier 등 Supabase 쿠키를 redirect response에 세팅
   // → 브라우저가 이 쿠키를 갖고 Kakao 인증 후 /auth/callback으로 복귀
   pendingCookies.forEach(({ name, value, options }) => {
     response.cookies.set(name, value, options);
+  });
+
+  // oauth_role 쿠키: role을 /auth/callback으로 전달
+  // httpOnly — JS 접근 불가, maxAge 10분 — 인증 완료 후 만료
+  response.cookies.set("oauth_role", role, {
+    httpOnly: true,
+    secure:   true,
+    sameSite: "lax",
+    path:     "/",
+    maxAge:   60 * 10,
   });
 
   return response;

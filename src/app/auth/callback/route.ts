@@ -12,9 +12,11 @@
 //   5. /home redirect → 미들웨어가 role/onboarding 기반 최종 분기
 //
 // [보안]
-//   requestedRole(URL param) 우선 정책:
-//   - 학부모가 "학부모로 시작하기" → signInWithKakao("parent") →
-//     ?role=parent가 끝까지 유지되어야 한다.
+//   role 결정 우선순위:
+//     1순위: URL query ?role=
+//     2순위: oauth_role 쿠키 (카카오 OAuth 시작 시 /auth/kakao/start에서 세팅)
+//     3순위: user_metadata.role (기존 계정 재로그인)
+//   - oauth_role 쿠키는 callback 완료 후 즉시 삭제
 //   - existingRole이 다른 값이면 role_mismatch 에러로 차단.
 //
 // [수정] response 객체를 먼저 생성 후 setAll에서 response.cookies에도 세팅
@@ -29,13 +31,17 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const code = requestUrl.searchParams.get("code");
-  const role = (requestUrl.searchParams.get("role") ?? "") as "parent" | "student" | "";
+  const roleQuery = requestUrl.searchParams.get("role") ?? "";
 
-  // ── [ROLE-TRACE] 진단 로그 — Vercel 로그에서 확인 후 제거 ──
+  // §3-1. role 결정: URL query → oauth_role 쿠키 → existingRole(DB) 순으로 fallback
+  const roleCookie = request.cookies.get("oauth_role")?.value ?? "";
+
+  // ── [ROLE-TRACE] 진단 로그 ─────────────────────────────────
   console.log("[ROLE-TRACE] ① callback 진입");
-  console.log("[ROLE-TRACE]   full URL   :", requestUrl.toString());
-  console.log("[ROLE-TRACE]   code 존재  :", !!code);
-  console.log("[ROLE-TRACE]   role param :", JSON.stringify(role)); // ""·"parent"·"student" 구분
+  console.log("[ROLE-TRACE]   full URL    :", requestUrl.toString());
+  console.log("[ROLE-TRACE]   code 존재   :", !!code);
+  console.log("[ROLE-TRACE]   role(query) :", JSON.stringify(roleQuery));  // ""·"parent"·"student"
+  console.log("[ROLE-TRACE]   role(cookie):", JSON.stringify(roleCookie)); // oauth_role 쿠키
   // ─────────────────────────────────────────────────────────────
 
   if (!code) {
@@ -78,17 +84,24 @@ export async function GET(request: NextRequest) {
   const userId = session.user.id;
   const existingRole = session.user.user_metadata?.role as "parent" | "student" | undefined;
 
-  // 2. role 결정 — URL param 우선, fallback existingRole
+  // §3-2. oauth_role 쿠키 삭제 — role 복원 완료, 이후 불필요
+  // 세션 교환 성공/실패와 관계없이 항상 삭제 (response는 이미 생성됨)
+  response.cookies.delete("oauth_role");
+
+  // 2. role 결정 — 우선순위: URL query → oauth_role 쿠키 → existingRole(DB)
   //    [원칙] "학부모로 시작하기" 클릭 시 requestedRole=parent 가 끝까지 유지되어야 함.
-  //    existingRole || role (이전 방식) → existingRole 이 항상 우선되어 URL param 무시됨 → BUG
-  const requestedRole = (role === "parent" || role === "student") ? role : undefined;
+  //    카카오 OAuth: redirectTo에 query 제거 후 oauth_role 쿠키로 전달
+  const requestedRole =
+    roleQuery === "parent" || roleQuery === "student" ? roleQuery :
+    roleCookie === "parent" || roleCookie === "student" ? roleCookie :
+    undefined;
   const finalRole = requestedRole ?? existingRole;
 
   // ── [ROLE-TRACE] 핵심 값 출력 ──────────────────────────────
   console.log("[ROLE-TRACE] ② role 결정");
   console.log("[ROLE-TRACE]   userId        :", userId);
   console.log("[ROLE-TRACE]   existingRole  :", JSON.stringify(existingRole));  // DB metadata 값
-  console.log("[ROLE-TRACE]   requestedRole :", JSON.stringify(requestedRole)); // URL param 값
+  console.log("[ROLE-TRACE]   requestedRole :", JSON.stringify(requestedRole)); // query 또는 쿠키
   console.log("[ROLE-TRACE]   finalRole     :", JSON.stringify(finalRole));     // 최종 결정값
   console.log("[ROLE-TRACE]   user_metadata :", JSON.stringify(session.user.user_metadata));
   // ─────────────────────────────────────────────────────────────
