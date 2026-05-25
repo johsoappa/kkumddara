@@ -69,6 +69,8 @@ function LandingContent() {
   const [showPassword, setShowPw]   = useState(false);
   const [showConditions, setShowConditions] = useState(false);
   const [loading, setLoading]       = useState(false);
+  // 카카오 OAuth 전용 로딩 (이메일 loading과 독립 관리)
+  const [kakaoLoading, setKakaoLoading] = useState(false);
   const [error, setError]           = useState<string | null>(null);
 
   // 폼 상태
@@ -81,6 +83,34 @@ function LandingContent() {
     setRole(role);
     setStep("auth");
     setError(null);
+  };
+
+  // ── 카카오 OAuth 로그인 ──────────────────────────────
+  // [주의] await 없이 호출하면 모바일 브라우저에서 에러를 삼킴.
+  //   → async/await + 명시적 에러 처리로 개선.
+  //   → signInWithOAuth 성공 시 Supabase SDK가 자동으로 카카오 페이지로 이동.
+  //   → kakaoLoading은 navigate 완료 전까지 유지 (중복 클릭 방지).
+  const handleKakaoLogin = async () => {
+    if (!selectedRole || kakaoLoading || loading) return;
+    setKakaoLoading(true);
+    setError(null);
+    console.info("[auth] 카카오 버튼 클릭", { role: selectedRole });
+    try {
+      const { error: oauthErr } = await signInWithKakao(selectedRole);
+      if (oauthErr) {
+        // signInWithOAuth 자체가 에러를 반환한 경우
+        console.error("[auth] kakao signInWithOAuth 실패", oauthErr.message);
+        setError("카카오 로그인 중 오류가 발생했어요. 잠시 후 다시 시도해 주세요.");
+        setKakaoLoading(false);
+      }
+      // 에러 없으면 SDK가 카카오 인증 페이지로 자동 이동
+      // kakaoLoading은 페이지를 떠날 때까지 true 유지 (버튼 비활성)
+    } catch (e) {
+      // 네트워크 오류 등 예외
+      console.error("[auth] kakao 예외 발생", e);
+      setError("카카오 로그인 연결에 실패했어요. 인터넷 연결을 확인해 주세요.");
+      setKakaoLoading(false);
+    }
   };
 
   // 버튼 활성화 조건
@@ -514,23 +544,31 @@ function LandingContent() {
               {/* 카카오 로그인 */}
               <button
                 type="button"
-                disabled={loading}
-                onClick={() => selectedRole && signInWithKakao(selectedRole)}
+                disabled={loading || kakaoLoading}
+                onClick={handleKakaoLogin}
                 className="
                   w-full py-3.5 rounded-button text-sm font-bold
                   flex items-center justify-center gap-2
                   transition-opacity active:opacity-80
                 "
-                style={{ backgroundColor: "#FEE500", color: "#3C1E1E", opacity: loading ? 0.5 : 1 }}
+                style={{
+                  backgroundColor: "#FEE500",
+                  color: "#3C1E1E",
+                  opacity: (loading || kakaoLoading) ? 0.5 : 1,
+                }}
               >
                 {/* 카카오 로고 */}
-                <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                  <path
-                    d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.12 1.29 3.98 3.23 5.08L4 14.5l2.73-1.45c.73.19 1.48.29 2.27.29 4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z"
-                    fill="#3C1E1E"
-                  />
-                </svg>
-                카카오로 {authMode === "signup" ? "시작하기" : "로그인"}
+                {!kakaoLoading && (
+                  <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
+                    <path
+                      d="M9 1.5C4.86 1.5 1.5 4.19 1.5 7.5c0 2.12 1.29 3.98 3.23 5.08L4 14.5l2.73-1.45c.73.19 1.48.29 2.27.29 4.14 0 7.5-2.69 7.5-6S13.14 1.5 9 1.5z"
+                      fill="#3C1E1E"
+                    />
+                  </svg>
+                )}
+                {kakaoLoading
+                  ? "카카오 연결 중..."
+                  : `카카오로 ${authMode === "signup" ? "시작하기" : "로그인"}`}
               </button>
             </div>
           </div>

@@ -155,15 +155,14 @@ export async function signInWithKakao(role: "parent" | "student") {
 
   const redirectTo = `${origin}/auth/callback?role=${role}`;
 
-  // ── [ROLE-TRACE] 브라우저 콘솔 로그 — 진단 후 제거 ──
-  // Vercel 서버 로그에는 안 남음. 브라우저 DevTools Console 탭에서 확인.
+  // ── [ROLE-TRACE] 브라우저 콘솔 로그 — Vercel 서버 로그에 안 남음 ──
   console.log("[ROLE-TRACE] signInWithKakao 호출");
   console.log("[ROLE-TRACE]   role       :", role);
   console.log("[ROLE-TRACE]   origin     :", origin);
   console.log("[ROLE-TRACE]   redirectTo :", redirectTo);
-  // ────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────
 
-  return supabase.auth.signInWithOAuth({
+  const result = await supabase.auth.signInWithOAuth({
     provider: "kakao",
     options: {
       redirectTo,
@@ -173,6 +172,18 @@ export async function signInWithKakao(role: "parent" | "student") {
       scopes: "profile_nickname profile_image",
     },
   });
+
+  // ── signInWithOAuth 결과 로깅 ──────────────────────────────────
+  // 성공: Supabase SDK가 자동으로 카카오 OAuth URL로 window.location.assign 처리
+  // 실패: result.error에 원인 담김 — 호출자(page.tsx handleKakaoLogin)가 처리
+  if (result.error) {
+    console.error("[auth] signInWithKakao — signInWithOAuth 실패:",
+      result.error.message, "status:", result.error.status);
+  } else {
+    console.log("[ROLE-TRACE]   signInWithOAuth 성공 → SDK가 카카오 페이지로 이동 예정");
+  }
+
+  return result;
 }
 
 // ────────────────────────────────────────────────────────────
