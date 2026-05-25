@@ -2,13 +2,7 @@
 // 카카오 OAuth 시작 — 서버 Route Handler
 // /auth/kakao/start?role=parent|student
 //
-// [문제 배경]
-//   client-side signInWithOAuth는 아래 원인으로 불안정:
-//     1. NEXT_PUBLIC_SITE_URL 불일치 시 잘못된 redirectTo 생성
-//     2. 비동기 실행 중 기존 세션 초기화 race condition
-//     3. 모바일 브라우저 async navigation 제한
-//
-// [해결]
+// [흐름]
 //   버튼 클릭 → window.location.href = /auth/kakao/start?role=parent
 //   → 전체 페이지 이동 (race condition 없음)
 //   → 서버에서 requestUrl.origin 기준으로 redirectTo 생성
@@ -16,19 +10,18 @@
 //   → createServerClient로 signInWithOAuth (skipBrowserRedirect: true)
 //   → PKCE verifier 쿠키 + oauth_role 쿠키를 response에 세팅
 //   → Supabase OAuth URL로 redirect
-//   → accounts.kakao.com → /auth/callback (query 없음)
+//   → accounts.kakao.com → /auth/callback
 //   → /auth/callback에서 oauth_role 쿠키로 role 복원
 //
-// [변경 이력]
-//   redirectTo에 ?role=... query 제거 (Supabase Redirect URL 완전 일치 보장)
+// [redirectTo 설계]
+//   query 없는 순수 경로: origin + /auth/callback
+//   Supabase Redirect URLs 등록값과 완전 일치 → redirect 검증 통과
 //   role은 oauth_role 쿠키(httpOnly, maxAge 10분)로 전달
 //
 // [보안]
 //   - role 파라미터는 "parent" | "student" 만 허용
 //   - 그 외 값은 "parent" 기본값으로 처리
 //   - PKCE verifier 원문은 로그에 출력하지 않음
-//   - debug=1 모드: 민감 정보 제외한 최소 진단 정보만 JSON 반환
-//     (전체 OAuth URL, code_challenge, state, token, cookie 값 반환 금지)
 // ====================================================
 
 import { createServerClient } from "@supabase/ssr";
@@ -39,23 +32,16 @@ import type { NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const requestUrl = new URL(request.url);
   const rawRole = requestUrl.searchParams.get("role");
-  const debugMode = requestUrl.searchParams.get("debug") === "1";
 
   // role 검증: "parent" | "student" 만 허용
   const role: "parent" | "student" =
     rawRole === "parent" || rawRole === "student" ? rawRole : "parent";
 
   // redirectTo: query 없는 순수 경로
-  // Supabase Redirect URLs 등록값과 완전 일치 → Supabase redirect 검증 통과
-  // role은 oauth_role 쿠키로 전달 → /auth/callback에서 복원
+  // Supabase Redirect URLs 등록값과 완전 일치 보장
   const redirectTo = `${requestUrl.origin}/auth/callback`;
 
-  console.info("[auth/kakao/start] ① OAuth 시작 요청", {
-    role,
-    origin: requestUrl.origin,
-    redirectTo,
-    debugMode,
-  });
+  console.info("[auth/kakao/start] OAuth 시작", { role, origin: requestUrl.origin });
 
   const cookieStore = cookies();
 
@@ -77,9 +63,7 @@ export async function GET(request: NextRequest) {
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value, options }) => {
-            // cookieStore에도 세팅 (Next.js 내부 캐시)
             cookieStore.set(name, value, options);
-            // response에 세팅하기 위해 수집
             pendingCookies.push({ name, value, options });
           });
         },
@@ -98,74 +82,17 @@ export async function GET(request: NextRequest) {
     },
   });
 
-  // §3-3. 실패 로그 보강 — 에러 상세 확인
   if (error || !data?.url) {
     console.error("[auth/kakao/start] ❌ OAuth URL 생성 실패", {
-      errorMessage: error?.message ?? null,
-      errorName:    (error as Error | null)?.name ?? null,
-      errorStatus:  error?.status ?? null,
-      hasData:      !!data,
-      hasUrl:       !!data?.url,
+      message: error?.message ?? "data.url 없음",
+      status:  error?.status ?? null,
     });
     return NextResponse.redirect(
       new URL("/?error=kakao_start_failed", requestUrl.origin)
     );
   }
 
-  // §3-1. OAuth URL parsed 로그 강화
-  // 주의: 전체 URL, code_challenge, state 출력 금지
-  const oauthUrl = new URL(data.url);
-  const redirectToParam = oauthUrl.searchParams.get("redirect_to");
-  let redirectToHost: string | null = null;
-  let redirectToPathname: string | null = null;
-  if (redirectToParam) {
-    try {
-      const rt = new URL(redirectToParam);
-      redirectToHost     = rt.host;
-      redirectToPathname = rt.pathname;
-    } catch {
-      redirectToHost     = "INVALID_REDIRECT_TO";
-      redirectToPathname = "INVALID_REDIRECT_TO";
-    }
-  }
-
-  console.info("[auth/kakao/start] ② OAuth URL parsed", {
-    host:               oauthUrl.host,
-    pathname:           oauthUrl.pathname,
-    hasRedirectTo:      oauthUrl.searchParams.has("redirect_to"),
-    hasProvider:        oauthUrl.searchParams.has("provider"),
-    provider:           oauthUrl.searchParams.get("provider"),
-    redirectToHost,
-    redirectToPathname,
-    cookieCount:        pendingCookies.length + 1, // +1 = oauth_role
-  });
-
-  // §3-2. 실제 redirect Location 로그
-  // 기대값: locationHost = wqrfoxilcawscacppuel.supabase.co
-  //         locationPathname = /auth/v1/authorize
-  console.info("[auth/kakao/start] ③ Redirect response target", {
-    locationHost:     oauthUrl.host,
-    locationPathname: oauthUrl.pathname,
-  });
-
-  console.info("[auth/kakao/start] ✅ OAuth URL 생성 완료 → Supabase로 redirect (쿠키:", pendingCookies.length + 1, "개)");
-
-  // §4. debug=1 모드: redirect 없이 진단 정보만 JSON 반환
-  // 전체 OAuth URL, code_challenge, state, token, cookie 값 반환 금지
-  if (debugMode) {
-    console.info("[auth/kakao/start] ℹ️ debug=1 모드 — JSON 응답 (redirect 없음)");
-    return NextResponse.json({
-      origin:            requestUrl.origin,
-      redirectTo,
-      oauthHost:         oauthUrl.host,
-      oauthPathname:     oauthUrl.pathname,
-      provider:          oauthUrl.searchParams.get("provider"),
-      hasRedirectTo:     oauthUrl.searchParams.has("redirect_to"),
-      redirectToHost,
-      redirectToPathname,
-      cookieCount:       pendingCookies.length + 1,
-    });
-  }
+  console.info("[auth/kakao/start] ✅ OAuth URL 생성 완료 → redirect");
 
   // 응답: Supabase OAuth URL로 redirect
   const response = NextResponse.redirect(data.url);
