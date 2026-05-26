@@ -557,6 +557,17 @@ key = legacy_occupation_id (= URL params.id)
     - 관심 운동 최대 3개, 카드당 관련 직업 링크 최대 4개 (MVP 제한)
     - 현재 직업 자기 자신 제외 / 연결 데이터 없을 때 섹션 숨김 처리
     - tsc --noEmit 통과 / next build 통과
+    - **Smoke Test PASS** — 5개 URL 확인 완료 (sports-data-analyst, youth-sports-coach, water-safety-lifeguard, after-school-teacher 섹션 표시 / accountant 미표시)
+
+15. **관심 운동 선택 화면 UX 설계** ✅ (2026-05-26 완료)
+    - `docs/sports-interest-selector-ux-design.md` 신규 작성
+    - 권장 URL: `/explore/interests/sports` (라우팅 충돌 없는 구조)
+    - 화면 제목: "좋아하는 운동으로 찾는 직업"
+    - MVP: 단일 운동 선택 → 동일 화면에서 연결 직업 목록 표시
+    - 데이터: `sportsInterestData.ts` 정적 데이터 활용 (DB 없음)
+    - 예상 컴포넌트: `SportsInterestSelector.tsx` + `explore/interests/sports/page.tsx`
+    - 줄넘기 UX 강조 / e스포츠 표현 주의 / 금지 표현 배제 문서화
+    - 다음 단계: 실제 페이지 구현 작업지시서 필요
 
 ---
 
@@ -567,12 +578,16 @@ key = legacy_occupation_id (= URL params.id)
 | 방향 | 내용 | 우선순위 |
 |---|---|---|
 | 관심 운동 기반 진로 추천 UI | `/explore` 내 "이 운동을 좋아한다면 함께 볼 직업" 섹션 구현 | ✅ 완료 (2026-05-26) |
-| 운동선수 직업군 추가 | 축구선수·야구선수·줄넘기 선수 등 occupation_master 추가 여부 결정 | OZ 결정 필요 |
+| `/explore` smoke test | 5개 URL 실 브라우저 검증 | ✅ PASS (2026-05-26) |
+| 관심 운동 선택 화면 UX 설계 | `/explore/interests/sports` 화면 구조 및 컴포넌트 설계 | ✅ 완료 (2026-05-26) |
+| 관심 운동 선택 화면 구현 | `SportsInterestSelector.tsx` + 페이지 실제 구현 | 다음 단계 |
+| 운동선수 직업군 추가 | 축구선수·야구선수·줄넘기 선수 등 occupation_master 추가 여부 결정 | OZ 결정 필요 (후순위) |
 | 정적 데이터 파일 작성 | `src/data/sportsInterestData.ts` — DB 없이 빠른 연결 구현 | ✅ 완료 (2026-05-26) |
 | roadmaps 직접 작성 | 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 판단 | 중간 |
 | 명따라 결과 연결 | 명따라 관심사·성향과 관심 운동 추천 연결 여부 검토 | 낮음 |
 
-> 상세 설계: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)
+> 상세 설계: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
+> 선택 화면 UX: [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md)
 
 **운동 종목 처리 원칙 (이후 작업 전 반드시 확인):**
 - 운동 종목(축구, 야구, 줄넘기 등)은 직업이 아니라 **관심 분야(진로 출발점)**로 관리한다.

@@ -1,9 +1,10 @@
 # 꿈따라 관심 운동 기반 진로 확장 구조 설계안
 
 > 작성일: 2026-05-26
-> 보정일: 2026-05-26 (`src/data/sportsInterestData.ts` 정적 데이터 파일 작성 완료, `/explore` 상세 UI 연결 완료)
+> 보정일: 2026-05-26 (`src/data/sportsInterestData.ts` 정적 데이터 파일 작성 완료, `/explore` 상세 UI 연결 완료, smoke test PASS, 관심 운동 선택 화면 UX 설계 완료)
 > 작성 목적: 대표 직업 100개 확장 완료 이후, 아이가 좋아하는 운동을 출발점으로 다양한 직업군을 연결하는 구조를 문서화한다.
-> 상태: 설계 완료 + 정적 데이터 파일 작성 완료 + `/explore` 상세 UI 구현 완료 (DB 변경 없음 / migration 없음)
+> 상태: 설계 완료 + 정적 데이터 파일 작성 완료 + `/explore` 상세 UI 구현 완료 + smoke test PASS + 선택 화면 UX 설계 완료 (DB 변경 없음 / migration 없음)
+> 관련 문서: [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md) — 관심 운동 선택 화면 UX 설계안
 
 ---
 
@@ -470,7 +471,23 @@ sport_athlete_examples
 - `/explore/[id]/page.tsx` — DB 모드(⑥) + 정적 폴백 모드(④-A)에 삽입
 - 배치 위치: Goyo24InfoSection(미래 참고 지표) 아래, 퀴즈 섹션 위
 - `sportsInterestData.ts`가 실제 UI에서 처음 사용됨 (DB 없이 정적 데이터 기반 1차 구현)
-- 다음 단계: 관심 운동 선택 화면 또는 운동선수 직업군 정책 결정
+
+### Smoke Test PASS (2026-05-26)
+
+| URL | 결과 |
+|---|---|
+| `/explore/sports-data-analyst` | ✅ 섹션 표시 — 축구·야구·농구 카드 3개, 각 4링크, 자기 자신 제외 정상 |
+| `/explore/youth-sports-coach` | ✅ 섹션 표시 — 링크 클릭 네비게이션 정상 동작 |
+| `/explore/water-safety-lifeguard` | ✅ 섹션 표시 — 수영·아웃도어 카드 2개, 자기 자신 제외 정상 |
+| `/explore/after-school-teacher` | ✅ 섹션 표시 — 줄넘기 카드 1개, 자기 자신 제외 정상 |
+| `/explore/accountant` | ✅ 섹션 미표시 — 관심 운동 연결 없음 |
+| 금지 표현 | ✅ "선수가 못 되면", "실패하면", "대체 직업" 없음 |
+
+### 다음 단계
+
+→ **관심 운동 선택 화면 UX 설계 완료** — [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md) 참조  
+→ 다음 작업: `/explore/interests/sports` 실제 페이지 구현  
+→ 보류: 운동선수 직업군(축구선수·야구선수 등) 추가 여부 — OZ 정책 결정 필요
 
 ---
 
