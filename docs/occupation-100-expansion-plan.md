@@ -549,6 +549,15 @@ key = legacy_occupation_id (= URL params.id)
     - `after-school-teacher` slug 존재 확인 (migration 053) → 줄넘기 연결 포함
     - tsc --noEmit 통과 / next build 통과
 
+14. **`/explore` 상세 관심 운동 연결 직업 섹션 UI 구현** ✅ (2026-05-26 완료)
+    - `src/components/explore/SportsInterestCareerSection.tsx` 신규 생성
+    - `/explore/[id]/page.tsx` — DB 모드 + 정적 폴백 모드 양쪽에 삽입
+    - 배치: Goyo24InfoSection(미래 참고 지표) 아래 / 퀴즈 섹션 위
+    - `sportsInterestData.ts` 정적 데이터 기반 1차 구현 (DB 변경 없음)
+    - 관심 운동 최대 3개, 카드당 관련 직업 링크 최대 4개 (MVP 제한)
+    - 현재 직업 자기 자신 제외 / 연결 데이터 없을 때 섹션 숨김 처리
+    - tsc --noEmit 통과 / next build 통과
+
 ---
 
 ## 13. 대표 직업 100개 이후 확장 방향
@@ -557,7 +566,7 @@ key = legacy_occupation_id (= URL params.id)
 
 | 방향 | 내용 | 우선순위 |
 |---|---|---|
-| 관심 운동 기반 진로 추천 UI | `/explore` 내 "이 운동을 좋아한다면 함께 볼 직업" 섹션 구현 | 높음 |
+| 관심 운동 기반 진로 추천 UI | `/explore` 내 "이 운동을 좋아한다면 함께 볼 직업" 섹션 구현 | ✅ 완료 (2026-05-26) |
 | 운동선수 직업군 추가 | 축구선수·야구선수·줄넘기 선수 등 occupation_master 추가 여부 결정 | OZ 결정 필요 |
 | 정적 데이터 파일 작성 | `src/data/sportsInterestData.ts` — DB 없이 빠른 연결 구현 | ✅ 완료 (2026-05-26) |
 | roadmaps 직접 작성 | 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 판단 | 중간 |

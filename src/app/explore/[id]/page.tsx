@@ -33,6 +33,7 @@ import { supabase } from "@/lib/supabase";
 import { OCCUPATIONS } from "@/data/occupations";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
 import Goyo24InfoSection from "@/components/explore/Goyo24InfoSection";
+import SportsInterestCareerSection from "@/components/explore/SportsInterestCareerSection";
 import { QUIZ_DATA } from "@/data/quizData";
 import type { Occupation } from "@/types/occupation";
 import type { OccupationGoyo24Profile } from "@/types/goyo24";
@@ -442,7 +443,10 @@ export default function OccupationDetailPage() {
             {/* ⑤ 고용24 직업 참고 정보 (데이터 있을 때만 표시) */}
             <Goyo24InfoSection profile={goyo24Profile} />
 
-            {/* ⑥ 관련 직업 더보기 [037] — 세부 직업 있을 때만 표시 */}
+            {/* ⑥ 관심 운동 연결 직업 섹션 — 스포츠 관심 운동과 연결된 직업일 때만 표시 */}
+            <SportsInterestCareerSection occupationSlug={master.slug} />
+
+            {/* ⑦ 관련 직업 더보기 [037] — 세부 직업 있을 때만 표시 */}
             {relatedOccupations.length > 0 && (
               <section className="card">
                 <h3 className="text-sm font-bold text-base-text mb-1">관련 직업 더보기</h3>
@@ -468,7 +472,7 @@ export default function OccupationDetailPage() {
               </section>
             )}
 
-            {/* ⑦ 퀴즈 (정적 QUIZ_DATA 유지) */}
+            {/* ⑧ 퀴즈 (정적 QUIZ_DATA 유지) */}
             {quizData && (
               <section>
                 <OccupationQuiz quizData={quizData} />
@@ -634,6 +638,9 @@ export default function OccupationDetailPage() {
               ))}
             </div>
           </section>
+
+          {/* ④-A 관심 운동 연결 직업 섹션 — 스포츠 관심 운동과 연결된 직업일 때만 표시 */}
+          <SportsInterestCareerSection occupationSlug={occupation.id} />
 
           {/* ⑤ 직업 전망 */}
           <section className="card">

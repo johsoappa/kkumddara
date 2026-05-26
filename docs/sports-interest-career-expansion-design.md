@@ -1,9 +1,9 @@
 # 꿈따라 관심 운동 기반 진로 확장 구조 설계안
 
 > 작성일: 2026-05-26
-> 보정일: 2026-05-26 (`src/data/sportsInterestData.ts` 정적 데이터 파일 작성 완료)
+> 보정일: 2026-05-26 (`src/data/sportsInterestData.ts` 정적 데이터 파일 작성 완료, `/explore` 상세 UI 연결 완료)
 > 작성 목적: 대표 직업 100개 확장 완료 이후, 아이가 좋아하는 운동을 출발점으로 다양한 직업군을 연결하는 구조를 문서화한다.
-> 상태: 설계 완료 + 정적 데이터 파일 작성 완료 (DB 변경 없음 / migration 없음)
+> 상태: 설계 완료 + 정적 데이터 파일 작성 완료 + `/explore` 상세 UI 구현 완료 (DB 변경 없음 / migration 없음)
 
 ---
 
@@ -456,16 +456,24 @@ sport_athlete_examples
 | 우선순위 | 작업 | 비고 |
 |---|---|---|
 | 1 | 운동선수 직업군(`축구선수` 등) `occupation_master` 추가 여부 정책 결정 | OZ 결정 필요 |
-| 2 | `방과후교사` slug 존재 여부 확인 (`줄넘기` 연결 시 필요) | DB 조회 필요 |
-| 3 | 정적 데이터 파일 `src/data/sportsInterestData.ts` 작성 | DB 도입 전 빠른 구현 가능 |
-| 4 | `/explore` 직업 상세 내 "이 운동을 좋아한다면 함께 볼 직업" 섹션 UI 설계 | UX 설계 우선 |
+| 2 | `방과후교사` slug 존재 여부 확인 (`줄넘기` 연결 시 필요) | ✅ migration 053 확인 — `after-school-teacher` 존재 |
+| 3 | 정적 데이터 파일 `src/data/sportsInterestData.ts` 작성 | ✅ 완료 (2026-05-26) |
+| 4 | `/explore` 직업 상세 내 "이 운동을 좋아한다면 함께 볼 직업" 섹션 UI | ✅ 완료 (2026-05-26) — `SportsInterestCareerSection.tsx` |
 | 5 | 관심 운동 선택 화면 UX 설계 및 구현 | 신규 페이지 또는 `/explore` 내 필터 |
 | 6 | `interest_sports` / `sport_career_links` 테이블 도입 검토 | 데이터 확장 시 필요 |
 | 7 | 명따라 결과(관심사·성향)와 관심 운동 추천 연결 여부 검토 | 추천 로직 확장 시 필요 |
 | 8 | roadmaps 직접 작성 여부 판단 (스포츠 생태계 10개 직업) | 현재 weekly mission fallback 사용 중 |
 
+### UI 구현 완료 내용 (2026-05-26)
+
+- `src/components/explore/SportsInterestCareerSection.tsx` 신규 생성
+- `/explore/[id]/page.tsx` — DB 모드(⑥) + 정적 폴백 모드(④-A)에 삽입
+- 배치 위치: Goyo24InfoSection(미래 참고 지표) 아래, 퀴즈 섹션 위
+- `sportsInterestData.ts`가 실제 UI에서 처음 사용됨 (DB 없이 정적 데이터 기반 1차 구현)
+- 다음 단계: 관심 운동 선택 화면 또는 운동선수 직업군 정책 결정
+
 ---
 
-*이 문서는 설계 목적으로만 작성된 문서입니다.  
-DB 변경 없음 / migration 없음 / 코드 변경 없음.  
+*이 문서는 설계 및 구현 기록 문서입니다.  
+DB 변경 없음 / migration 없음.  
 작성일: 2026-05-26*
