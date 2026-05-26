@@ -1,8 +1,8 @@
 # 꿈따라 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 검토
 
 > 작성일: 2026-05-26  
-> 최종 업데이트: 2026-05-27 — P1 5개 직접 작성 완료 (commit: Add roadmaps for priority sports ecosystem occupations)  
-> 상태: **C안 실행 완료** — P1 5개 `roadmaps.ts` 직접 작성 완료 / P2 5개 fallback 유지  
+> 최종 업데이트: 2026-05-27 — P1 5개 직접 작성 완료; 상세 화면 정합성 점검 완료 (코드 이상 없음, 056 migration DB 미적용 확인)  
+> 상태: **C안 실행 완료** — P1 5개 `roadmaps.ts` 직접 작성 완료 / P2 5개 fallback 유지 / **056 migration OZ 적용 필요**  
 > 관련 문서: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
 > 관련 문서: [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md)  
 > 관련 문서: [`docs/occupation-100-expansion-plan.md`](./occupation-100-expansion-plan.md)  
