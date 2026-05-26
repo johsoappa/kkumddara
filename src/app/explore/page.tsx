@@ -22,6 +22,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Heart } from "lucide-react";
+import Link from "next/link";
 import { supabase } from "@/lib/supabase";
 import AppShell from "@/components/layout/AppShell";
 import SearchBar from "@/components/explore/SearchBar";
@@ -251,6 +252,24 @@ export default function ExplorePage() {
     <AppShell headerTitle="직업 탐색">
       <div className="px-4 pt-4 pb-4 flex flex-col gap-3">
         <SearchBar value={search} onChange={setSearch} />
+
+        {/* ── 관심 운동 진로 탐색 CTA ── */}
+        <Link
+          href="/explore/interests/sports"
+          className="flex items-center gap-3 rounded-xl border border-base-border bg-base-off px-4 py-3 hover:border-brand-red/40 transition-colors"
+        >
+          <span className="text-2xl leading-none" aria-hidden="true">🏅</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-bold text-brand-red mb-0.5">
+              좋아하는 운동으로 직업 찾기
+            </p>
+            <p className="text-xs text-base-muted leading-relaxed">
+              축구, 줄넘기, 수영처럼 좋아하는 운동에서 연결된 직업을 찾아보세요.
+            </p>
+          </div>
+          <span className="text-brand-red text-sm font-bold shrink-0" aria-hidden="true">→</span>
+        </Link>
+
         <CategoryTabs active={category} onChange={(cat) => { setCategory(cat); setShowLikedOnly(false); }} />
 
         {/* ── 좋아요 필터 버튼 ── */}

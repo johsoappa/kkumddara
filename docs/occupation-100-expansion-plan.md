@@ -580,7 +580,7 @@ key = legacy_occupation_id (= URL params.id)
 | 관심 운동 기반 진로 추천 UI | `/explore` 내 "이 운동을 좋아한다면 함께 볼 직업" 섹션 구현 | ✅ 완료 (2026-05-26) |
 | `/explore` smoke test | 5개 URL 실 브라우저 검증 | ✅ PASS (2026-05-26) |
 | 관심 운동 선택 화면 UX 설계 | `/explore/interests/sports` 화면 구조 및 컴포넌트 설계 | ✅ 완료 (2026-05-26) |
-| 관심 운동 선택 화면 구현 | `SportsInterestSelector.tsx` + 페이지 실제 구현 | 다음 단계 |
+| 관심 운동 선택 화면 구현 | `SportsInterestSelector.tsx` + 페이지 실제 구현 | ✅ 완료 (2026-05-26) |
 | 운동선수 직업군 추가 | 축구선수·야구선수·줄넘기 선수 등 occupation_master 추가 여부 결정 | OZ 결정 필요 (후순위) |
 | 정적 데이터 파일 작성 | `src/data/sportsInterestData.ts` — DB 없이 빠른 연결 구현 | ✅ 완료 (2026-05-26) |
 | roadmaps 직접 작성 | 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 판단 | 중간 |

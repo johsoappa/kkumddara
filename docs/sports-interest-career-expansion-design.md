@@ -483,10 +483,15 @@ sport_athlete_examples
 | `/explore/accountant` | ✅ 섹션 미표시 — 관심 운동 연결 없음 |
 | 금지 표현 | ✅ "선수가 못 되면", "실패하면", "대체 직업" 없음 |
 
-### 다음 단계
+### 관심 운동 선택 화면 구현 완료 (2026-05-26)
 
-→ **관심 운동 선택 화면 UX 설계 완료** — [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md) 참조  
-→ 다음 작업: `/explore/interests/sports` 실제 페이지 구현  
+- `src/app/explore/interests/sports/page.tsx` 신규 생성
+- `src/components/explore/SportsInterestSelector.tsx` 신규 생성
+- `/explore/page.tsx` — "좋아하는 운동으로 직업 찾기" CTA 배너 추가 (SearchBar 아래)
+- 정적 데이터 기반 (DB 없음) / 단일 선택 MVP 방식
+- smoke test PASS: 10개 카드 표시, 줄넘기·e스포츠 확인, 카드 선택 전환, 연결 직업 클릭 네비게이션, CTA 클릭 이동 모두 정상
+
+→ **다음 단계:** smoke test 완료 상태, 운동선수 직업군 추가 여부 정책 결정 또는 추가 기능 검토  
 → 보류: 운동선수 직업군(축구선수·야구선수 등) 추가 여부 — OZ 정책 결정 필요
 
 ---

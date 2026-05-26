@@ -1,7 +1,8 @@
 # 꿈따라 관심 운동 선택 화면 UX 설계안
 
 > 작성일: 2026-05-26  
-> 상태: UX 설계 완료 (구현 전 단계)  
+> 보정일: 2026-05-26 (실제 페이지 구현 완료, smoke test PASS)
+> 상태: UX 설계 완료 + 실제 구현 완료  
 > 관련 문서: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
 > 관련 데이터: [`src/data/sportsInterestData.ts`](../src/data/sportsInterestData.ts)
 
@@ -41,13 +42,27 @@
 | `src/data/sportsInterestData.ts` | ✅ 완료 (2026-05-26) |
 | `/explore/[id]` 관심 운동 연결 섹션 | ✅ 구현 완료 (2026-05-26) |
 | `/explore/[id]` smoke test | ✅ PASS (2026-05-26) |
-| 관심 운동 선택 화면 UX 설계 | ✅ 이 문서 |
-| 관심 운동 선택 화면 실제 구현 | 다음 단계 |
+| 관심 운동 선택 화면 UX 설계 | ✅ 완료 (2026-05-26) |
+| 관심 운동 선택 화면 실제 구현 | ✅ 완료 (2026-05-26) |
+| `/explore/interests/sports` smoke test | ✅ PASS (2026-05-26) |
 
 **현재 구현 완료된 컴포넌트:**
 
 ```text
-src/components/explore/SportsInterestCareerSection.tsx
+src/components/explore/SportsInterestCareerSection.tsx   ← /explore/[id] 내 섹션
+src/components/explore/SportsInterestSelector.tsx        ← 관심 운동 선택 화면 (신규)
+```
+
+**현재 구현 완료된 페이지:**
+
+```text
+src/app/explore/interests/sports/page.tsx   ← 관심 운동 선택 화면 (신규)
+```
+
+**`/explore` 메인 CTA 추가:**
+
+```text
+src/app/explore/page.tsx   ← "좋아하는 운동으로 직업 찾기" CTA 배너 추가
 ```
 
 **현재 사용 중인 정적 데이터:**
