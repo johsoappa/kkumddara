@@ -492,7 +492,7 @@ sport_athlete_examples
 - 정적 데이터 기반 (DB 없음) / 단일 선택 MVP 방식
 - smoke test PASS: 10개 카드 표시, 줄넘기·e스포츠 확인, 카드 선택 전환, 연결 직업 클릭 네비게이션, CTA 클릭 이동 모두 정상
 
-→ **다음 단계:** 검색 UX 보완 — `/explore` 검색에서 `축구선수`, `줄넘기 선수` 등 키워드 입력 시 관심 운동 탐색 CTA 안내 블록 표시  
+→ **검색 UX 보완 완료 (2026-05-26):** `/explore` 검색에서 `축구선수`, `줄넘기 선수` 등 31개 키워드 입력 시 관심 운동 탐색 CTA 안내 블록 표시 — smoke test PASS  
 → 운동선수 직업군 정책: **현 단계 미추가 유지 확정 (A안 + 검색 UX 보완)** → [`docs/sports-athlete-occupation-policy.md`](./sports-athlete-occupation-policy.md) 참조
 
 ### 운동선수 직업군 정책 검토 완료 (2026-05-26)

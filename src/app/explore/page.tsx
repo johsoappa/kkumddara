@@ -33,6 +33,22 @@ import type { OccupationListItem, OccupationCategory, CategoryFilter } from "@/t
 
 const LIKED_LS_KEY = "kkumddara_liked";
 
+// ── 관심 운동 키워드 감지 ─────────────────────────────────
+// 검색어가 아래 키워드를 포함하면 관심 운동 탐색 CTA 안내 블록 표시
+// occupation_master에 없는 운동선수 직업명 검색 시 빈 결과 대신 안내를 제공한다
+const SPORT_INTEREST_SEARCH_KEYWORDS = [
+  "축구", "축구선수",
+  "야구", "야구선수",
+  "농구", "농구선수",
+  "배구", "배구선수",
+  "수영", "수영선수",
+  "태권도", "태권도선수", "태권도 선수", "무도",
+  "줄넘기", "줄넘기선수", "줄넘기 선수", "음악줄넘기", "리듬줄넘기",
+  "골프", "골프선수",
+  "e스포츠", "이스포츠", "e스포츠 선수", "e스포츠선수", "프로게이머",
+  "캠핑", "등산", "아웃도어", "트레킹", "레저",
+];
+
 export default function ExplorePage() {
   const [search,        setSearch]        = useState("");
   const [category,      setCategory]      = useState<CategoryFilter>("전체");
@@ -247,6 +263,14 @@ export default function ExplorePage() {
     });
   }, [search, category, occupations, showLikedOnly, liked]);
 
+  // ── 관심 운동 키워드 검색 여부 ────────────────────────────
+  // 2글자 이상이고 SPORT_INTEREST_SEARCH_KEYWORDS와 일치하면 true
+  const hasSportsInterestSearchHint =
+    search.trim().length >= 2 &&
+    SPORT_INTEREST_SEARCH_KEYWORDS.some((kw) =>
+      search.trim().toLowerCase().includes(kw.toLowerCase())
+    );
+
   // ── 렌더 ────────────────────────────────────────────────
   return (
     <AppShell headerTitle="직업 탐색">
@@ -324,18 +348,43 @@ export default function ExplorePage() {
                 </>
               ) : search.trim().length > 0 ? (
                 /* 검색어 있는데 결과 없음 */
-                <>
-                  <p className="text-4xl mb-3">🔍</p>
-                  <p className="text-base font-bold text-base-text">
-                    검색 결과가 아직 없어요
-                  </p>
-                  <p className="text-sm text-base-muted mt-1.5 leading-relaxed">
-                    다른 표현으로 다시 검색하거나,<br />대표 직업을 먼저 살펴보세요.
-                  </p>
-                  <p className="text-xs text-base-muted mt-2">
-                    예: 의사, 경찰, 철도, 영상, 사이버, 소아
-                  </p>
-                </>
+                hasSportsInterestSearchHint ? (
+                  /* 관심 운동 키워드 검색 → 안내 블록 */
+                  <div className="flex flex-col gap-3 w-full text-left">
+                    <Link
+                      href="/explore/interests/sports"
+                      className="flex items-center gap-3 rounded-xl border border-base-border bg-base-off px-4 py-3 hover:border-brand-red/40 transition-colors"
+                    >
+                      <span className="text-2xl leading-none" aria-hidden="true">🏅</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs font-bold text-brand-red mb-0.5">
+                          좋아하는 운동과 연결된 직업을 볼 수 있어요
+                        </p>
+                        <p className="text-xs text-base-muted leading-relaxed">
+                          축구, 줄넘기, 수영처럼 좋아하는 운동에서 연결된 다양한 직업을 찾아보세요.
+                        </p>
+                      </div>
+                      <span className="text-brand-red text-sm font-bold shrink-0" aria-hidden="true">→</span>
+                    </Link>
+                    <p className="text-xs text-base-muted text-center leading-relaxed">
+                      직업명으로 검색하면 더 많은 결과를 볼 수 있어요<br />
+                      예: 스포츠 데이터 분석가, 유소년 지도자, 운동처방사
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-4xl mb-3">🔍</p>
+                    <p className="text-base font-bold text-base-text">
+                      검색 결과가 아직 없어요
+                    </p>
+                    <p className="text-sm text-base-muted mt-1.5 leading-relaxed">
+                      다른 표현으로 다시 검색하거나,<br />대표 직업을 먼저 살펴보세요.
+                    </p>
+                    <p className="text-xs text-base-muted mt-2">
+                      예: 의사, 경찰, 철도, 영상, 사이버, 소아
+                    </p>
+                  </>
+                )
               ) : (
                 /* 검색어 없음 / 데이터 없음 / 카테고리 빈 결과 */
                 <>
@@ -353,15 +402,35 @@ export default function ExplorePage() {
             </div>
 
           ) : (
-            filtered.map((occ) => (
-              <OccupationCard
-                key={occ.id}
-                occupation={occ}
-                liked={liked.has(occ.id)}
-                onLikeToggle={toggleLike}
-                showTypeLabel={search.trim().length > 0}
-              />
-            ))
+            <>
+              {filtered.map((occ) => (
+                <OccupationCard
+                  key={occ.id}
+                  occupation={occ}
+                  liked={liked.has(occ.id)}
+                  onLikeToggle={toggleLike}
+                  showTypeLabel={search.trim().length > 0}
+                />
+              ))}
+              {/* 검색 결과 있어도 관심 운동 키워드면 안내 블록 추가 표시 */}
+              {hasSportsInterestSearchHint && (
+                <Link
+                  href="/explore/interests/sports"
+                  className="flex items-center gap-3 rounded-xl border border-base-border bg-base-off px-4 py-3 hover:border-brand-red/40 transition-colors"
+                >
+                  <span className="text-2xl leading-none" aria-hidden="true">🏅</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-xs font-bold text-brand-red mb-0.5">
+                      좋아하는 운동과 연결된 직업을 볼 수 있어요
+                    </p>
+                    <p className="text-xs text-base-muted leading-relaxed">
+                      운동 종목을 출발점으로 관련된 다양한 직업을 함께 탐색해보세요.
+                    </p>
+                  </div>
+                  <span className="text-brand-red text-sm font-bold shrink-0" aria-hidden="true">→</span>
+                </Link>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -581,7 +581,14 @@ key = legacy_occupation_id (= URL params.id)
     - **1차 권장안: A안 + 검색 UX 보완** — 현 단계 occupation_master 즉시 추가 없음
     - 운동 종목 ≠ 실제 직업 원칙 재확인. representativeDream 텍스트 유지
     - 줄넘기 선수: 육상선수 대신 대표 꿈 예시 유지. 육상선수: 제외 대상 유지.
-    - 다음 단계: 검색 UX 보완 작업지시서 진행
+
+18. **`/explore` 검색 UX 보완 — 관심 운동 키워드 연동** ✅ (2026-05-26 완료)
+    - `src/app/explore/page.tsx`에 `SPORT_INTEREST_SEARCH_KEYWORDS` 상수 추가 (31개 키워드)
+    - `hasSportsInterestSearchHint` 파생 값 — 2글자 이상 + 키워드 포함 시 true
+    - 검색 결과 없음 + 관심 운동 키워드 → "좋아하는 운동과 연결된 직업을 볼 수 있어요" 안내 블록 표시
+    - 검색 결과 있음 + 관심 운동 키워드 → 직업 카드 하단에 안내 블록 추가 표시
+    - 비관련 검색어("회계사", "외교관") → 기존 검색 결과 없음 문구 유지
+    - smoke test PASS: 축구/축구선수/줄넘기/줄넘기 선수/수영/수영선수/e스포츠/프로게이머 8개 ✅
 
 ---
 
@@ -596,7 +603,7 @@ key = legacy_occupation_id (= URL params.id)
 | 관심 운동 선택 화면 UX 설계 | `/explore/interests/sports` 화면 구조 및 컴포넌트 설계 | ✅ 완료 (2026-05-26) |
 | 관심 운동 선택 화면 구현 | `SportsInterestSelector.tsx` + 페이지 실제 구현 | ✅ 완료 (2026-05-26) |
 | 운동선수 직업군 추가 여부 정책 검토 | 축구선수·야구선수·줄넘기 선수 등 occupation_master 추가 여부 — 정책 3안 비교 | ✅ 완료 (2026-05-26) — **현 단계 미추가 유지 (A안 + 검색 UX 보완)** |
-| 검색 UX 보완 | `/explore` 검색에서 운동선수 키워드 입력 시 관심 운동 탐색 CTA 안내 표시 | 다음 작업 |
+| 검색 UX 보완 | `/explore` 검색에서 운동선수 키워드 입력 시 관심 운동 탐색 CTA 안내 표시 | ✅ 완료 (2026-05-26) |
 | 정적 데이터 파일 작성 | `src/data/sportsInterestData.ts` — DB 없이 빠른 연결 구현 | ✅ 완료 (2026-05-26) |
 | roadmaps 직접 작성 | 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 판단 | 중간 |
 | 명따라 결과 연결 | 명따라 관심사·성향과 관심 운동 추천 연결 여부 검토 | 낮음 |
