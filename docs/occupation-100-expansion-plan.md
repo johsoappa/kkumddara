@@ -1,7 +1,7 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료, quizData 2차 10개 직업 30문항 작성 완료, 관심 운동 기반 진로 확장 구조 설계 문서 작성 완료)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료, quizData 2차 10개 직업 30문항 작성 완료, 관심 운동 기반 진로 확장 구조 설계 문서 작성 완료, sportsInterestData.ts 정적 데이터 파일 작성 완료)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
 > 상태: 055 migration 초안 완료(대표 직업 100개 달성), 056 migration 초안 완료(미래 참고 지표 연결) — OZ 순서대로 적용 대기
 
@@ -543,6 +543,12 @@ key = legacy_occupation_id (= URL params.id)
     - 장기 DB 설계안 (`interest_sports`, `sport_career_links`) 문서화 (미구현)
     - 정적 데이터 파일(`sportsInterestData.ts`) 대안 방향 제시
 
+13. **관심 운동 정적 데이터 파일 작성** ✅ (2026-05-26 완료)
+    - `src/data/sportsInterestData.ts` 신규 작성
+    - 관심 운동 10개 × 연결 직업군, 타입 정의, helper 함수 3개 포함
+    - `after-school-teacher` slug 존재 확인 (migration 053) → 줄넘기 연결 포함
+    - tsc --noEmit 통과 / next build 통과
+
 ---
 
 ## 13. 대표 직업 100개 이후 확장 방향
@@ -553,7 +559,7 @@ key = legacy_occupation_id (= URL params.id)
 |---|---|---|
 | 관심 운동 기반 진로 추천 UI | `/explore` 내 "이 운동을 좋아한다면 함께 볼 직업" 섹션 구현 | 높음 |
 | 운동선수 직업군 추가 | 축구선수·야구선수·줄넘기 선수 등 occupation_master 추가 여부 결정 | OZ 결정 필요 |
-| 정적 데이터 파일 작성 | `src/data/sportsInterestData.ts` — DB 없이 빠른 연결 구현 | 중간 |
+| 정적 데이터 파일 작성 | `src/data/sportsInterestData.ts` — DB 없이 빠른 연결 구현 | ✅ 완료 (2026-05-26) |
 | roadmaps 직접 작성 | 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 판단 | 중간 |
 | 명따라 결과 연결 | 명따라 관심사·성향과 관심 운동 추천 연결 여부 검토 | 낮음 |
 

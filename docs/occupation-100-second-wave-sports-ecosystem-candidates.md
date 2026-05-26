@@ -340,8 +340,12 @@
 quizData 30문항 작성 완료 (2026-05-26) — 10개 × 3문항, tsc/build 통과, 커밋 완료.
 
 **스포츠 진로 생태계 10개 직업 활용 방향:**  
-이 문서의 스포츠 진로 생태계 10개 직업은 향후 관심 운동 기반 진로 추천 구조의 연결 직업군으로 활용한다.  
+이 문서의 스포츠 진로 생태계 10개 직업은 `src/data/sportsInterestData.ts`에서 관심 운동별 연결 직업군으로 모두 사용된다.  
 관심 운동(축구, 수영, 줄넘기 등)을 출발점으로 대표 직업과 연결하는 구조는 → [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md) 참조.
+
+**줄넘기 연결 구조 확인:**
+- `after-school-teacher` (방과후 강사) slug가 migration 053에 존재함을 확인 → 줄넘기 연결 직업으로 포함됨 ✅
+- `youth-sports-coach`, `exercise-prescription-specialist`, `sports-content-planner`, `sports-safety-manager`, `sports-data-analyst` 모두 줄넘기와 연결 ✅
 
 **운동 종목 처리 원칙:**  
 운동 종목(축구, 야구, 줄넘기 등)은 직업이 아니라 관심 분야(진로 출발점)로 관리한다.  

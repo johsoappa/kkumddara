@@ -1,8 +1,9 @@
 # 꿈따라 관심 운동 기반 진로 확장 구조 설계안
 
 > 작성일: 2026-05-26
+> 보정일: 2026-05-26 (`src/data/sportsInterestData.ts` 정적 데이터 파일 작성 완료)
 > 작성 목적: 대표 직업 100개 확장 완료 이후, 아이가 좋아하는 운동을 출발점으로 다양한 직업군을 연결하는 구조를 문서화한다.
-> 상태: 설계 문서 (DB 변경 없음 / migration 없음 / 코드 변경 없음)
+> 상태: 설계 완료 + 정적 데이터 파일 작성 완료 (DB 변경 없음 / migration 없음)
 
 ---
 
@@ -391,27 +392,36 @@ sport_athlete_examples
 
 > **주의:** 이번 작업에서는 이 테이블을 생성하지 않는다. migration 작성 금지. 단지 장기 설계 후보로 문서화한다.
 
-### 10-3. 정적 데이터 대안
+### 10-3. 정적 데이터 파일 — 작성 완료 ✅
 
-테이블 도입 전 **정적 JSON 또는 TypeScript 파일**로 먼저 구현하는 방법도 가능하다.
+`src/data/sportsInterestData.ts` 정적 데이터 파일이 작성되었다. (2026-05-26)
 
-```typescript
-// src/data/sportsInterestData.ts (향후 구현 후보)
-export const SPORTS_INTEREST_DATA = [
-  {
-    slug: "soccer",
-    name_ko: "축구",
-    athleteExample: "축구선수",
-    careerLinks: [
-      { occupationSlug: "youth-sports-coach", relationType: "지도", reason: "아이들에게 축구 기본기와 협동심을 가르쳐요" },
-      { occupationSlug: "sports-data-analyst", relationType: "분석", reason: "경기를 기록과 숫자로 분석해요" },
-      { occupationSlug: "sports-marketer", relationType: "비즈니스", reason: "구단과 팬을 연결하는 일을 해요" },
-      // ...
-    ],
-  },
-  // ...
-]
-```
+**포함 내용:**
+- `SportsInterestItem` / `SportsInterestCareerLink` / `SportCareerRelationType` 타입 정의
+- `sportsInterestData` 배열 — 관심 운동 10개 × 연결 직업군
+- Helper 함수 3개: `getSportsInterestBySlug`, `getSportsInterestsByOccupationSlug`, `getRelatedOccupationsBySportSlug`
+
+**관심 운동 10개 요약:**
+
+| slug | nameKo | representativeDream | careerLinks 수 |
+|---|---|---|---:|
+| soccer | 축구 | 축구선수 | 7 |
+| baseball | 야구 | 야구선수 | 7 |
+| basketball | 농구 | 농구선수 | 7 |
+| volleyball | 배구 | 배구선수 | 6 |
+| swimming | 수영 | 수영선수 | 6 |
+| taekwondo-martial-arts | 태권도·무도 | 태권도 선수 | 6 |
+| jump-rope | 줄넘기 | 줄넘기 선수 | 6 |
+| golf | 골프 | 골프선수 | 7 |
+| esports | e스포츠 | e스포츠 선수 | 6 |
+| outdoor | 캠핑·등산·아웃도어 | 아웃도어 활동가 | 7 |
+
+**향후 UI 구현 시 이 파일을 우선 사용한다.** DB 테이블(`interest_sports`, `sport_career_links`) 전환 시 이 파일 구조를 기반으로 마이그레이션한다.
+
+**연결 직업 slug 사용 목록 (전체 11개):**
+`youth-sports-coach`, `sports-data-analyst`, `sports-tech-developer`, `exercise-prescription-specialist`, `sports-content-planner`, `sports-marketer`, `sports-safety-manager`, `water-safety-lifeguard`, `marine-leisure-specialist`, `outdoor-leisure-planner`, `after-school-teacher`
+
+> `after-school-teacher`는 migration 053에서 추가된 확인된 slug다.
 
 ---
 
