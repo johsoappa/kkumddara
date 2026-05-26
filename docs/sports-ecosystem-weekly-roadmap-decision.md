@@ -43,7 +43,7 @@ GET /api/roadmap/weekly-missions
 
 | 직업명 | slug | roadmaps.ts 등록 | 비고 |
 |---|---|:---:|---|
-| 스포츠 데이터 분析가 | `sports-data-analyst` | ❌ 없음 | AI 생성 또는 generic fallback |
+| 스포츠 데이터 분석가 | `sports-data-analyst` | ❌ 없음 | AI 생성 또는 generic fallback |
 | 스포츠 테크 개발자 | `sports-tech-developer` | ❌ 없음 | AI 생성 또는 generic fallback |
 | 운동처방사 | `exercise-prescription-specialist` | ❌ 없음 | AI 생성 또는 generic fallback |
 | 스포츠 콘텐츠 기획자 | `sports-content-planner` | ❌ 없음 | AI 생성 또는 generic fallback |
@@ -106,7 +106,7 @@ GET /api/roadmap/weekly-missions
 
 | 직업명 | slug | 선정 이유 |
 |---|---|---|
-| 스포츠 데이터 분析가 | `sports-data-analyst` | 8개 관심 운동과 연결 — 가장 광범위한 진입점. 데이터 분析 관심 아이 핵심 직업 |
+| 스포츠 데이터 분석가 | `sports-data-analyst` | 8개 관심 운동과 연결 — 가장 광범위한 진입점. 데이터 분석 관심 아이 핵심 직업 |
 | 유소년 스포츠 지도자 | `youth-sports-coach` | 8개 관심 운동과 연결 — 코칭·교육 방향 최다 연결. 부모가 가장 친숙한 직업 유형 |
 | 스포츠 콘텐츠 기획자 | `sports-content-planner` | 8개 관심 운동과 연결 — 미디어·창작 관심 아이와 스포츠 교차점. 접근 경로 다양 |
 | 운동처방사 | `exercise-prescription-specialist` | 8개 관심 운동과 연결 — 의료·과학 + 스포츠 교차. 준비 활동 구체화 용이 |
@@ -140,7 +140,7 @@ GET /api/roadmap/weekly-missions
 
 **선택 이유:**
 1. P1 5개 직업이 10개 관심 운동 중 8개와 연결되어 있어 실질적 사용자 도달 범위를 충분히 커버한다.
-2. 스포츠 생태계 특성상 초등·중등 아이들이 "스포츠 데이터 분析가", "유소년 스포츠 지도자", "운동처방사"로 자주 진입할 것으로 예상된다.
+2. 스포츠 생태계 특성상 초등·중등 아이들이 "스포츠 데이터 분석가", "유소년 스포츠 지도자", "운동처방사"로 자주 진입할 것으로 예상된다.
 3. P2 직업은 AI 생성 미션도 직업 특성을 일정 수준 반영하므로 즉시 투자 대비 효과가 낮다.
 4. B안(전부 직접 작성)은 현 MVP 단계에서 과도한 선행 투자다.
 
@@ -172,7 +172,7 @@ P1 직접 작성 시 아래 기준을 준수한다.
 "sports-data-analyst": {
   current: [
     { title: "경기 기록 직접 해보기", description: "좋아하는 팀의 경기를 보면서 득점, 실점, 주요 장면을 메모해보세요." },
-    { title: "스포츠 데이터 분析 유튜브 찾아보기", description: "스포츠 통계·데이터 분析을 소개하는 영상 1개를 부모님과 함께 봐요." },
+    { title: "스포츠 데이터 분석 유튜브 찾아보기", description: "스포츠 통계·데이터 분석을 소개하는 영상 1개를 부모님과 함께 봐요." },
   ],
   next: [
     { title: "스프레드시트로 경기 기록 정리하기", description: "엑셀이나 구글 시트를 활용해 2주 동안 경기 결과를 표로 만들어보세요." },
@@ -180,7 +180,7 @@ P1 직접 작성 시 아래 기준을 준수한다.
   ],
   future: [
     { title: "스포츠 통계 공개 데이터 탐색하기", description: "KBO, K리그 등 공식 기록 사이트에서 공개 통계를 찾아 분석해보세요." },
-    { title: "데이터 분析 관련 자격·진학 경로 찾아보기", description: "통계학과, 컴퓨터과학과 등 관련 전공 정보를 부모님과 함께 탐색해보세요." },
+    { title: "데이터 분석 관련 자격·진학 경로 찾아보기", description: "통계학과, 컴퓨터과학과 등 관련 전공 정보를 부모님과 함께 탐색해보세요." },
   ],
 },
 ```
