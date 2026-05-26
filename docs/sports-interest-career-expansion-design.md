@@ -1,10 +1,11 @@
 # 꿈따라 관심 운동 기반 진로 확장 구조 설계안
 
 > 작성일: 2026-05-26
-> 보정일: 2026-05-26 (`src/data/sportsInterestData.ts` 정적 데이터 파일 작성 완료, `/explore` 상세 UI 연결 완료, smoke test PASS, 관심 운동 선택 화면 UX 설계 완료)
+> 보정일: 2026-05-26 (`src/data/sportsInterestData.ts` 정적 데이터 파일 작성 완료, `/explore` 상세 UI 연결 완료, smoke test PASS, 관심 운동 선택 화면 UX 설계 완료); 2026-05-26 (운동선수 직업군 정책 검토 완료 — 현 단계 미추가 유지)
 > 작성 목적: 대표 직업 100개 확장 완료 이후, 아이가 좋아하는 운동을 출발점으로 다양한 직업군을 연결하는 구조를 문서화한다.
-> 상태: 설계 완료 + 정적 데이터 파일 작성 완료 + `/explore` 상세 UI 구현 완료 + smoke test PASS + 선택 화면 UX 설계 완료 (DB 변경 없음 / migration 없음)
-> 관련 문서: [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md) — 관심 운동 선택 화면 UX 설계안
+> 상태: 설계 완료 + 정적 데이터 파일 작성 완료 + `/explore` 상세 UI 구현 완료 + smoke test PASS + 선택 화면 UX 설계 완료 + 운동선수 직업군 정책 검토 완료 (DB 변경 없음 / migration 없음)
+> 관련 문서: [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md) — 관심 운동 선택 화면 UX 설계안  
+> 관련 문서: [`docs/sports-athlete-occupation-policy.md`](./sports-athlete-occupation-policy.md) — 운동선수 직업군 추가 여부 정책 검토
 
 ---
 
@@ -491,8 +492,20 @@ sport_athlete_examples
 - 정적 데이터 기반 (DB 없음) / 단일 선택 MVP 방식
 - smoke test PASS: 10개 카드 표시, 줄넘기·e스포츠 확인, 카드 선택 전환, 연결 직업 클릭 네비게이션, CTA 클릭 이동 모두 정상
 
-→ **다음 단계:** smoke test 완료 상태, 운동선수 직업군 추가 여부 정책 결정 또는 추가 기능 검토  
-→ 보류: 운동선수 직업군(축구선수·야구선수 등) 추가 여부 — OZ 정책 결정 필요
+→ **다음 단계:** 검색 UX 보완 — `/explore` 검색에서 `축구선수`, `줄넘기 선수` 등 키워드 입력 시 관심 운동 탐색 CTA 안내 블록 표시  
+→ 운동선수 직업군 정책: **현 단계 미추가 유지 확정 (A안 + 검색 UX 보완)** → [`docs/sports-athlete-occupation-policy.md`](./sports-athlete-occupation-policy.md) 참조
+
+### 운동선수 직업군 정책 검토 완료 (2026-05-26)
+
+- `docs/sports-athlete-occupation-policy.md` 신규 작성
+- 정책 3안 비교 (A안: 미추가 유지 / B안: 일부 추가 / C안: 별도 구조 관리)
+- **1차 권장안: A안 + 검색 UX 보완**
+  - 현 단계 occupation_master 즉시 추가 없음
+  - representativeDream 텍스트로만 유지
+  - 검색 키워드 안내 블록 표시 (다음 작업)
+  - 줄넘기 선수: 육상선수 대신 대표 꿈 예시로 유지
+  - 육상선수: 제외 대상 유지
+- 향후 사용자 반응 확인 후 B안·C안 재검토 예정
 
 ---
 

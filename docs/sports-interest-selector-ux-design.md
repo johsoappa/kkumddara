@@ -1,9 +1,10 @@
 # 꿈따라 관심 운동 선택 화면 UX 설계안
 
 > 작성일: 2026-05-26  
-> 보정일: 2026-05-26 (실제 페이지 구현 완료, smoke test PASS)
+> 보정일: 2026-05-26 (실제 페이지 구현 완료, smoke test PASS); 2026-05-26 (운동선수 직업군 정책 문서 연결)
 > 상태: UX 설계 완료 + 실제 구현 완료  
 > 관련 문서: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
+> 관련 문서: [`docs/sports-athlete-occupation-policy.md`](./sports-athlete-occupation-policy.md) — 운동선수 직업군 추가 여부 정책 검토  
 > 관련 데이터: [`src/data/sportsInterestData.ts`](../src/data/sportsInterestData.ts)
 
 ---
@@ -472,12 +473,21 @@ npm run build
 
 | 우선순위 | 작업 | 내용 |
 |---|---|---|
-| 1 | 관심 운동 선택 화면 구현 | `/explore/interests/sports` 페이지 + `SportsInterestSelector.tsx` 컴포넌트 |
-| 2 | `/explore` 메인에서 진입 CTA 추가 | "좋아하는 운동으로 직업 찾기" 버튼 또는 섹션 |
-| 3 | 운동선수 직업군 추가 여부 정책 결정 | 축구선수·야구선수 등 `occupation_master` 추가 여부 — OZ 결정 필요 |
-| 4 | 명따라 결과 연결 | 명따라 관심사·성향 결과와 관심 운동 추천 연결 여부 검토 |
-| 5 | 다중 운동 선택 | 복수 운동 선택 후 공통 직업 추천 기능 |
-| 6 | DB 테이블 전환 | `interest_sports` / `sport_career_links` 도입 (데이터 확장 시) |
+| 1 | 관심 운동 선택 화면 구현 | `/explore/interests/sports` 페이지 + `SportsInterestSelector.tsx` 컴포넌트 — ✅ 완료 (2026-05-26) |
+| 2 | `/explore` 메인에서 진입 CTA 추가 | "좋아하는 운동으로 직업 찾기" 버튼 또는 섹션 — ✅ 완료 (2026-05-26) |
+| 3 | 운동선수 직업군 추가 여부 정책 결정 | ✅ 정책 문서 작성 완료 (2026-05-26) — **현 단계 미추가 유지 (A안 + 검색 UX 보완)** → [`docs/sports-athlete-occupation-policy.md`](./sports-athlete-occupation-policy.md) |
+| 4 | **검색 UX 보완 (다음 작업)** | `/explore` 검색에서 `축구선수`, `줄넘기 선수` 키워드 입력 시 관심 운동 탐색 CTA 안내 블록 표시 |
+| 5 | 명따라 결과 연결 | 명따라 관심사·성향 결과와 관심 운동 추천 연결 여부 검토 |
+| 6 | 다중 운동 선택 | 복수 운동 선택 후 공통 직업 추천 기능 |
+| 7 | DB 테이블 전환 | `interest_sports` / `sport_career_links` 도입 (데이터 확장 시) |
+
+**운동선수 직업군 처리 원칙 (이후 작업 전 반드시 확인):**
+- 운동 종목(축구, 야구, 줄넘기 등)은 직업이 아니라 **관심 분야(진로 출발점)**로 관리한다.
+- 대표 꿈(축구선수, 줄넘기 선수 등)은 `representativeDream` 텍스트로만 표시한다.
+- 현 단계에서는 운동선수 직업군을 `occupation_master`에 바로 추가하지 않는다.
+- 줄넘기 선수는 육상선수 대신 포함된 대표 꿈 예시로 유지한다.
+- 육상선수는 제외 대상이다.
+- 향후 사용자 반응 확인 후 추가 여부를 재검토한다.
 
 ---
 

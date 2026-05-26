@@ -569,6 +569,20 @@ key = legacy_occupation_id (= URL params.id)
     - 줄넘기 UX 강조 / e스포츠 표현 주의 / 금지 표현 배제 문서화
     - 다음 단계: 실제 페이지 구현 작업지시서 필요
 
+16. **관심 운동 선택 화면 구현** ✅ (2026-05-26 완료)
+    - `src/app/explore/interests/sports/page.tsx` 신규 생성
+    - `src/components/explore/SportsInterestSelector.tsx` 신규 생성
+    - `/explore/page.tsx` — "좋아하는 운동으로 직업 찾기" CTA 배너 추가
+    - smoke test PASS: 10개 카드 표시, 줄넘기·e스포츠 확인, 카드 선택 전환, 연결 직업 클릭 네비게이션, CTA 클릭 이동 정상
+
+17. **운동선수 직업군 추가 여부 정책 검토** ✅ (2026-05-26 완료)
+    - `docs/sports-athlete-occupation-policy.md` 신규 작성
+    - A안(미추가 유지) / B안(일부 추가) / C안(별도 구조 관리) 비교 검토
+    - **1차 권장안: A안 + 검색 UX 보완** — 현 단계 occupation_master 즉시 추가 없음
+    - 운동 종목 ≠ 실제 직업 원칙 재확인. representativeDream 텍스트 유지
+    - 줄넘기 선수: 육상선수 대신 대표 꿈 예시 유지. 육상선수: 제외 대상 유지.
+    - 다음 단계: 검색 UX 보완 작업지시서 진행
+
 ---
 
 ## 13. 대표 직업 100개 이후 확장 방향
@@ -581,7 +595,8 @@ key = legacy_occupation_id (= URL params.id)
 | `/explore` smoke test | 5개 URL 실 브라우저 검증 | ✅ PASS (2026-05-26) |
 | 관심 운동 선택 화면 UX 설계 | `/explore/interests/sports` 화면 구조 및 컴포넌트 설계 | ✅ 완료 (2026-05-26) |
 | 관심 운동 선택 화면 구현 | `SportsInterestSelector.tsx` + 페이지 실제 구현 | ✅ 완료 (2026-05-26) |
-| 운동선수 직업군 추가 | 축구선수·야구선수·줄넘기 선수 등 occupation_master 추가 여부 결정 | OZ 결정 필요 (후순위) |
+| 운동선수 직업군 추가 여부 정책 검토 | 축구선수·야구선수·줄넘기 선수 등 occupation_master 추가 여부 — 정책 3안 비교 | ✅ 완료 (2026-05-26) — **현 단계 미추가 유지 (A안 + 검색 UX 보완)** |
+| 검색 UX 보완 | `/explore` 검색에서 운동선수 키워드 입력 시 관심 운동 탐색 CTA 안내 표시 | 다음 작업 |
 | 정적 데이터 파일 작성 | `src/data/sportsInterestData.ts` — DB 없이 빠른 연결 구현 | ✅ 완료 (2026-05-26) |
 | roadmaps 직접 작성 | 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 판단 | 중간 |
 | 명따라 결과 연결 | 명따라 관심사·성향과 관심 운동 추천 연결 여부 검토 | 낮음 |
