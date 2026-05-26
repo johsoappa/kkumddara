@@ -4,7 +4,8 @@
 > 상태: 1차 권장안 확정 — 현 단계 미추가 유지 + 검색 UX 보완  
 > 관련 문서: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
 > 관련 문서: [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md)  
-> 관련 문서: [`docs/occupation-100-expansion-plan.md`](./occupation-100-expansion-plan.md)
+> 관련 문서: [`docs/occupation-100-expansion-plan.md`](./occupation-100-expansion-plan.md)  
+> 관련 문서: [`docs/sports-ecosystem-weekly-roadmap-decision.md`](./sports-ecosystem-weekly-roadmap-decision.md) — weekly roadmap 직접 작성 여부 검토
 
 ---
 

@@ -1,10 +1,11 @@
 # 꿈따라 관심 운동 선택 화면 UX 설계안
 
 > 작성일: 2026-05-26  
-> 보정일: 2026-05-26 (실제 페이지 구현 완료, smoke test PASS); 2026-05-26 (운동선수 직업군 정책 문서 연결)
+> 보정일: 2026-05-26 (실제 페이지 구현 완료, smoke test PASS); 2026-05-26 (운동선수 직업군 정책 문서 연결); 2026-05-26 (weekly roadmap 검토 문서 연결)
 > 상태: UX 설계 완료 + 실제 구현 완료  
 > 관련 문서: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
 > 관련 문서: [`docs/sports-athlete-occupation-policy.md`](./sports-athlete-occupation-policy.md) — 운동선수 직업군 추가 여부 정책 검토  
+> 관련 문서: [`docs/sports-ecosystem-weekly-roadmap-decision.md`](./sports-ecosystem-weekly-roadmap-decision.md) — weekly roadmap 직접 작성 여부 검토  
 > 관련 데이터: [`src/data/sportsInterestData.ts`](../src/data/sportsInterestData.ts)
 
 ---

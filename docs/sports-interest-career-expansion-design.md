@@ -1,11 +1,12 @@
 # 꿈따라 관심 운동 기반 진로 확장 구조 설계안
 
 > 작성일: 2026-05-26
-> 보정일: 2026-05-26 (`src/data/sportsInterestData.ts` 정적 데이터 파일 작성 완료, `/explore` 상세 UI 연결 완료, smoke test PASS, 관심 운동 선택 화면 UX 설계 완료); 2026-05-26 (운동선수 직업군 정책 검토 완료 — 현 단계 미추가 유지)
+> 보정일: 2026-05-26 (`src/data/sportsInterestData.ts` 정적 데이터 파일 작성 완료, `/explore` 상세 UI 연결 완료, smoke test PASS, 관심 운동 선택 화면 UX 설계 완료); 2026-05-26 (운동선수 직업군 정책 검토 완료 — 현 단계 미추가 유지); 2026-05-26 (weekly roadmap 직접 작성 여부 검토 완료 — C안 P1 5개 우선 직접 작성 권장)
 > 작성 목적: 대표 직업 100개 확장 완료 이후, 아이가 좋아하는 운동을 출발점으로 다양한 직업군을 연결하는 구조를 문서화한다.
-> 상태: 설계 완료 + 정적 데이터 파일 작성 완료 + `/explore` 상세 UI 구현 완료 + smoke test PASS + 선택 화면 UX 설계 완료 + 운동선수 직업군 정책 검토 완료 (DB 변경 없음 / migration 없음)
+> 상태: 설계 완료 + 정적 데이터 파일 작성 완료 + `/explore` 상세 UI 구현 완료 + smoke test PASS + 선택 화면 UX 설계 완료 + 운동선수 직업군 정책 검토 완료 + weekly roadmap 작성 여부 검토 완료 (DB 변경 없음 / migration 없음)
 > 관련 문서: [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md) — 관심 운동 선택 화면 UX 설계안  
-> 관련 문서: [`docs/sports-athlete-occupation-policy.md`](./sports-athlete-occupation-policy.md) — 운동선수 직업군 추가 여부 정책 검토
+> 관련 문서: [`docs/sports-athlete-occupation-policy.md`](./sports-athlete-occupation-policy.md) — 운동선수 직업군 추가 여부 정책 검토  
+> 관련 문서: [`docs/sports-ecosystem-weekly-roadmap-decision.md`](./sports-ecosystem-weekly-roadmap-decision.md) — weekly roadmap 직접 작성 여부 검토
 
 ---
 

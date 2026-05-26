@@ -1,7 +1,7 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료, quizData 2차 10개 직업 30문항 작성 완료, 관심 운동 기반 진로 확장 구조 설계 문서 작성 완료, sportsInterestData.ts 정적 데이터 파일 작성 완료)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료, quizData 2차 10개 직업 30문항 작성 완료, 관심 운동 기반 진로 확장 구조 설계 문서 작성 완료, sportsInterestData.ts 정적 데이터 파일 작성 완료, weekly roadmap 직접 작성 여부 검토 완료)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
 > 상태: 055 migration 초안 완료(대표 직업 100개 달성), 056 migration 초안 완료(미래 참고 지표 연결) — OZ 순서대로 적용 대기
 
@@ -590,6 +590,14 @@ key = legacy_occupation_id (= URL params.id)
     - 비관련 검색어("회계사", "외교관") → 기존 검색 결과 없음 문구 유지
     - smoke test PASS: 축구/축구선수/줄넘기/줄넘기 선수/수영/수영선수/e스포츠/프로게이머 8개 ✅
 
+19. **스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 검토** ✅ (2026-05-26 완료)
+    - `docs/sports-ecosystem-weekly-roadmap-decision.md` 신규 작성
+    - A안(fallback 유지) / B안(10개 전부 직접 작성) / C안(P1 5개 우선) 비교 검토
+    - **1차 권장안: C안** — P1 5개 우선 직접 작성, P2 5개는 AI + fallback 유지
+    - P1: 스포츠 데이터 분析가, 유소년 스포츠 지도자, 스포츠 콘텐츠 기획자, 운동처방사, 스포츠 안전관리자
+    - P2: 스포츠 테크 개발자, 스포츠 마케터, 수상안전요원, 아웃도어 레저 기획자, 해양레저 전문가
+    - 이번 작업에서 `roadmaps.ts` 미수정 — 다음 작업지시서에서 별도 진행
+
 ---
 
 ## 13. 대표 직업 100개 이후 확장 방향
@@ -605,7 +613,7 @@ key = legacy_occupation_id (= URL params.id)
 | 운동선수 직업군 추가 여부 정책 검토 | 축구선수·야구선수·줄넘기 선수 등 occupation_master 추가 여부 — 정책 3안 비교 | ✅ 완료 (2026-05-26) — **현 단계 미추가 유지 (A안 + 검색 UX 보완)** |
 | 검색 UX 보완 | `/explore` 검색에서 운동선수 키워드 입력 시 관심 운동 탐색 CTA 안내 표시 | ✅ 완료 (2026-05-26) |
 | 정적 데이터 파일 작성 | `src/data/sportsInterestData.ts` — DB 없이 빠른 연결 구현 | ✅ 완료 (2026-05-26) |
-| roadmaps 직접 작성 | 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 판단 | 중간 |
+| roadmaps 직접 작성 | 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 판단 | ✅ 검토 완료 (2026-05-26) — C안 P1 5개 우선 직접 작성 |
 | 명따라 결과 연결 | 명따라 관심사·성향과 관심 운동 추천 연결 여부 검토 | 낮음 |
 
 > 상세 설계: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
