@@ -2943,6 +2943,223 @@ export const ROADMAPS: Record<string, RoadmapData> = {
     ],
   },
 
+
+  // ── 스포츠 생태계 P1 직접 로드맵 ─────────────────────────────────────
+  "sports-data-analyst": {
+    id: "sports-data-analyst-roadmap",
+    occupationId: "sports-data-analyst",
+    occupationName: "스포츠 데이터 분석가",
+    occupationEmoji: "📊",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "직업 이해하기",
+        missions: [
+          { id: "sda-m1", text: "스포츠 데이터 분석가가 하는 일을 인터넷·책에서 조사해 정리하기" },
+          { id: "sda-m2", text: "좋아하는 경기 하나를 보며 점수·슛·패스 횟수 메모해보기" },
+          { id: "sda-m3", text: "야구·축구·농구 중 하나를 골라 간단한 기록표 양식 만들기" },
+          { id: "sda-m4", text: "스포츠 데이터 분석 관련 유튜브 영상 1편 시청하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "관찰하고 기록하기",
+        missions: [
+          { id: "sda-m5", text: "관심 경기를 2회 이상 관찰하며 기록표 채우기" },
+          { id: "sda-m6", text: "기록한 수치를 보고 잘된 점·보완점 3가지 정리하기" },
+          { id: "sda-m7", text: "같은 선수나 팀의 두 경기 기록을 비교해 메모하기" },
+          { id: "sda-m8", text: "데이터 분석가가 실제로 사용하는 도구(엑셀·Python 등) 종류 조사하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "확장하고 연결하기",
+        missions: [
+          { id: "sda-m9",  text: "스포츠 콘텐츠 기획자·스포츠 테크 개발자 직업과 어떻게 협력하는지 알아보기" },
+          { id: "sda-m10", text: "엑셀이나 표 프로그램으로 기록한 데이터를 간단한 그래프로 만들어보기" },
+          { id: "sda-m11", text: "스포츠 데이터 분석가 진학 경로(관련 학과·자격증) 조사하기" },
+          { id: "sda-m12", text: "가족이나 선생님께 내가 기록한 데이터를 보여주며 설명해보기" },
+        ],
+      },
+    ],
+  },
+
+  "youth-sports-coach": {
+    id: "youth-sports-coach-roadmap",
+    occupationId: "youth-sports-coach",
+    occupationName: "유소년 스포츠 지도자",
+    occupationEmoji: "🏃",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "직업 이해하기",
+        missions: [
+          { id: "ysc-m1", text: "유소년 스포츠 지도자가 하는 일을 조사해 정리하기" },
+          { id: "ysc-m2", text: "좋아하는 운동 수업에서 지도자가 어떤 말을 하는지 관찰하기" },
+          { id: "ysc-m3", text: "훌륭한 지도자가 갖춰야 할 태도·능력 5가지 메모하기" },
+          { id: "ysc-m4", text: "유소년 스포츠 지도자 관련 영상이나 기사 1편 읽기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "배우고 실천하기",
+        missions: [
+          { id: "ysc-m5", text: "가족이나 친구에게 좋아하는 운동 규칙을 친절하게 설명해보기" },
+          { id: "ysc-m6", text: "안전하고 즐거운 운동 수업을 위한 약속 5가지 직접 만들기" },
+          { id: "ysc-m7", text: "어린이에게 운동을 가르칠 때 사용하기 좋은 긍정적 표현 10개 모아보기" },
+          { id: "ysc-m8", text: "생활체육지도사 자격증이 무엇인지 조사하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "확장하고 연결하기",
+        missions: [
+          { id: "ysc-m9",  text: "방과후 교사·운동처방사·스포츠 안전관리자 직업과 어떻게 연결되는지 알아보기" },
+          { id: "ysc-m10", text: "내가 가르치고 싶은 운동 종목을 정하고 이유 3가지 적기" },
+          { id: "ysc-m11", text: "체육교육학·스포츠과학 관련 학과 진학 경로 조사하기" },
+          { id: "ysc-m12", text: "가족이나 선생님께 유소년 스포츠 지도자의 하루를 설명해보기" },
+        ],
+      },
+    ],
+  },
+
+  "sports-content-planner": {
+    id: "sports-content-planner-roadmap",
+    occupationId: "sports-content-planner",
+    occupationName: "스포츠 콘텐츠 기획자",
+    occupationEmoji: "🎬",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "직업 이해하기",
+        missions: [
+          { id: "scp-m1", text: "스포츠 콘텐츠 기획자가 하는 일을 조사해 정리하기" },
+          { id: "scp-m2", text: "좋아하는 스포츠 콘텐츠(영상·기사·카드뉴스)의 제목·구성·장점 분석하기" },
+          { id: "scp-m3", text: "어떤 스포츠 이야기를 콘텐츠로 만들고 싶은지 주제 3가지 메모하기" },
+          { id: "scp-m4", text: "스포츠 방송·유튜브 채널이 콘텐츠를 만드는 과정 알아보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "기획하고 표현하기",
+        missions: [
+          { id: "scp-m5", text: "좋아하는 운동을 소개하는 1분 콘텐츠 기획안(주제·구성·핵심 장면) 작성하기" },
+          { id: "scp-m6", text: "썸네일 문구 3가지와 설명 순서를 메모로 정리하기" },
+          { id: "scp-m7", text: "기획안을 가족이나 친구에게 설명하고 피드백 받아보기" },
+          { id: "scp-m8", text: "콘텐츠 제작 시 저작권·초상권을 지키는 방법 조사하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "확장하고 연결하기",
+        missions: [
+          { id: "scp-m9",  text: "스포츠 마케터·스포츠 데이터 분석가와 어떻게 협력하는지 알아보기" },
+          { id: "scp-m10", text: "미디어·영상·커뮤니케이션 관련 학과 진학 경로 조사하기" },
+          { id: "scp-m11", text: "실제 촬영이 필요하다면 가족이나 선생님과 상의하고 안전하게 계획 세우기" },
+          { id: "scp-m12", text: "내가 만든 기획안을 포트폴리오 형식으로 정리해 보관하기" },
+        ],
+      },
+    ],
+  },
+
+  "exercise-prescription-specialist": {
+    id: "exercise-prescription-specialist-roadmap",
+    occupationId: "exercise-prescription-specialist",
+    occupationName: "운동처방사",
+    occupationEmoji: "💪",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "직업 이해하기",
+        missions: [
+          { id: "eps-m1", text: "운동처방사가 하는 일을 조사해 정리하기" },
+          { id: "eps-m2", text: "운동처방사는 어떤 전문 지식을 공부하는지 알아보기" },
+          { id: "eps-m3", text: "건강한 운동 습관에 대한 책이나 기사 1편 읽기" },
+          { id: "eps-m4", text: "몸이 건강할 때와 피곤할 때 운동 느낌이 어떻게 다른지 일기로 기록하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "관찰하고 계획하기",
+        missions: [
+          { id: "eps-m5", text: "무리하지 않는 스트레칭·걷기 1주일 계획표 만들기" },
+          { id: "eps-m6", text: "운동 전후에 몸이 어떻게 느껴지는지 안전하게 기록하기" },
+          { id: "eps-m7", text: "운동할 때 지켜야 할 안전 수칙 5가지 정리하기" },
+          { id: "eps-m8", text: "운동처방사 국가자격증 응시 조건 조사하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "확장하고 연결하기",
+        missions: [
+          { id: "eps-m9",  text: "스포츠 안전관리자·유소년 스포츠 지도자 직업과 어떻게 연결되는지 알아보기" },
+          { id: "eps-m10", text: "체육학·스포츠과학·운동재활학 관련 학과 진학 경로 조사하기" },
+          { id: "eps-m11", text: "가족이나 선생님께 운동처방사의 하루를 설명해보기" },
+          { id: "eps-m12", text: "건강한 운동 습관에 대해 내가 배운 내용을 간단히 정리해 보관하기" },
+        ],
+      },
+    ],
+  },
+
+  "sports-safety-manager": {
+    id: "sports-safety-manager-roadmap",
+    occupationId: "sports-safety-manager",
+    occupationName: "스포츠 안전관리자",
+    occupationEmoji: "🦺",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "직업 이해하기",
+        missions: [
+          { id: "ssm-m1", text: "스포츠 안전관리자가 하는 일을 조사해 정리하기" },
+          { id: "ssm-m2", text: "경기장·학교 체육관에서 안전을 담당하는 사람이 어떤 역할을 하는지 알아보기" },
+          { id: "ssm-m3", text: "스포츠 안전사고 사례를 찾아보고 무엇이 부족했는지 메모하기" },
+          { id: "ssm-m4", text: "스포츠 안전 관련 기사나 영상 1편 읽거나 시청하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "관찰하고 실천하기",
+        missions: [
+          { id: "ssm-m5", text: "운동장·체육관에서 위험할 수 있는 요소를 관찰해 목록으로 정리하기" },
+          { id: "ssm-m6", text: "안전한 체육 활동을 위한 체크리스트(준비운동·장비·규칙) 직접 만들기" },
+          { id: "ssm-m7", text: "위험 요소를 발견하면 직접 해결하지 말고 선생님이나 보호자에게 알리는 연습하기" },
+          { id: "ssm-m8", text: "스포츠 안전관리사 자격증이 무엇인지 조사하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "확장하고 연결하기",
+        missions: [
+          { id: "ssm-m9",  text: "수상안전요원·운동처방사·유소년 스포츠 지도자와 어떻게 협력하는지 알아보기" },
+          { id: "ssm-m10", text: "스포츠·체육 행정·안전관리 관련 학과 진학 경로 조사하기" },
+          { id: "ssm-m11", text: "가족이나 선생님께 스포츠 안전관리자의 하루를 설명해보기" },
+          { id: "ssm-m12", text: "내가 만든 안전 체크리스트를 포트폴리오 형식으로 정리해 보관하기" },
+        ],
+      },
+    ],
+  },
+
 };
 
 export function getRoadmap(occupationId: string): RoadmapData | null {

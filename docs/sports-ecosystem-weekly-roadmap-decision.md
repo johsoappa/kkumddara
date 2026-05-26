@@ -1,7 +1,8 @@
 # 꿈따라 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 검토
 
 > 작성일: 2026-05-26  
-> 상태: 1차 권장안 확정 — **C안: P1 5개 우선 직접 작성** (P2 5개는 fallback 유지)  
+> 최종 업데이트: 2026-05-27 — P1 5개 직접 작성 완료 (commit: Add roadmaps for priority sports ecosystem occupations)  
+> 상태: **C안 실행 완료** — P1 5개 `roadmaps.ts` 직접 작성 완료 / P2 5개 fallback 유지  
 > 관련 문서: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
 > 관련 문서: [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md)  
 > 관련 문서: [`docs/occupation-100-expansion-plan.md`](./occupation-100-expansion-plan.md)  
@@ -43,18 +44,18 @@ GET /api/roadmap/weekly-missions
 
 | 직업명 | slug | roadmaps.ts 등록 | 비고 |
 |---|---|:---:|---|
-| 스포츠 데이터 분석가 | `sports-data-analyst` | ❌ 없음 | AI 생성 또는 generic fallback |
-| 스포츠 테크 개발자 | `sports-tech-developer` | ❌ 없음 | AI 생성 또는 generic fallback |
-| 운동처방사 | `exercise-prescription-specialist` | ❌ 없음 | AI 생성 또는 generic fallback |
-| 스포츠 콘텐츠 기획자 | `sports-content-planner` | ❌ 없음 | AI 생성 또는 generic fallback |
-| 스포츠 마케터 | `sports-marketer` | ❌ 없음 | AI 생성 또는 generic fallback |
-| 유소년 스포츠 지도자 | `youth-sports-coach` | ❌ 없음 | AI 생성 또는 generic fallback |
-| 아웃도어 레저 기획자 | `outdoor-leisure-planner` | ❌ 없음 | AI 생성 또는 generic fallback |
-| 해양레저 전문가 | `marine-leisure-specialist` | ❌ 없음 | AI 생성 또는 generic fallback |
-| 스포츠 안전관리자 | `sports-safety-manager` | ❌ 없음 | AI 생성 또는 generic fallback |
-| 수상안전요원 | `water-safety-lifeguard` | ❌ 없음 | AI 생성 또는 generic fallback |
+| 스포츠 데이터 분석가 | `sports-data-analyst` | ✅ 직접 작성 완료 (P1) | 2026-05-27 추가 |
+| 스포츠 테크 개발자 | `sports-tech-developer` | ❌ 없음 (P2) | AI 생성 또는 generic fallback 유지 |
+| 운동처방사 | `exercise-prescription-specialist` | ✅ 직접 작성 완료 (P1) | 2026-05-27 추가 |
+| 스포츠 콘텐츠 기획자 | `sports-content-planner` | ✅ 직접 작성 완료 (P1) | 2026-05-27 추가 |
+| 스포츠 마케터 | `sports-marketer` | ❌ 없음 (P2) | AI 생성 또는 generic fallback 유지 |
+| 유소년 스포츠 지도자 | `youth-sports-coach` | ✅ 직접 작성 완료 (P1) | 2026-05-27 추가 |
+| 아웃도어 레저 기획자 | `outdoor-leisure-planner` | ❌ 없음 (P2) | AI 생성 또는 generic fallback 유지 |
+| 해양레저 전문가 | `marine-leisure-specialist` | ❌ 없음 (P2) | AI 생성 또는 generic fallback 유지 |
+| 스포츠 안전관리자 | `sports-safety-manager` | ✅ 직접 작성 완료 (P1) | 2026-05-27 추가 |
+| 수상안전요원 | `water-safety-lifeguard` | ❌ 없음 (P2) | AI 생성 또는 generic fallback 유지 |
 
-> 10개 직업 모두 `sportsInterestData.ts`에만 연결 데이터가 있고, `roadmaps.ts`에 등록된 직접 작성 데이터가 없다.
+> **2026-05-27 기준:** P1 5개 직접 작성 완료. P2 5개는 fallback 유지. `roadmaps.ts`에 5개 entry 추가됨.
 
 ---
 

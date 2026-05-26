@@ -1,7 +1,7 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료, quizData 2차 10개 직업 30문항 작성 완료, 관심 운동 기반 진로 확장 구조 설계 문서 작성 완료, sportsInterestData.ts 정적 데이터 파일 작성 완료, weekly roadmap 직접 작성 여부 검토 완료)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료, quizData 2차 10개 직업 30문항 작성 완료, 관심 운동 기반 진로 확장 구조 설계 문서 작성 완료, sportsInterestData.ts 정적 데이터 파일 작성 완료, weekly roadmap 직접 작성 여부 검토 완료); 2026-05-27 (P1 스포츠 생태계 5개 roadmaps.ts 직접 작성 완료 — sports-data-analyst·youth-sports-coach·sports-content-planner·exercise-prescription-specialist·sports-safety-manager)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
 > 상태: 055 migration 초안 완료(대표 직업 100개 달성), 056 migration 초안 완료(미래 참고 지표 연결) — OZ 순서대로 적용 대기
 
@@ -282,16 +282,16 @@ migration 052 적용 후 대표 직업 2개, 세부 직업 1개 체계로 전환
 
 | 우선순위 | 카테고리 | 직업명 | slug | 비고 |
 |---:|---|---|---|---|
-| 1 | IT·기술 | 스포츠 데이터 분석가 | sports-data-analyst | |
-| 2 | IT·기술 | 스포츠 테크 개발자 | sports-tech-developer | |
-| 3 | 의료·과학 | 운동처방사 | exercise-prescription-specialist | 국가자격 직종 |
-| 4 | 콘텐츠·미디어 | 스포츠 콘텐츠 기획자 | sports-content-planner | sports-commentator와 역할 구분 |
-| 5 | 비즈니스·경영 | 스포츠 마케터 | sports-marketer | |
-| 6 | 교육·사회 | 유소년 스포츠 지도자 | youth-sports-coach | youth-worker와 역할 구분 |
-| 7 | 환경·미래산업 | 아웃도어 레저 기획자 | outdoor-leisure-planner | |
-| 8 | 환경·미래산업 | 해양레저 전문가 | marine-leisure-specialist | marine-corps-soldier와 무관 |
-| 9 | 공공·안전 | 스포츠 안전관리자 | sports-safety-manager | |
-| 10 | 공공·안전 | 수상안전요원 | water-safety-lifeguard | 국가자격(수상구조사) 연결 |
+| 1 | IT·기술 | 스포츠 데이터 분석가 | sports-data-analyst | roadmaps.ts 직접 작성 완료 (P1, 2026-05-27) |
+| 2 | IT·기술 | 스포츠 테크 개발자 | sports-tech-developer | roadmaps.ts fallback 유지 (P2) |
+| 3 | 의료·과학 | 운동처방사 | exercise-prescription-specialist | 국가자격 직종. roadmaps.ts 직접 작성 완료 (P1, 2026-05-27) |
+| 4 | 콘텐츠·미디어 | 스포츠 콘텐츠 기획자 | sports-content-planner | sports-commentator와 역할 구분. roadmaps.ts 직접 작성 완료 (P1, 2026-05-27) |
+| 5 | 비즈니스·경영 | 스포츠 마케터 | sports-marketer | roadmaps.ts fallback 유지 (P2) |
+| 6 | 교육·사회 | 유소년 스포츠 지도자 | youth-sports-coach | youth-worker와 역할 구분. roadmaps.ts 직접 작성 완료 (P1, 2026-05-27) |
+| 7 | 환경·미래산업 | 아웃도어 레저 기획자 | outdoor-leisure-planner | roadmaps.ts fallback 유지 (P2) |
+| 8 | 환경·미래산업 | 해양레저 전문가 | marine-leisure-specialist | marine-corps-soldier와 무관. roadmaps.ts fallback 유지 (P2) |
+| 9 | 공공·안전 | 스포츠 안전관리자 | sports-safety-manager | roadmaps.ts 직접 작성 완료 (P1, 2026-05-27) |
+| 10 | 공공·안전 | 수상안전요원 | water-safety-lifeguard | 국가자격(수상구조사) 연결. roadmaps.ts fallback 유지 (P2) |
 
 **2차 확장 목표:**
 
