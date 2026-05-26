@@ -248,6 +248,8 @@ export default function ExplorePage() {
   const filtered = useMemo(() => {
     const q = search.trim();
     const isSearching = q.length > 0;
+    // 공백 정규화 검색: "물류관리사" → "물류 관리사" 매칭 지원
+    const qNorm = q.replace(/\s+/g, "");
 
     return occupations.filter((occ) => {
       if (showLikedOnly && !liked.has(occ.id)) return false;
@@ -258,7 +260,9 @@ export default function ExplorePage() {
         !isSearching ||
         occ.name.includes(q) ||
         occ.description.includes(q) ||
-        occ.skills.some((s) => s.includes(q));
+        occ.skills.some((s) => s.includes(q)) ||
+        // 공백 제거 후 비교: "물류관리사" ↔ "물류 관리사" 매칭
+        (qNorm.length >= 2 && occ.name.replace(/\s+/g, "").includes(qNorm));
       return matchCategory && matchSearch;
     });
   }, [search, category, occupations, showLikedOnly, liked]);
