@@ -46,8 +46,7 @@ const PARENT_FEATURES = [
     label:       "AI 진로 상담",
     description: "아이의 관심 분야에 맞는 진로를 함께 탐색해요.",
     locked:      false,
-    badge:       "준비 중",
-    href:        "#",
+    href:        "/parent/counseling",
   },
   {
     id:          "myeonddara",
@@ -60,11 +59,15 @@ const PARENT_FEATURES = [
 ];
 
 // ── 비로그인 체험 사용자 대상 기능 안내 문구 ─────────────────
-// report/myeonddara는 로그인 필요 → router.push 대신 인라인 안내 표시
+// 모든 부모 전용 기능은 로그인 필요 → router.push 대신 인라인 안내 표시
 const FEATURE_HINTS: Record<string, { title: string; desc: string }> = {
   report: {
     title: "주간 리포트는 자녀 프로필을 만든 뒤 확인할 수 있어요.",
     desc:  "로그인 후 아이 정보를 등록하면 이번 주 진로 탐색 현황을 주간 단위로 볼 수 있습니다.",
+  },
+  counseling: {
+    title: "AI 진로 상담은 자녀 프로필을 만든 뒤 사용할 수 있어요.",
+    desc:  "아이의 관심 분야와 질문을 바탕으로 진로 탐색을 도와주는 베타 기능입니다.",
   },
   myeonddara: {
     title: "명따라는 자녀 프로필을 만든 뒤 사용할 수 있어요.",
@@ -73,7 +76,7 @@ const FEATURE_HINTS: Record<string, { title: string; desc: string }> = {
 };
 
 // 로그인 필요 기능 (체험 화면에서 직접 이동 불가 → 인라인 안내 표시)
-const AUTH_REQUIRED_FEATURES = new Set(["report", "myeonddara"]);
+const AUTH_REQUIRED_FEATURES = new Set(["report", "counseling", "myeonddara"]);
 
 export default function DemoParentPage() {
   const router = useRouter();
@@ -238,18 +241,15 @@ export default function DemoParentPage() {
               <h2 className="text-sm font-bold text-base-text mb-3">부모 전용 기능</h2>
               <div className="flex flex-col gap-2.5">
                 {PARENT_FEATURES.map((feat) => {
-                  const disabled  = feat.badge === "준비 중";
                   const needsAuth = AUTH_REQUIRED_FEATURES.has(feat.id);
                   const showHint  = hintFeatureId === feat.id;
 
-                  const handleClick = disabled
-                    ? undefined
-                    : needsAuth
-                      // 로그인 필요 기능: 인라인 안내 박스 토글 (홈 이동 없음)
-                      ? () => setHintFeatureId(showHint ? null : feat.id)
-                      : feat.locked
-                        ? handleLockedAction
-                        : () => router.push(feat.href);
+                  const handleClick = needsAuth
+                    // 로그인 필요 기능: 인라인 안내 박스 토글 (홈 이동 없음)
+                    ? () => setHintFeatureId(showHint ? null : feat.id)
+                    : feat.locked
+                      ? handleLockedAction
+                      : () => router.push(feat.href);
 
                   return (
                     <div key={feat.id}>
@@ -258,9 +258,7 @@ export default function DemoParentPage() {
                         className={`
                           w-full bg-white rounded-card-lg shadow-card p-4
                           flex items-center gap-4 text-left transition-all
-                          ${disabled
-                            ? "opacity-60 cursor-default"
-                            : "hover:shadow-card-hover active:scale-[0.99]"}
+                          hover:shadow-card-hover active:scale-[0.99]
                           ${showHint ? "ring-1 ring-brand-red/30" : ""}
                         `}
                       >
@@ -271,19 +269,12 @@ export default function DemoParentPage() {
                           {feat.icon}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2">
-                            <p className="text-sm font-bold text-base-text">{feat.label}</p>
-                            {feat.badge && (
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-base-card text-base-muted">
-                                {feat.badge}
-                              </span>
-                            )}
-                          </div>
+                          <p className="text-sm font-bold text-base-text">{feat.label}</p>
                           <p className="text-xs text-base-muted mt-0.5 leading-relaxed">
                             {feat.description}
                           </p>
                         </div>
-                        {!disabled && <ChevronRight size={16} className="text-base-muted shrink-0" />}
+                        <ChevronRight size={16} className="text-base-muted shrink-0" />
                       </button>
 
                       {/* 로그인 유도 안내 박스 — 인증 필요 기능 클릭 시 카드 아래에 표시 */}
