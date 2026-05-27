@@ -64,6 +64,20 @@ function getPrevWeekStartDate(): string {
   return getLocalDateString(mon);
 }
 
+// ── weekly_activity_completions 로컬 타입 ──────────────────
+// migration 046 컬럼 정의 기준 (supabase generated type 갱신 전 임시 선언)
+type WeeklyActivityCompletionRow = {
+  id:              string;            // uuid PK
+  child_id:        string;            // uuid → child.id
+  occupation_id:   string;            // uuid → occupation_master.id
+  action_id:       string;            // uuid → occupation_student_actions.id
+  week_start_date: string;            // date (YYYY-MM-DD)
+  is_completed:    boolean;
+  completed_at:    string | null;     // timestamptz
+  created_at:      string | null;
+  updated_at:      string | null;
+};
+
 // ── 타입 ───────────────────────────────────────────────────
 
 type LikedOcc = {
@@ -533,29 +547,35 @@ export default function ReportPage() {
 
     try {
       if (newValue) {
-        // 체크: upsert (migration 046 적용 전 any 캐스팅)
-        const { error } = await supabase
+        // 체크: upsert
+        // weekly_activity_completions 타입이 generated types에 미등록 → from() as any 유지
+        // payload는 WeeklyActivityCompletionRow 기반으로 타입 명시 (as never → 제거)
+        const upsertPayload: Omit<WeeklyActivityCompletionRow, "id" | "created_at" | "updated_at"> = {
+          child_id:        report.childId,
+          occupation_id:   report.recommendedOccMasterId,
+          action_id:       report.recommendedActionId,
+          week_start_date: thisWeekStart,
+          is_completed:    true,
+          completed_at:    new Date().toISOString(),
+        };
+        const { error } = (await supabase
           .from("weekly_activity_completions" as any)
-          .upsert(
-            {
-              child_id:        report.childId,
-              occupation_id:   report.recommendedOccMasterId,
-              action_id:       report.recommendedActionId,
-              week_start_date: thisWeekStart,
-              is_completed:    true,
-              completed_at:    new Date().toISOString(),
-            } as never,
-            { onConflict: "child_id,action_id,week_start_date" }
-          ) as { error: Error | null };
+          .upsert(upsertPayload as never, { onConflict: "child_id,action_id,week_start_date" })
+        ) as { error: Error | null };
         if (error) throw error;
       } else {
         // 체크 해제: update
-        const { error } = await supabase
+        const updatePayload: Pick<WeeklyActivityCompletionRow, "is_completed" | "completed_at"> = {
+          is_completed: false,
+          completed_at: null,
+        };
+        const { error } = (await supabase
           .from("weekly_activity_completions" as any)
-          .update({ is_completed: false, completed_at: null } as never)
+          .update(updatePayload as never)
           .eq("child_id",        report.childId)
           .eq("action_id",       report.recommendedActionId)
-          .eq("week_start_date", thisWeekStart) as { error: Error | null };
+          .eq("week_start_date", thisWeekStart)
+        ) as { error: Error | null };
         if (error) throw error;
       }
 

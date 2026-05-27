@@ -35,19 +35,11 @@ export default function RefundPage() {
 
         {/* 제2조 */}
         <div className="bg-white rounded-card-lg p-5 shadow-card">
-          <h2 className="text-sm font-bold mb-3" style={{ color: "#E84B2E" }}>제2조 (14일 무료 체험 정책)</h2>
-          <ol className="flex flex-col gap-2">
-            {[
-              "최초 가입 시 14일 무료 체험 제공",
-              "무료 체험은 자동결제로 연결되지 않음",
-              "유료 전환은 회원이 직접 선택",
-            ].map((item, i) => (
-              <li key={i} className="flex gap-2 text-sm text-base-text leading-relaxed">
-                <span className="font-semibold shrink-0" style={{ color: "#E84B2E" }}>{i + 1}.</span>
-                <span>{item}</span>
-              </li>
-            ))}
-          </ol>
+          <h2 className="text-sm font-bold mb-3" style={{ color: "#E84B2E" }}>제2조 (베타 기간 운영 기준)</h2>
+          <p className="text-sm text-base-text leading-relaxed">
+            현재는 베타 운영 단계로 정식 유료 결제 전입니다.
+            환불 기준은 결제 기능 오픈 시점에 맞춰 별도 안내됩니다.
+          </p>
         </div>
 
         {/* 제3조 — 환불 기준 테이블 */}

@@ -318,11 +318,89 @@
 
 ---
 
+## 18. P1 후속 정리 결과 (2026-05-27)
+
+| 번호 | 항목 | 처리 결과 | 비고 |
+|---:|---|---|---|
+| 1 | `/refund` 14일 무료 체험 문구 | **완료** | 제2조 → "베타 기간 운영 기준"으로 교체 |
+| 2 | `weekly_activity_completions` 타입/DB 확인 | **완료 (타입 보정) + OZ 확인필요 (DB 실조회)** | 로컬 타입 선언, 경우 A 적용. DB 적용 여부는 OZ Supabase 수동 확인 필요 |
+| 3 | `/contact` 카카오 채널 URL | **OZ 수동 확인 필요** | 코드상 `https://pf.kakao.com/_xfkxfjX` 확인. 실제 채널 URL 일치 여부는 OZ 직접 확인 |
+| 4 | `student/home` 미션 ID 호환성 | **완료 (코드 구조 확인)** | 런타임 에러 없음. 기존 m1~m4 완료 상태 미반영은 의도된 동작. OZ DB 확인 쿼리 제공 |
+
+### P1 처리 상세
+
+#### 작업 1 — `/refund` 14일 무료 체험 문구 보정 (`src/app/refund/page.tsx`)
+- **변경 전**: 제2조 제목 `"14일 무료 체험 정책"`, 항목 "최초 가입 시 14일 무료 체험 제공" 외 2건
+- **변경 후**: 제2조 제목 `"베타 기간 운영 기준"`, 본문 → "현재는 베타 운영 단계로 정식 유료 결제 전입니다. 환불 기준은 결제 기능 오픈 시점에 맞춰 별도 안내됩니다."
+- **판단**: 베타 운영 안내 배너(상단)와 통일. `/pricing`, `/faq` 충돌 없음.
+
+#### 작업 2 — `weekly_activity_completions` 타입 보정 (`src/app/report/page.tsx`)
+- **migration 046 확인**: `supabase/migrations/046_add_weekly_activity_completions.sql` 존재. 컬럼: `id, child_id, occupation_id, action_id, week_start_date, is_completed, completed_at, created_at, updated_at`
+- **코드 내 `as any` 위치**: `supabase.from("weekly_activity_completions" as any)` — Supabase generated type 미갱신으로 필요한 캐스팅
+- **보정 내용**: 파일 내 `WeeklyActivityCompletionRow` 로컬 타입 선언(migration 046 컬럼 기준). upsert payload `as never` → `Omit<WeeklyActivityCompletionRow, ...>` 타입으로 교체. update payload `as never` → `Pick<WeeklyActivityCompletionRow, ...>` 타입으로 교체.
+- **DB 실조회**: 코드 환경에서 Supabase 직접 접속 불가 → OZ 수동 확인 필요
+
+**OZ 수동 확인 SQL (Supabase SQL Editor 읽기 전용):**
+```sql
+-- 테이블 존재 여부
+SELECT table_name
+FROM information_schema.tables
+WHERE table_schema = 'public'
+  AND table_name = 'weekly_activity_completions';
+
+-- 컬럼 구조
+SELECT column_name, data_type, is_nullable
+FROM information_schema.columns
+WHERE table_schema = 'public'
+  AND table_name = 'weekly_activity_completions'
+ORDER BY ordinal_position;
+
+-- 데이터 존재 여부
+SELECT count(*) AS row_count
+FROM public.weekly_activity_completions;
+```
+
+#### 작업 3 — `/contact` 카카오 채널 URL 확인
+
+- **코드상 URL**: `https://pf.kakao.com/_xfkxfjX` (contact/page.tsx line 30)
+- **이메일**: `kkumddara@ozklab.com` ✅ (서비스 문의 기준)
+- **외부 URL 접속 확인**: 불가 (코드 환경 제약)
+- **수동 확인 필요**: 카카오채널 관리자센터 → 채널명 "꿈따라_자녀 진로 탐색" → 공개 프로필 URL과 `pf.kakao.com/_xfkxfjX` 일치 여부 직접 확인 필요
+- **오래된 이메일 노출**: 없음 (`johsoappa@gmail.com` 미노출 확인)
+
+#### 작업 4 — `student/home` 미션 ID 호환성 확인
+
+- **기존 m1~m4 형식**: static ROADMAPS fallback 경로에서만 사용. `completedSet.has(m.id)` 비교에서 string 키로 안전하게 처리됨.
+- **신규 UUID 형식**: DB 파일럿 직업은 `prep-{uuid}` / `action-{uuid}` 형식. 동일 방식으로 `completedSet.has(m.id)` 비교.
+- **런타임 에러**: 없음. 기존 `checked_missions` JSONB에 m1/m2 키가 있어도 에러 발생하지 않음.
+- **진행률 0-safe**: `totalMissions > 0` 조건으로 divide-by-zero 방지 ✅
+- **의도된 동작**: 기존 m1~m4 완료 상태가 신규 UUID 미션에 반영되지 않는 것은 코드 주석에서 명시한 의도된 동작 ("기존 m1~m4 체크 기록 변환은 별도 작업 예정"). UX 영향은 있으나 런타임 오류 없음.
+- **후속 필요**: 기존 사용자의 완료 기록 마이그레이션 (별도 작업지시서)
+
+**OZ 수동 확인 SQL (Supabase SQL Editor 읽기 전용):**
+```sql
+-- 기존 m1/m2 형식 기록 보유 자녀 확인
+SELECT occupation_id, checked_missions
+FROM public.roadmap_progress
+WHERE checked_missions::text LIKE '%m1%'
+   OR checked_missions::text LIKE '%m2%'
+LIMIT 20;
+
+-- 전체 checked_missions 현황 샘플
+SELECT occupation_id, checked_missions
+FROM public.roadmap_progress
+WHERE checked_missions IS NOT NULL
+LIMIT 20;
+```
+
+---
+
 ## 이력
 
 | 날짜 | 작업 | 커밋 |
 |---|---|---|
 | 2026-05-27 | 관심 운동 기반 관련 직업 섹션 검증 완료 (SportsInterestCareerSection) | — |
-| 2026-05-27 | 베타 공개 전 최종 스모크 테스트 문서 작성 완료 | — |
+| 2026-05-27 | 베타 공개 전 최종 스모크 테스트 문서 작성 완료 | ab6e43d |
+| 2026-05-27 | P1 4건 후속 정리 완료 (refund 문구 보정, report 타입 선언, contact/student 확인) | — |
 | 2026-05-27 | 명따라 결과 → 관심 운동 CTA 구현 | e032a1e |
 | 2026-05-27 | 경진대회 사업계획서용 기능 현황 문서 작성 | c79a290 |
