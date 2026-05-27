@@ -1,8 +1,8 @@
 # 꿈따라 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 검토
 
 > 작성일: 2026-05-26  
-> 최종 업데이트: 2026-05-27 — P1 5개 직접 작성 완료; 상세 화면 정합성 점검 완료 (코드 이상 없음, 056 migration DB 미적용 확인)  
-> 상태: **C안 실행 완료** — P1 5개 `roadmaps.ts` 직접 작성 완료 / P2 5개 fallback 유지 / **056 migration OZ 적용 필요**  
+> 최종 업데이트: 2026-05-27 — P1 5개 직접 작성 완료; 상세 화면 정합성 점검 완료; `/roadmap` P1 5개 smoke test 완료 (OZ 직접 확인)  
+> 상태: **C안 전체 완료** — P1 5개 `roadmaps.ts` 직접 작성 ✅ / `/roadmap` 화면 확인 ✅ / P2 5개 fallback 유지 / **056 migration OZ 적용 필요**  
 > 관련 문서: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
 > 관련 문서: [`docs/sports-interest-selector-ux-design.md`](./sports-interest-selector-ux-design.md)  
 > 관련 문서: [`docs/occupation-100-expansion-plan.md`](./occupation-100-expansion-plan.md)  
@@ -192,10 +192,12 @@ P1 직접 작성 시 아래 기준을 준수한다.
 
 | 단계 | 내용 | 담당 | 상태 |
 |---|---|---|---|
-| 1 | P1 5개 직업 weekly roadmap 직접 작성 (`roadmaps.ts` 수정) | 크라 | 대기 |
-| 2 | tsc --noEmit + next build 통과 확인 | 크라 | 대기 |
-| 3 | `/roadmap/[id]` 화면에서 P1 5개 직업 로드맵 표시 smoke test | 크라 | 대기 |
+| 1 | P1 5개 직업 weekly roadmap 직접 작성 (`roadmaps.ts` 수정) | 크라 | ✅ 완료 (2026-05-27) |
+| 2 | tsc --noEmit + next build 통과 확인 | 크라 | ✅ 완료 (2026-05-27) |
+| 3 | `/roadmap/[id]` 화면에서 P1 5개 직업 로드맵 표시 smoke test | OZ | ✅ 완료 (2026-05-27) |
 | 4 | P2 5개 직업 작성 여부 — 실제 사용 데이터 확인 후 재결정 | OZ.대표 | 대기 |
+| 5 | **056 migration Production DB 적용** (goyo24 profile 반영) | OZ | **대기 — 필요** |
+| 6 | 명따라 결과 ↔ 관심 운동 추천 연결 검토 | 크라 | 대기 |
 
 ---
 
@@ -203,16 +205,39 @@ P1 직접 작성 시 아래 기준을 준수한다.
 
 | 항목 | 영향 |
 |---|---|
-| `src/data/roadmaps.ts` | 이번 검토 단계에서 미수정. P1 직접 작성 시 변경 대상 |
+| `src/data/roadmaps.ts` | ✅ P1 5개 직접 작성 완료 (2026-05-27, commit 772467c) |
 | `src/app/api/roadmap/weekly-missions/route.ts` | 변경 없음 — fallback 로직 그대로 활용 |
 | DB `weekly_roadmap_missions` | 변경 없음 |
 | `src/data/sportsInterestData.ts` | 변경 없음 |
 | 인증/권한/RLS | 영향 없음 |
 | 기존 직업 roadmap 데이터 | 영향 없음 |
+| `/roadmap/[id]` 화면 (P1 5개) | ✅ smoke test 완료 (OZ 직접 확인, 2026-05-27) |
 
 ---
 
-## 8. 관련 정책 원칙 재확인
+## 8. /roadmap P1 5개 smoke test 상세 결과
+
+> 확인자: OZ 직접 확인 (2026-05-27)  
+> 확인 환경: Production 배포 화면
+
+| 항목 | 확인 내용 | 결과 |
+|---|---|---|
+| `/roadmap/sports-data-analyst` | 스포츠 데이터 분석가 3단계 로드맵 표시 | ✅ |
+| `/roadmap/youth-sports-coach` | 유소년 스포츠 지도자 3단계 로드맵 표시 | ✅ |
+| `/roadmap/sports-content-planner` | 스포츠 콘텐츠 기획자 3단계 로드맵 표시 | ✅ |
+| `/roadmap/exercise-prescription-specialist` | 운동처방사 3단계 로드맵 표시 | ✅ |
+| `/roadmap/sports-safety-manager` | 스포츠 안전관리자 3단계 로드맵 표시 | ✅ |
+| 3단계 구성 | stage-current / stage-next / stage-future 표시 | ✅ |
+| 미션 표시 | 각 단계 4개 미션 텍스트 렌더링 | ✅ |
+| 미션 체크 동작 | 체크박스 체크 → 완료 처리 | ✅ |
+| ProgressCircle 상태 | 단계별 진행률 원형 표시 정상 | ✅ |
+| P2 5개 fallback 유지 | sports-tech-developer 등 P2 직업 별도 추가 없음 | ✅ |
+| 운동선수 직업군 미추가 | 축구선수·수영선수 등 운동선수 slug 없음 | ✅ |
+| 금지 표현 | "선수가 못 되면", "실패하면", "대체 직업" 없음 | ✅ |
+
+---
+
+## 9. 관련 정책 원칙 재확인
 
 - **운동 종목 ≠ 직업:** 축구, 줄넘기, 수영은 직업이 아니라 진로 탐색의 출발점. `roadmaps.ts`에 종목명으로 키를 만들지 않는다.
 - **금지 표현 준수:** weekly roadmap 미션 텍스트에서도 부정적 표현 사용 금지.

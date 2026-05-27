@@ -1,9 +1,9 @@
 # 꿈따라 대표 직업 100개 확장 설계안
 
 > 작성일: 2026-05-25  
-> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료, quizData 2차 10개 직업 30문항 작성 완료, 관심 운동 기반 진로 확장 구조 설계 문서 작성 완료, sportsInterestData.ts 정적 데이터 파일 작성 완료, weekly roadmap 직접 작성 여부 검토 완료); 2026-05-27 (P1 스포츠 생태계 5개 roadmaps.ts 직접 작성 완료 — sports-data-analyst·youth-sports-coach·sports-content-planner·exercise-prescription-specialist·sports-safety-manager)  
+> 보정일: 2026-05-25 (Supabase 실측값 반영 — 9개 카테고리 체계 확정, migration 052 철도 직업 보정 반영, migration 053·054 초안 작성 완료); 2026-05-26 (quizData 23개 직업 69문항 작성 완료, 2차 스포츠 진로 생태계 후보 10개 선정안 작성 완료, 055·056 migration 초안 작성 완료, quizData 2차 10개 직업 30문항 작성 완료, 관심 운동 기반 진로 확장 구조 설계 문서 작성 완료, sportsInterestData.ts 정적 데이터 파일 작성 완료, weekly roadmap 직접 작성 여부 검토 완료); 2026-05-27 (P1 스포츠 생태계 5개 roadmaps.ts 직접 작성 완료 — sports-data-analyst·youth-sports-coach·sports-content-planner·exercise-prescription-specialist·sports-safety-manager; /roadmap P1 5개 smoke test 완료 — OZ 직접 확인)  
 > 기준: occupation-100-expansion-audit.md 감사 결과 반영  
-> 상태: 055 migration 초안 완료(대표 직업 100개 달성), 056 migration 초안 완료(미래 참고 지표 연결) — OZ 순서대로 적용 대기
+> 상태: 055 migration 적용 완료(대표 직업 100개 달성); P1 스포츠 5개 roadmaps.ts 직접 작성 완료; /roadmap smoke test 완료 — **056 migration OZ 적용 필요** (goyo24 profile 미삽입 상태)
 
 ---
 
@@ -598,6 +598,21 @@ key = legacy_occupation_id (= URL params.id)
     - P2: 스포츠 테크 개발자, 스포츠 마케터, 수상안전요원, 아웃도어 레저 기획자, 해양레저 전문가
     - 이번 작업에서 `roadmaps.ts` 미수정 — 다음 작업지시서에서 별도 진행
 
+20. **P1 스포츠 5개 roadmaps.ts 직접 작성** ✅ (2026-05-27 완료, commit 772467c)
+    - `src/data/roadmaps.ts`에 P1 5개 직업 entry 추가 (각 3단계 × 4미션)
+    - 금지 표현("선수가 못 되면", "실패하면", "대체 직업") 없음 확인
+    - 운동선수 직업군 미추가 — 축구선수·수영선수 slug 없음 유지
+    - tsc --noEmit 0건, npm run build 성공
+    - P2 5개(sports-tech-developer·sports-marketer·water-safety-lifeguard·outdoor-leisure-planner·marine-leisure-specialist) fallback 유지
+
+21. **P1 스포츠 5개 /roadmap smoke test** ✅ (2026-05-27 완료, OZ 직접 확인)
+    - `/roadmap/sports-data-analyst` — 3단계 표시, 미션 표시, 체크 동작, ProgressCircle 정상
+    - `/roadmap/youth-sports-coach` — 3단계 표시, 미션 표시, 체크 동작, ProgressCircle 정상
+    - `/roadmap/sports-content-planner` — 3단계 표시, 미션 표시, 체크 동작, ProgressCircle 정상
+    - `/roadmap/exercise-prescription-specialist` — 3단계 표시, 미션 표시, 체크 동작, ProgressCircle 정상
+    - `/roadmap/sports-safety-manager` — 3단계 표시, 미션 표시, 체크 동작, ProgressCircle 정상
+    - smoke test PASS: 5개 URL 전체 ✅
+
 ---
 
 ## 13. 대표 직업 100개 이후 확장 방향
@@ -614,6 +629,9 @@ key = legacy_occupation_id (= URL params.id)
 | 검색 UX 보완 | `/explore` 검색에서 운동선수 키워드 입력 시 관심 운동 탐색 CTA 안내 표시 | ✅ 완료 (2026-05-26) |
 | 정적 데이터 파일 작성 | `src/data/sportsInterestData.ts` — DB 없이 빠른 연결 구현 | ✅ 완료 (2026-05-26) |
 | roadmaps 직접 작성 | 스포츠 생태계 10개 직업 weekly roadmap 직접 작성 여부 판단 | ✅ 검토 완료 (2026-05-26) — C안 P1 5개 우선 직접 작성 |
+| P1 5개 roadmaps.ts 작성 | sports-data-analyst·youth-sports-coach·sports-content-planner·exercise-prescription-specialist·sports-safety-manager | ✅ 완료 (2026-05-27, commit 772467c) |
+| P1 5개 /roadmap smoke test | 3단계 표시·미션·체크·ProgressCircle OZ 직접 확인 | ✅ PASS (2026-05-27) — 상세: sports-ecosystem-weekly-roadmap-decision.md §8 |
+| P2 5개 fallback 유지 | sports-tech-developer·sports-marketer 등 별도 추가 없음 | ✅ 유지 |
 | 명따라 결과 연결 | 명따라 관심사·성향과 관심 운동 추천 연결 여부 검토 | 낮음 |
 
 > 상세 설계: [`docs/sports-interest-career-expansion-design.md`](./sports-interest-career-expansion-design.md)  
