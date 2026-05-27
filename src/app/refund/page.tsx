@@ -128,8 +128,8 @@ export default function RefundPage() {
             </div>
             <div className="flex gap-2">
               <span className="text-base-muted shrink-0">이메일</span>
-              <a href="mailto:johsoappa@gmail.com" className="text-brand-red underline">
-                johsoappa@gmail.com
+              <a href="mailto:kkumddara@ozklab.com" className="text-brand-red underline">
+                kkumddara@ozklab.com
               </a>
             </div>
             <div className="flex gap-2">

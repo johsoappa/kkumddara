@@ -56,7 +56,7 @@ export default function ContactPage() {
 
         {/* 이메일 버튼 */}
         <a
-          href="mailto:johsoappa@gmail.com"
+          href="mailto:kkumddara@ozklab.com"
           className="rounded-card-lg p-5 shadow-card flex items-center gap-4 active:opacity-80 transition-opacity"
           style={{ backgroundColor: "#FFF0EB", border: "1.5px solid #E84B2E" }}
         >
@@ -68,7 +68,7 @@ export default function ContactPage() {
           </div>
           <div className="flex-1">
             <p className="text-sm font-bold text-base-text">이메일 문의</p>
-            <p className="text-xs text-base-muted mt-0.5">johsoappa@gmail.com</p>
+            <p className="text-xs text-base-muted mt-0.5">kkumddara@ozklab.com</p>
           </div>
           <span className="text-lg">→</span>
         </a>

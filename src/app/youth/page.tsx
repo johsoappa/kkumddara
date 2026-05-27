@@ -93,8 +93,8 @@ export default function YouthPage() {
             </div>
             <div className="flex justify-between">
               <span className="text-base-muted">이메일</span>
-              <a href="mailto:johsoappa@gmail.com" className="text-brand-red underline">
-                johsoappa@gmail.com
+              <a href="mailto:contact@ozklab.com" className="text-brand-red underline">
+                contact@ozklab.com
               </a>
             </div>
           </div>

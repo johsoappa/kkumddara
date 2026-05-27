@@ -575,5 +575,5 @@
 ---
 
 > 꿈따라 · 꿈을 찾고, 길을 만든다
-> 꿈따라.kr | OZ.K Lab 대표 OZ.Kim | johsoappa@gmail.com
+> 꿈따라.kr | OZ.K Lab 대표 OZ.Kim | contact@ozklab.com
 > 운영시간: 평일 19:00~22:00

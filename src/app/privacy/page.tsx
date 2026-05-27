@@ -89,7 +89,7 @@ const ARTICLES = [
   },
   {
     title: "제9조 (개인정보 보호책임자)",
-    manager: { name: "OZ.K Lab", title: "대표", email: "johsoappa@gmail.com" },
+    manager: { name: "OZ.K Lab", title: "대표", email: "contact@ozklab.com" },
   },
   {
     title: "제10조 (처리방침 변경)",

@@ -58,8 +58,8 @@ export default function FeedbackPage() {
               </p>
               <p className="text-xs text-base-muted">
                 이메일{" "}
-                <a href="mailto:johsoappa@gmail.com" className="font-medium underline" style={{ color: "#E84B2E" }}>
-                  johsoappa@gmail.com
+                <a href="mailto:kkumddara@ozklab.com" className="font-medium underline" style={{ color: "#E84B2E" }}>
+                  kkumddara@ozklab.com
                 </a>
               </p>
             </div>

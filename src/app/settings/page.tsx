@@ -120,7 +120,7 @@ export default function SettingsPage() {
         <div className="text-center pt-2">
           <p className="text-xs text-base-muted leading-relaxed">
             OZ.K Lab · 대표 OZ.Kim<br />
-            johsoappa@gmail.com<br />
+            contact@ozklab.com<br />
             © 2026 꿈따라. All rights reserved.
           </p>
           <p className="text-[10px] text-base-muted opacity-50 mt-1">

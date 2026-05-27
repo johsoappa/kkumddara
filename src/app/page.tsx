@@ -353,7 +353,7 @@ function LandingContent() {
                     ["서비스명",      "꿈따라"],
                     ["대표자",        "OZ.Kim"],
                     ["사업자등록번호", "337-23-02160"],
-                    ["문의",          "johsoappa@gmail.com"],
+                    ["문의",          "kkumddara@ozklab.com"],
                     ["서비스 주소",   "https://꿈따라.kr"],
                     ["카카오톡 채널", "꿈따라_자녀 진로 탐색"],
                   ] as [string, string][]
