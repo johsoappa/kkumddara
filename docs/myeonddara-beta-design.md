@@ -213,7 +213,7 @@ href:        "/myeonddara"
 | 3 | 오늘의 진로 운세 (Phase 2) | "운세" 표현 금지 |
 | 4 | weaknesses(단점) AI 생성 (Phase 2) | 부정 표현 위험 |
 | 5 | 성별 필수 입력 제거 | 현재 "male"|"female" 필수 구조 — 후속 작업 필요 |
-| 6 | 관심 직업과 명따라 연결 | 후속 작업으로 분리 |
+| 6 | 관심 직업과 명따라 연결 | 최소 CTA 구현 완료 (2026-05-27): 결과 화면 하단에 `/explore/interests/sports` 이동 버튼 추가. liked_occupations 연결은 후속 설계 필요 |
 | 7 | 결과 PDF 출력 | 미구현, 이번 베타 제외 |
 | 8 | 이메일 발송 | 미구현, 이번 베타 제외 |
 | 9 | 결제 연동 | 미구현 |
@@ -461,6 +461,8 @@ Phase 2 결과 리포트를 DB에 저장하는 구조로 변경할 경우 처리
   → sessionStorage 로드
   → 4주 + 오행 + 일간 해설 + 기질 키워드 + ...
   → "AI 기질 분석 준비 중 (Coming Soon)"
+  → [CTA] "관심 운동으로 진로를 더 넓게 살펴보세요" → /explore/interests/sports (2026-05-27 추가)
+  → 다시 분석하기 버튼
   → 면책 문구
 ```
 
@@ -553,7 +555,7 @@ Phase 2 결과 리포트를 DB에 저장하는 구조로 변경할 경우 처리
 | child 테이블에 `birth_date` 추가 | migration 필요, 별도 작업지시서 |
 | 자녀 프로필에서 생년월일 자동 불러오기 | child.birth_date 추가 후 연동 |
 | 성별 비이분법 대응 | 입력 구조 변경, 처리방침 검토 |
-| 명따라 + liked_occupations 연결 | 별도 설계 필요 |
+| 명따라 + liked_occupations 연결 | 별도 설계 필요 (최소 CTA는 2026-05-27 구현됨 — `/explore/interests/sports` 링크) |
 | 결과 리포트 DB 저장 | `myeonddara_sessions` 활용 설계 + 처리방침 검토 |
 | 결제 연동 | PG 도입 후 별도 작업지시서 |
 | PDF 출력 | 미구현, 별도 작업지시서 |

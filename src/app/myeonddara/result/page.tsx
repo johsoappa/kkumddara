@@ -507,6 +507,25 @@ export default function MyeonddaraResultPage() {
             </>
           )}
 
+          {/* ── 관심 운동 진로 탐색 CTA ──────────────────── */}
+          <div className="rounded-2xl border border-base-border bg-white p-4 flex flex-col gap-3">
+            <div className="flex items-center gap-2">
+              <span className="text-xl leading-none" aria-hidden="true">⚽</span>
+              <p className="text-sm font-bold text-base-text leading-snug">
+                관심 운동으로 진로를 더 넓게 살펴보세요
+              </p>
+            </div>
+            <p className="text-xs text-base-muted leading-relaxed">
+              운동을 좋아하는 아이라면, 좋아하는 운동을 출발점으로 어떤 직업이 연결되는지 탐색해볼 수 있어요.
+            </p>
+            <button
+              onClick={() => router.push("/explore/interests/sports")}
+              className="btn-primary text-sm"
+            >
+              관심 운동으로 진로 보기
+            </button>
+          </div>
+
           {/* ── 하단 버튼 ────────────────────────────── */}
           <div className="flex flex-col gap-3 mt-2">
             <button onClick={() => router.push("/myeonddara")} className="btn-secondary">
