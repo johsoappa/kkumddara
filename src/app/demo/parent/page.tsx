@@ -59,10 +59,28 @@ const PARENT_FEATURES = [
   },
 ];
 
+// ── 비로그인 체험 사용자 대상 기능 안내 문구 ─────────────────
+// report/myeonddara는 로그인 필요 → router.push 대신 인라인 안내 표시
+const FEATURE_HINTS: Record<string, { title: string; desc: string }> = {
+  report: {
+    title: "주간 리포트는 자녀 프로필을 만든 뒤 확인할 수 있어요.",
+    desc:  "로그인 후 아이 정보를 등록하면 이번 주 진로 탐색 현황을 주간 단위로 볼 수 있습니다.",
+  },
+  myeonddara: {
+    title: "명따라는 자녀 프로필을 만든 뒤 사용할 수 있어요.",
+    desc:  "아이의 기본 정보를 바탕으로 성향 참고 리포트를 확인할 수 있습니다.",
+  },
+};
+
+// 로그인 필요 기능 (체험 화면에서 직접 이동 불가 → 인라인 안내 표시)
+const AUTH_REQUIRED_FEATURES = new Set(["report", "myeonddara"]);
+
 export default function DemoParentPage() {
   const router = useRouter();
-  const [showPrompt, setShowPrompt] = useState(false);
-  const [copied,     setCopied]     = useState(false);
+  const [showPrompt,    setShowPrompt]    = useState(false);
+  const [copied,        setCopied]        = useState(false);
+  /** 클릭한 기능 id — 해당 카드 아래에 로그인 유도 안내 박스 표시 */
+  const [hintFeatureId, setHintFeatureId] = useState<string | null>(null);
 
   const gradeLabel     = GRADE_LABEL[DEMO_CHILD.school_grade];
   const interestLabels = DEMO_CHILD.interests
@@ -220,44 +238,76 @@ export default function DemoParentPage() {
               <h2 className="text-sm font-bold text-base-text mb-3">부모 전용 기능</h2>
               <div className="flex flex-col gap-2.5">
                 {PARENT_FEATURES.map((feat) => {
-                  const disabled = feat.badge === "준비 중";
+                  const disabled  = feat.badge === "준비 중";
+                  const needsAuth = AUTH_REQUIRED_FEATURES.has(feat.id);
+                  const showHint  = hintFeatureId === feat.id;
+
+                  const handleClick = disabled
+                    ? undefined
+                    : needsAuth
+                      // 로그인 필요 기능: 인라인 안내 박스 토글 (홈 이동 없음)
+                      ? () => setHintFeatureId(showHint ? null : feat.id)
+                      : feat.locked
+                        ? handleLockedAction
+                        : () => router.push(feat.href);
+
                   return (
-                    <button
-                      key={feat.id}
-                      onClick={
-                        disabled ? undefined
-                        : feat.locked ? handleLockedAction
-                        : () => router.push(feat.href)
-                      }
-                      className={`
-                        w-full bg-white rounded-card-lg shadow-card p-4
-                        flex items-center gap-4 text-left transition-all
-                        ${disabled
-                          ? "opacity-60 cursor-default"
-                          : "hover:shadow-card-hover active:scale-[0.99]"}
-                      `}
-                    >
-                      <div
-                        className="w-10 h-10 rounded-card flex items-center justify-center shrink-0"
-                        style={{ background: "#FFF0EB", color: "#E84B2E" }}
+                    <div key={feat.id}>
+                      <button
+                        onClick={handleClick}
+                        className={`
+                          w-full bg-white rounded-card-lg shadow-card p-4
+                          flex items-center gap-4 text-left transition-all
+                          ${disabled
+                            ? "opacity-60 cursor-default"
+                            : "hover:shadow-card-hover active:scale-[0.99]"}
+                          ${showHint ? "ring-1 ring-brand-red/30" : ""}
+                        `}
                       >
-                        {feat.icon}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="text-sm font-bold text-base-text">{feat.label}</p>
-                          {feat.badge && (
-                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-base-card text-base-muted">
-                              {feat.badge}
-                            </span>
-                          )}
+                        <div
+                          className="w-10 h-10 rounded-card flex items-center justify-center shrink-0"
+                          style={{ background: "#FFF0EB", color: "#E84B2E" }}
+                        >
+                          {feat.icon}
                         </div>
-                        <p className="text-xs text-base-muted mt-0.5 leading-relaxed">
-                          {feat.description}
-                        </p>
-                      </div>
-                      {!disabled && <ChevronRight size={16} className="text-base-muted shrink-0" />}
-                    </button>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-bold text-base-text">{feat.label}</p>
+                            {feat.badge && (
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-base-card text-base-muted">
+                                {feat.badge}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-xs text-base-muted mt-0.5 leading-relaxed">
+                            {feat.description}
+                          </p>
+                        </div>
+                        {!disabled && <ChevronRight size={16} className="text-base-muted shrink-0" />}
+                      </button>
+
+                      {/* 로그인 유도 안내 박스 — 인증 필요 기능 클릭 시 카드 아래에 표시 */}
+                      {showHint && FEATURE_HINTS[feat.id] && (
+                        <div
+                          className="mt-1.5 rounded-card-lg p-4"
+                          style={{ backgroundColor: "#FFFBEB", border: "1px solid #FDE68A" }}
+                        >
+                          <p className="text-xs font-semibold mb-1" style={{ color: "#92400E" }}>
+                            {FEATURE_HINTS[feat.id].title}
+                          </p>
+                          <p className="text-xs leading-relaxed mb-3" style={{ color: "#92400E" }}>
+                            {FEATURE_HINTS[feat.id].desc}
+                          </p>
+                          <button
+                            onClick={() => router.push("/?role=parent&step=auth")}
+                            className="w-full py-2.5 rounded-button text-xs font-bold text-white"
+                            style={{ backgroundColor: "#E84B2E" }}
+                          >
+                            로그인하고 내 아이 프로필 만들기
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -273,7 +323,7 @@ export default function DemoParentPage() {
               <ChevronRight size={16} />
             </button>
             <p className="text-center text-xs text-base-muted -mt-2">
-              14일 무료 체험 · 자동결제 없음
+              베타 기간 무료 이용 · 자동결제 없음
             </p>
 
           </div>
