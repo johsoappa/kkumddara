@@ -247,3 +247,11 @@ P1 직접 작성 시 아래 기준을 준수한다.
 ---
 
 *이 문서는 정책 검토 목적으로 작성된 문서입니다. 실제 `roadmaps.ts` 수정은 별도 작업지시서에서 진행합니다.*
+
+---
+
+## 경진대회 사업계획서용 기능 현황 정리 이력
+
+- `docs/competition-gg-publicdata-ai-feature-status.md` 문서 신규 작성 (2026-05-27)
+- P1 스포츠 5개 로드맵 smoke test PASS, P2 5개 fallback 유지 현황을 사업계획서 작성용으로 정리
+- DB/API/AI/RLS/요금제 변경 없이 문서화만 진행

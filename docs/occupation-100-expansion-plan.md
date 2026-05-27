@@ -645,3 +645,11 @@ key = legacy_occupation_id (= URL params.id)
 ---
 
 *이 문서는 Production DB 변경 없이 설계 목적으로만 작성된 문서입니다. 실제 확장 작업은 별도 migration(052~)에서 진행합니다.*
+
+---
+
+## 경진대회 사업계획서용 기능 현황 정리 이력
+
+- `docs/competition-gg-publicdata-ai-feature-status.md` 문서 신규 작성 (2026-05-27)
+- 대표 직업 100개, 관심 운동 기반 진로 탐색, 명따라 결과 CTA, P1 스포츠 로드맵 smoke test 현황을 사업계획서 작성용으로 정리
+- DB/API/AI/RLS/요금제 변경 없이 문서화만 진행

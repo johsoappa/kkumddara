@@ -971,5 +971,13 @@ const effectiveYearlyLimit = plan.myeonddara_yearly_limit < PER_CHILD_YEARLY_LIM
 
 ---
 
-*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트, 2026-05-22 스모크 테스트 준비 업데이트, 2026-05-22 yearly_limit 정책 정리 업데이트, 2026-05-22 FreePlanBox 문구 보정, 2026-05-22 Phase 2 베타 사용량 차감 유예 정책, 2026-05-23 Free 1회 체험 정책 전환.*  
+*이 문서는 2026-05-21 최초 작성, 2026-05-22 문구·사용량 정책 정리 업데이트, 2026-05-22 interestAreas 전환 업데이트, 2026-05-22 OpenAI Provider 전환 업데이트, 2026-05-22 스모크 테스트 준비 업데이트, 2026-05-22 yearly_limit 정책 정리 업데이트, 2026-05-22 FreePlanBox 문구 보정, 2026-05-22 Phase 2 베타 사용량 차감 유예 정책, 2026-05-23 Free 1회 체험 정책 전환, 2026-05-27 관심 운동 CTA 연결 구현 반영.*  
 *Phase 2 활성화, 요금제 정책 변경, child.birth_date 추가 등 주요 사항 변경 시 이 문서를 함께 갱신하세요.*
+
+---
+
+## 경진대회 사업계획서용 기능 현황 정리 이력
+
+- `docs/competition-gg-publicdata-ai-feature-status.md` 문서 신규 작성 (2026-05-27)
+- 명따라 Phase 1/2 현황, AI 활용 구조, 관심 운동 CTA 연결, 면책 안내 설계를 사업계획서 작성용으로 정리
+- DB/API/AI/RLS/요금제 변경 없이 문서화만 진행
