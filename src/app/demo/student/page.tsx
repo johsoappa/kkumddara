@@ -127,6 +127,9 @@ export default function DemoStudentPage() {
                 <br />
                 <span style={{ color: "#E84B2E" }}>꿈따라</span> 나아가요
               </h1>
+              <p className="mt-1.5 text-xs text-base-muted leading-relaxed">
+                아직 꿈이 정해지지 않아도 괜찮아요. 좋아하는 것부터 탐색해 보세요.
+              </p>
               {/* 수정 칩 → 게스트는 로그인 유도 */}
               <button
                 onClick={() => setShowPrompt(true)}
@@ -274,7 +277,7 @@ export default function DemoStudentPage() {
               <ChevronRight size={16} />
             </button>
             <p className="text-center text-xs text-base-muted -mt-2">
-              14일 무료 체험 · 자동결제 없음
+              베타 기간 무료 이용 · 자동결제 없음
             </p>
 
           </div>

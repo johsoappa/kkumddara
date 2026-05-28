@@ -51,7 +51,7 @@ interface AiConsultResponse {
 const WELCOME_MSG: ChatMessage = {
   role:    "system",
   content:
-    "안녕하세요! 꿈따라 AI 진로 설계 도우미예요.\n자녀의 진로 탐색이나 준비 방향에 대해 궁금한 점을 자유롭게 물어보세요.\n\n예시: \"중2 아이가 IT에 관심이 있는데, 어떤 활동을 해볼 수 있을까요?\"",
+    "안녕하세요! 꿈따라 AI 진로 탐색 도우미예요.\n아이의 관심사나 진로 탐색 방향에 대해 궁금한 점을 자유롭게 물어보세요.\n\n예시: \"중2 아이가 IT에 관심이 있는데, 어떤 활동을 해볼 수 있을까요?\"",
 };
 
 // ── AI 상담 준비중 화면 ──────────────────────────────────
@@ -337,7 +337,7 @@ function CounselingPageImpl() {
           <div className="flex-1 min-w-0">
             <h1 className="text-sm font-bold text-base-text">AI 진로 상담</h1>
             <p className="text-xs text-base-muted">
-              {childId ? "자녀 맞춤형 상담" : "진로 설계 도우미"}
+              {childId ? "자녀 관심사 기반 탐색 상담" : "진로 탐색 도우미"}
             </p>
           </div>
 
