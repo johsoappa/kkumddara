@@ -344,3 +344,4 @@
 | 날짜 | 작업 | 비고 |
 |---|---|---|
 | 2026-05-30 | `docs/beta-operation-guide.md` 신규 작성 | 베타 운영 단계 진입 준비 완료 |
+| 2026-05-30 | `docs/production-beta-readiness-check.md` 신규 작성 | 최종 실사용 점검 완료. 판정: A. 베타 운영 가능 |

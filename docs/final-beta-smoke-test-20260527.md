@@ -464,6 +464,18 @@ LIMIT 20;
 | 2026-05-30 | 베타 운영 관리 체계 문서화 (`docs/beta-operation-guide.md` 신규 작성) | — |
 | 2026-05-28 | 꿈따라 핵심 컨셉 재정렬 — 좋아하는 것 기반 진로 탐색 문구 점검 및 최소 보정 | f9d1aba |
 | 2026-05-28 | 학부모 체험하기 AI 진로 상담 카드 최신화 (준비중 배지 제거, 인라인 안내 추가) | 7fa9270 |
+## 23. 프로덕션 베타 운영 전 최종 실사용 점검 (2026-05-30)
+
+- `docs/production-beta-readiness-check.md` 신규 작성
+- 코드 기준 정적 분석 완료: 금지 표현 0건, tsc PASS, build PASS
+- P0 이슈 없음 → **판정: A. 베타 운영 가능**
+- 실 브라우저 확인은 OZ 수동 확인 필요 (§3 필수 6개 항목)
+- DB/API/Auth/RLS/AI/요금제 변경 없음
+
+---
+
+| 2026-05-30 | 프로덕션 베타 운영 전 최종 실사용 점검 완료 (`docs/production-beta-readiness-check.md`) | — |
+| 2026-05-30 | 베타 운영 관리 체계 문서화 (`docs/beta-operation-guide.md` 신규 작성) | e466aca |
 | 2026-05-28 | 학부모 체험하기 카드 라우팅 오류 수정 (report/myeonddara 인라인 안내 전환) | ea555a3 |
 | 2026-05-27 | 관심 운동 기반 관련 직업 섹션 검증 완료 (SportsInterestCareerSection) | — |
 | 2026-05-27 | 베타 공개 전 최종 스모크 테스트 문서 작성 완료 | ab6e43d |
