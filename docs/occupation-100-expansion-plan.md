@@ -648,6 +648,68 @@ key = legacy_occupation_id (= URL params.id)
 
 ---
 
+## 대표 직업 100개 로드맵 커버리지 보강 완료 (2026-05-28)
+
+### 커버리지 감사 결과
+
+| 구분 | 개수 | 비고 |
+|---|---:|---|
+| 대표 직업 | 100 | occupation_master is_representative=true 기준 |
+| 보강 전 전용 로드맵 | 73 | roadmaps.ts key 기준 (P1 스포츠 5개 포함) |
+| 보강 대상 (미작성) | 29 | 1차 확장 22개 + 2차 P2 스포츠 5개 + historian + train-driver |
+| 보강 후 전용 로드맵 | 102 | 대표 직업 100개 전체 커버 + elementary-teacher·video-creator(기존) |
+
+| 항목 | 보강 전 | 보강 후 |
+|---|---:|---:|
+| 대표 직업 | 100 | 100 |
+| 전용 로드맵 보유 대표 직업 | 73 | 100 |
+| 전용 로드맵 미작성 대표 직업 | 27 | 0 |
+| 세부 직업 | 14 | 14 |
+
+### 추가된 29개 직업
+
+| slug | 직업명 | 카테고리 |
+|---|---|---|
+| historian | 역사학자 | 교육·사회 |
+| train-driver | 철도 기관사 | 항공·운송 |
+| climate-data-analyst | 기후데이터 분석가 | 환경·미래산업 |
+| resource-recycling-specialist | 자원순환 전문가 | 환경·미래산업 |
+| green-building-specialist | 녹색건축 전문가 | 환경·미래산업 |
+| environmental-consultant | 환경 컨설턴트 | 환경·미래산업 |
+| disaster-safety-manager | 재난안전관리자 | 공공·안전 |
+| probation-officer | 보호관찰관 | 공공·안전 |
+| correctional-officer | 교정직 공무원 | 공공·안전 |
+| public-administration-officer | 일반행정 공무원 | 공공·안전 |
+| aircraft-maintenance-technician | 항공정비사 | 항공·운송 |
+| logistics-manager | 물류관리사 | 항공·운송 |
+| video-director | 영상 감독 | 콘텐츠·미디어 |
+| game-planner | 게임 기획자 | 콘텐츠·미디어 |
+| sports-commentator | 스포츠 해설가 | 콘텐츠·미디어 |
+| human-resources-specialist | 인사담당자 | 비즈니스·경영 |
+| financial-planner | 재무설계사 | 비즈니스·경영 |
+| product-manager | 프로덕트 매니저 | 비즈니스·경영 |
+| lifelong-education-specialist | 평생교육사 | 교육·사회 |
+| youth-worker | 청소년지도사 | 교육·사회 |
+| after-school-teacher | 방과후교사 | 교육·사회 |
+| network-engineer | 네트워크 엔지니어 | IT·기술 |
+| mobile-app-developer | 모바일 앱 개발자 | IT·기술 |
+| radiologic-technologist | 방사선사 | 의료·과학 |
+| sports-tech-developer | 스포츠 테크 개발자 | IT·기술 |
+| sports-marketer | 스포츠 마케터 | 비즈니스·경영 |
+| outdoor-leisure-planner | 아웃도어 레저 기획자 | 환경·미래산업 |
+| marine-leisure-specialist | 해양레저 전문가 | 환경·미래산업 |
+| water-safety-lifeguard | 수상안전요원 | 공공·안전 |
+
+### 로드맵 작성 기준
+
+- 기존 `roadmaps.ts` schema 그대로 사용 (3단계: current/next/future, 미션 4개씩)
+- 각 단계: 탐색하기 → 나와 연결해보기 → 작은 프로젝트 해보기
+- 금지 표현 없음 확인 (선수가 못 되면·실패하면·대체 직업·보장·확정 등)
+- 초등 고학년~중학생 수준, 탐색·관찰·대화 중심
+- tsc PASS, npm run build PASS
+
+---
+
 ## 경진대회 사업계획서용 기능 현황 정리 이력
 
 - `docs/competition-gg-publicdata-ai-feature-status.md` 문서 신규 작성 (2026-05-27)

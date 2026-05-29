@@ -3160,6 +3160,1282 @@ export const ROADMAPS: Record<string, RoadmapData> = {
     ],
   },
 
+  // ── 역사학자 ─────────────────────────────────────────
+  "historian": {
+    id: "historian-roadmap",
+    occupationId: "historian",
+    occupationName: "역사학자",
+    occupationEmoji: "📜",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "hist-m1", text: "관심 있는 역사 사건 1가지를 골라 10분 조사해보기" },
+          { id: "hist-m2", text: "역사 다큐멘터리 1편 보고 새롭게 알게 된 점 적기" },
+          { id: "hist-m3", text: "역사학자가 하는 일을 3가지 찾아보기" },
+          { id: "hist-m4", text: "가족에게 좋아하는 역사 이야기 들려주기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "hist-m5", text: "역사 관련 책이나 잡지 1권 읽기" },
+          { id: "hist-m6", text: "박물관이나 역사 유적지 방문하거나 온라인 투어 해보기" },
+          { id: "hist-m7", text: "내가 사는 지역의 역사 자료 조사하기" },
+          { id: "hist-m8", text: "역사학자에게 필요한 능력 3가지 적어보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "hist-m9",  text: "관심 있는 역사 주제로 간단한 보고서 만들기" },
+          { id: "hist-m10", text: "역사학 관련 학과 진학 경로 조사해보기" },
+          { id: "hist-m11", text: "역사 퀴즈나 역사 동아리 활동 탐색하기" },
+          { id: "hist-m12", text: "부모님과 역사학자의 일상에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 철도 기관사 ────────────────────────────────────────
+  "train-driver": {
+    id: "train-driver-roadmap",
+    occupationId: "train-driver",
+    occupationName: "철도 기관사",
+    occupationEmoji: "🚆",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "td-m1", text: "철도 기관사가 하는 일을 3가지 찾아보기" },
+          { id: "td-m2", text: "열차 관련 영상을 1편 보고 흥미로운 점 적기" },
+          { id: "td-m3", text: "기차나 지하철을 타며 기관사의 역할 생각해보기" },
+          { id: "td-m4", text: "철도 관련 직업을 3가지 조사해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "td-m5", text: "철도 기관사가 되려면 어떤 절차가 필요한지 조사하기" },
+          { id: "td-m6", text: "기계·전자 과목 중 흥미 있는 것 탐색하기" },
+          { id: "td-m7", text: "철도 박물관이나 교통 체험 시설 방문 계획 세우기" },
+          { id: "td-m8", text: "안전 운행이 중요한 이유를 가족에게 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "td-m9",  text: "철도 관련 학과나 진학 경로 찾아보기" },
+          { id: "td-m10", text: "열차 안전 수칙을 스스로 정리해보기" },
+          { id: "td-m11", text: "나와 철도 기관사가 연결되는 점 적어보기" },
+          { id: "td-m12", text: "부모님과 철도 기관사의 일에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 기후데이터 분석가 ──────────────────────────────────
+  "climate-data-analyst": {
+    id: "climate-data-analyst-roadmap",
+    occupationId: "climate-data-analyst",
+    occupationName: "기후데이터 분석가",
+    occupationEmoji: "🌡️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "cda-m1", text: "기후데이터 분석가가 하는 일을 3가지 찾아보기" },
+          { id: "cda-m2", text: "기후 변화 관련 뉴스 1개를 읽고 요약하기" },
+          { id: "cda-m3", text: "날씨 앱에서 기온·강수량 데이터를 1주일 기록하기" },
+          { id: "cda-m4", text: "기후 관련 유튜브 채널 1개 구독하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "cda-m5", text: "엑셀이나 스프레드시트로 기온 변화 그래프 만들어보기" },
+          { id: "cda-m6", text: "기후 데이터를 분석하는 데 필요한 능력 3가지 적기" },
+          { id: "cda-m7", text: "기후 관련 책이나 자료 1권 읽기" },
+          { id: "cda-m8", text: "환경·과학 동아리 활동 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "cda-m9",  text: "지역 기후 데이터를 찾아 간단한 보고서 작성하기" },
+          { id: "cda-m10", text: "기후데이터 분석가 관련 학과 진학 경로 조사하기" },
+          { id: "cda-m11", text: "기후 데이터를 다루는 직업 3가지 비교해보기" },
+          { id: "cda-m12", text: "부모님과 기후 변화와 직업의 연결에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 자원순환 전문가 ────────────────────────────────────
+  "resource-recycling-specialist": {
+    id: "resource-recycling-specialist-roadmap",
+    occupationId: "resource-recycling-specialist",
+    occupationName: "자원순환 전문가",
+    occupationEmoji: "♻️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "rrs-m1", text: "자원순환 전문가가 하는 일을 3가지 찾아보기" },
+          { id: "rrs-m2", text: "집에서 1주일 동안 분리수거 항목 기록하기" },
+          { id: "rrs-m3", text: "재활용 관련 영상 1편 보고 새롭게 알게 된 점 적기" },
+          { id: "rrs-m4", text: "환경 관련 뉴스 기사 1개 읽고 요약하기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "rrs-m5", text: "내가 사는 지역 자원순환 센터가 어디 있는지 알아보기" },
+          { id: "rrs-m6", text: "업사이클링 아이디어 1가지 직접 실천해보기" },
+          { id: "rrs-m7", text: "자원순환 전문가에게 필요한 능력 3가지 적기" },
+          { id: "rrs-m8", text: "환경 관련 동아리나 봉사 활동 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "rrs-m9",  text: "학교나 집에서 쓰레기를 줄이는 실천 방안 5가지 만들기" },
+          { id: "rrs-m10", text: "자원순환 관련 학과나 진학 경로 찾아보기" },
+          { id: "rrs-m11", text: "자원순환 관련 직업을 3가지 비교해보기" },
+          { id: "rrs-m12", text: "부모님과 함께 자원순환 실천 아이디어 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 녹색건축 전문가 ────────────────────────────────────
+  "green-building-specialist": {
+    id: "green-building-specialist-roadmap",
+    occupationId: "green-building-specialist",
+    occupationName: "녹색건축 전문가",
+    occupationEmoji: "🏗️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "gbs-m1", text: "녹색건축 전문가가 하는 일을 3가지 찾아보기" },
+          { id: "gbs-m2", text: "친환경 건물 사례를 인터넷에서 1가지 찾아보기" },
+          { id: "gbs-m3", text: "건물이 환경에 미치는 영향에 대해 조사하기" },
+          { id: "gbs-m4", text: "가족에게 녹색건축이 무엇인지 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "gbs-m5", text: "태양열·단열 등 친환경 건축 기술 3가지 조사하기" },
+          { id: "gbs-m6", text: "건축·환경 관련 도서 1권 읽기" },
+          { id: "gbs-m7", text: "녹색건축 전문가에게 필요한 능력 3가지 적기" },
+          { id: "gbs-m8", text: "과학·수학·미술 중 이 직업과 연결되는 과목 찾기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "gbs-m9",  text: "친환경 집 설계 아이디어를 그림이나 글로 표현하기" },
+          { id: "gbs-m10", text: "녹색건축 관련 학과 진학 경로 조사하기" },
+          { id: "gbs-m11", text: "건축·환경 관련 직업 3가지 비교해보기" },
+          { id: "gbs-m12", text: "부모님과 친환경 건물의 필요성에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 환경 컨설턴트 ──────────────────────────────────────
+  "environmental-consultant": {
+    id: "environmental-consultant-roadmap",
+    occupationId: "environmental-consultant",
+    occupationName: "환경 컨설턴트",
+    occupationEmoji: "🌿",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "ec-m1", text: "환경 컨설턴트가 하는 일을 3가지 찾아보기" },
+          { id: "ec-m2", text: "환경 문제 뉴스 1개 읽고 느낀 점 적기" },
+          { id: "ec-m3", text: "환경 관련 유튜브 채널 1개 구독하기" },
+          { id: "ec-m4", text: "컨설턴트의 역할을 쉬운 말로 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "ec-m5", text: "학교나 집 주변에서 환경 문제를 1가지 찾고 해결 아이디어 적기" },
+          { id: "ec-m6", text: "환경 컨설턴트가 활용하는 분야 3가지 조사하기" },
+          { id: "ec-m7", text: "환경·생태 봉사활동 탐색하기" },
+          { id: "ec-m8", text: "환경 컨설턴트에게 필요한 능력 3가지 적기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "ec-m9",  text: "학교 환경 개선 아이디어를 보고서 형식으로 만들기" },
+          { id: "ec-m10", text: "환경 컨설팅 관련 학과나 진학 경로 조사하기" },
+          { id: "ec-m11", text: "환경 관련 직업 3가지를 비교해 표로 정리하기" },
+          { id: "ec-m12", text: "부모님과 환경 컨설턴트가 하는 일에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 재난안전관리자 ─────────────────────────────────────
+  "disaster-safety-manager": {
+    id: "disaster-safety-manager-roadmap",
+    occupationId: "disaster-safety-manager",
+    occupationName: "재난안전관리자",
+    occupationEmoji: "🦺",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "dsm-m1", text: "재난안전관리자가 하는 일을 3가지 찾아보기" },
+          { id: "dsm-m2", text: "우리 학교나 집의 대피 경로를 확인해보기" },
+          { id: "dsm-m3", text: "재난 관련 뉴스 1개 읽고 느낀 점 적기" },
+          { id: "dsm-m4", text: "가족에게 재난안전관리자 역할을 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "dsm-m5", text: "재난 유형 3가지(지진·화재·홍수)와 대응 방법 조사하기" },
+          { id: "dsm-m6", text: "안전 수칙을 정리해 가족과 공유하기" },
+          { id: "dsm-m7", text: "재난안전관리자에게 필요한 능력 3가지 적기" },
+          { id: "dsm-m8", text: "안전 관련 동아리나 캠프 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "dsm-m9",  text: "학교 안전 점검 체크리스트를 직접 만들어보기" },
+          { id: "dsm-m10", text: "재난안전 관련 학과나 진학 경로 조사하기" },
+          { id: "dsm-m11", text: "소방관·경찰관·재난안전관리자의 역할 차이 정리하기" },
+          { id: "dsm-m12", text: "부모님과 가정 재난 대비 계획 함께 세워보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 보호관찰관 ─────────────────────────────────────────
+  "probation-officer": {
+    id: "probation-officer-roadmap",
+    occupationId: "probation-officer",
+    occupationName: "보호관찰관",
+    occupationEmoji: "⚖️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "po-m1", text: "보호관찰관이 하는 일을 3가지 찾아보기" },
+          { id: "po-m2", text: "사회 복귀 지원이 왜 중요한지 뉴스로 알아보기" },
+          { id: "po-m3", text: "법무부 또는 보호관찰 관련 직업을 조사하기" },
+          { id: "po-m4", text: "가족에게 보호관찰관 역할을 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "po-m5", text: "사회복지·심리·법학 중 흥미 있는 분야 탐색하기" },
+          { id: "po-m6", text: "보호관찰관에게 필요한 능력 3가지 적기" },
+          { id: "po-m7", text: "사회 정의·공공 서비스에 관심 있는 이유 적어보기" },
+          { id: "po-m8", text: "지역 사회 봉사활동 1가지 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "po-m9",  text: "법무부·보호관찰 관련 공공 직업 진학 경로 조사하기" },
+          { id: "po-m10", text: "사회복지사·경찰관·보호관찰관 역할 차이 표로 정리하기" },
+          { id: "po-m11", text: "나와 이 직업이 연결되는 점을 적어보기" },
+          { id: "po-m12", text: "부모님과 보호관찰관의 역할에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 교정직 공무원 ──────────────────────────────────────
+  "correctional-officer": {
+    id: "correctional-officer-roadmap",
+    occupationId: "correctional-officer",
+    occupationName: "교정직 공무원",
+    occupationEmoji: "🏛️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "cor-m1", text: "교정직 공무원이 하는 일을 3가지 찾아보기" },
+          { id: "cor-m2", text: "교도소와 교정 행정의 역할에 대해 조사하기" },
+          { id: "cor-m3", text: "공공 안전 관련 직업을 3가지 알아보기" },
+          { id: "cor-m4", text: "가족에게 교정직 공무원의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "cor-m5", text: "교정직 공무원이 되기 위한 시험·절차 조사하기" },
+          { id: "cor-m6", text: "법학·사회복지·심리학 중 관심 있는 분야 탐색하기" },
+          { id: "cor-m7", text: "교정직 공무원에게 필요한 능력 3가지 적기" },
+          { id: "cor-m8", text: "나와 이 직업이 연결되는 이유 적어보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "cor-m9",  text: "교정직 공무원 관련 학과나 진학 경로 조사하기" },
+          { id: "cor-m10", text: "교정직·보호관찰관·사회복지사 역할 차이 표로 정리하기" },
+          { id: "cor-m11", text: "공공 봉사직 직업 탐색 보고서 간단히 만들기" },
+          { id: "cor-m12", text: "부모님과 공공 안전 직업의 중요성에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 일반행정 공무원 ────────────────────────────────────
+  "public-administration-officer": {
+    id: "public-administration-officer-roadmap",
+    occupationId: "public-administration-officer",
+    occupationName: "일반행정 공무원",
+    occupationEmoji: "🏢",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "pao-m1", text: "일반행정 공무원이 하는 일을 3가지 찾아보기" },
+          { id: "pao-m2", text: "주민센터나 구청이 어떤 서비스를 제공하는지 알아보기" },
+          { id: "pao-m3", text: "행정직 공무원과 관련 직업을 3가지 비교하기" },
+          { id: "pao-m4", text: "가족에게 공무원의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "pao-m5", text: "공무원 시험 준비 과정과 필요한 과목 조사하기" },
+          { id: "pao-m6", text: "행정학·사회학·법학 중 흥미 있는 분야 탐색하기" },
+          { id: "pao-m7", text: "일반행정 공무원에게 필요한 능력 3가지 적기" },
+          { id: "pao-m8", text: "지역 사회를 위해 내가 할 수 있는 작은 실천 적어보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "pao-m9",  text: "일반행정 공무원 관련 학과나 진학 경로 조사하기" },
+          { id: "pao-m10", text: "행정직·경찰·교정직 공무원 역할 차이 표로 정리하기" },
+          { id: "pao-m11", text: "내가 공공서비스를 개선한다면 어떤 것을 고치고 싶은지 적기" },
+          { id: "pao-m12", text: "부모님과 공무원 직업의 특성과 장단점에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 항공정비사 ─────────────────────────────────────────
+  "aircraft-maintenance-technician": {
+    id: "aircraft-maintenance-technician-roadmap",
+    occupationId: "aircraft-maintenance-technician",
+    occupationName: "항공정비사",
+    occupationEmoji: "✈️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "amt-m1", text: "항공정비사가 하는 일을 3가지 찾아보기" },
+          { id: "amt-m2", text: "비행기 구조에 대한 영상을 1편 보고 흥미로운 점 적기" },
+          { id: "amt-m3", text: "항공기 관련 직업을 3가지 알아보기" },
+          { id: "amt-m4", text: "가족에게 항공정비사의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "amt-m5", text: "항공정비사 자격증 취득 과정 조사하기" },
+          { id: "amt-m6", text: "기계·전자·물리 과목 중 흥미 있는 것 탐색하기" },
+          { id: "amt-m7", text: "항공정비사에게 필요한 능력 3가지 적기" },
+          { id: "amt-m8", text: "항공 관련 체험 프로그램이나 박물관 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "amt-m9",  text: "항공정비 관련 학과나 진학 경로 조사하기" },
+          { id: "amt-m10", text: "항공정비사·조종사·항공관제사 역할 차이 표로 정리하기" },
+          { id: "amt-m11", text: "간단한 기계 모형 또는 드론 키트를 탐색해보기" },
+          { id: "amt-m12", text: "부모님과 항공 산업과 정비사의 중요성에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 물류관리사 ─────────────────────────────────────────
+  "logistics-manager": {
+    id: "logistics-manager-roadmap",
+    occupationId: "logistics-manager",
+    occupationName: "물류관리사",
+    occupationEmoji: "📦",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "lm-m1", text: "물류관리사가 하는 일을 3가지 찾아보기" },
+          { id: "lm-m2", text: "인터넷 쇼핑몰에서 상품이 배달되는 과정 조사하기" },
+          { id: "lm-m3", text: "물류 관련 직업을 3가지 알아보기" },
+          { id: "lm-m4", text: "가족에게 물류관리사의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "lm-m5", text: "물류 관련 용어 5가지 찾아서 정리하기" },
+          { id: "lm-m6", text: "경영·경제·수학 과목 중 이 직업과 연결되는 과목 탐색하기" },
+          { id: "lm-m7", text: "물류관리사에게 필요한 능력 3가지 적기" },
+          { id: "lm-m8", text: "공급망이 무엇인지 쉽게 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "lm-m9",  text: "물류관리사 관련 학과나 진학 경로 조사하기" },
+          { id: "lm-m10", text: "물류·유통·경영 관련 직업 3가지 비교 표 만들기" },
+          { id: "lm-m11", text: "물건이 공장에서 집까지 오는 여정을 그림이나 글로 표현하기" },
+          { id: "lm-m12", text: "부모님과 물류 직업의 일상과 중요성에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 영상 감독 ──────────────────────────────────────────
+  "video-director": {
+    id: "video-director-roadmap",
+    occupationId: "video-director",
+    occupationName: "영상 감독",
+    occupationEmoji: "🎬",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "vd-m1", text: "영상 감독이 하는 일을 3가지 찾아보기" },
+          { id: "vd-m2", text: "좋아하는 영화·드라마를 보며 연출 기법 1가지 관찰하기" },
+          { id: "vd-m3", text: "영상 관련 직업(감독·편집·촬영)을 3가지 비교하기" },
+          { id: "vd-m4", text: "스마트폰으로 짧은 영상 1편 촬영해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "vd-m5", text: "영상 편집 기초 튜토리얼 1개 따라해보기" },
+          { id: "vd-m6", text: "좋아하는 영상 작품의 감독·제작 방식 조사하기" },
+          { id: "vd-m7", text: "영상 감독에게 필요한 능력 3가지 적기" },
+          { id: "vd-m8", text: "영상·미디어 동아리나 활동 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "vd-m9",  text: "가족이나 친구를 위한 1분짜리 영상 제작하기" },
+          { id: "vd-m10", text: "영상·미디어·영화 관련 학과 진학 경로 조사하기" },
+          { id: "vd-m11", text: "내가 만들고 싶은 영상의 주제와 내용 기획해보기" },
+          { id: "vd-m12", text: "부모님과 좋아하는 영상 작품과 감독 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 게임 기획자 ────────────────────────────────────────
+  "game-planner": {
+    id: "game-planner-roadmap",
+    occupationId: "game-planner",
+    occupationName: "게임 기획자",
+    occupationEmoji: "🎮",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "gp-m1", text: "게임 기획자가 하는 일을 3가지 찾아보기" },
+          { id: "gp-m2", text: "좋아하는 게임을 플레이하며 재밌는 요소 3가지 적기" },
+          { id: "gp-m3", text: "게임 개발 팀에는 어떤 직업들이 있는지 알아보기" },
+          { id: "gp-m4", text: "가족에게 게임 기획자의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "gp-m5", text: "좋아하는 게임의 규칙과 시스템을 분석해 적기" },
+          { id: "gp-m6", text: "게임 기획자에게 필요한 능력 3가지 적기" },
+          { id: "gp-m7", text: "간단한 보드게임 아이디어를 기획해보기" },
+          { id: "gp-m8", text: "게임·IT 관련 동아리나 활동 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "gp-m9",  text: "짧은 게임 기획서(배경·규칙·목표)를 글로 작성해보기" },
+          { id: "gp-m10", text: "게임 기획·개발 관련 학과 진학 경로 조사하기" },
+          { id: "gp-m11", text: "게임 기획자·개발자·디자이너 역할 차이 표로 정리하기" },
+          { id: "gp-m12", text: "부모님과 게임 기획자의 하루 일과에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 스포츠 해설가 ──────────────────────────────────────
+  "sports-commentator": {
+    id: "sports-commentator-roadmap",
+    occupationId: "sports-commentator",
+    occupationName: "스포츠 해설가",
+    occupationEmoji: "🎙️",
+    grade: "중1",
+    stages: [
+      {
+        id: "sc-m-stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "sc-m1", text: "스포츠 해설가가 하는 일을 3가지 찾아보기" },
+          { id: "sc-m2", text: "좋아하는 스포츠 중계를 보며 해설가의 표현 방식 관찰하기" },
+          { id: "sc-m3", text: "해설가와 캐스터의 차이를 조사해보기" },
+          { id: "sc-m4", text: "가족에게 좋아하는 스포츠 경기를 간단히 해설해보기" },
+        ],
+      },
+      {
+        id: "sc-m-stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "sc-m5", text: "좋아하는 스포츠의 규칙과 용어 10개 정리하기" },
+          { id: "sc-m6", text: "스포츠 해설가에게 필요한 능력 3가지 적기" },
+          { id: "sc-m7", text: "스포츠 중계 유튜브 채널 1개 구독하고 표현 방식 메모하기" },
+          { id: "sc-m8", text: "체육·국어·미디어 과목 중 이 직업과 연결되는 것 찾기" },
+        ],
+      },
+      {
+        id: "sc-m-stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "sc-m9",  text: "좋아하는 경기 장면을 직접 해설해보고 녹음하기" },
+          { id: "sc-m10", text: "스포츠 미디어·방송 관련 학과 진학 경로 조사하기" },
+          { id: "sc-m11", text: "해설가·기자·PD 역할 차이 표로 정리하기" },
+          { id: "sc-m12", text: "부모님과 스포츠 해설가의 일에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 인사담당자 ─────────────────────────────────────────
+  "human-resources-specialist": {
+    id: "human-resources-specialist-roadmap",
+    occupationId: "human-resources-specialist",
+    occupationName: "인사담당자",
+    occupationEmoji: "🤝",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "hrs-m1", text: "인사담당자가 하는 일을 3가지 찾아보기" },
+          { id: "hrs-m2", text: "회사에서 채용·교육을 담당하는 사람의 역할 조사하기" },
+          { id: "hrs-m3", text: "경영·인사 관련 직업을 3가지 알아보기" },
+          { id: "hrs-m4", text: "가족에게 인사담당자의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "hrs-m5", text: "인사담당자에게 필요한 능력 3가지 적기" },
+          { id: "hrs-m6", text: "학교에서 친구들의 의견을 모아본 경험 정리하기" },
+          { id: "hrs-m7", text: "경영학·심리학·사회학 중 흥미 있는 과목 탐색하기" },
+          { id: "hrs-m8", text: "좋은 팀을 만드는 데 중요한 요소 3가지 적기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "hrs-m9",  text: "인사담당자 관련 학과나 진학 경로 조사하기" },
+          { id: "hrs-m10", text: "인사담당자·경영컨설턴트·사회복지사 역할 차이 정리하기" },
+          { id: "hrs-m11", text: "내가 팀장이라면 어떤 사람을 뽑고 싶은지 기준 적어보기" },
+          { id: "hrs-m12", text: "부모님과 인사담당자의 역할에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 재무설계사 ─────────────────────────────────────────
+  "financial-planner": {
+    id: "financial-planner-roadmap",
+    occupationId: "financial-planner",
+    occupationName: "재무설계사",
+    occupationEmoji: "💰",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "fp-m1", text: "재무설계사가 하는 일을 3가지 찾아보기" },
+          { id: "fp-m2", text: "용돈을 1주일 동안 기록하며 수입·지출 파악하기" },
+          { id: "fp-m3", text: "금융·재무 관련 직업을 3가지 알아보기" },
+          { id: "fp-m4", text: "가족에게 재무설계사의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "fp-m5", text: "저축·소비·투자의 차이를 쉬운 말로 설명해보기" },
+          { id: "fp-m6", text: "수학·경제 과목 중 이 직업과 연결되는 것 탐색하기" },
+          { id: "fp-m7", text: "재무설계사에게 필요한 능력 3가지 적기" },
+          { id: "fp-m8", text: "경제·금융 관련 책이나 유튜브 채널 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "fp-m9",  text: "1개월 용돈 계획표를 직접 만들어 실천해보기" },
+          { id: "fp-m10", text: "재무설계사 관련 학과나 진학 경로 조사하기" },
+          { id: "fp-m11", text: "재무설계사·회계사·세무사 역할 차이 표로 정리하기" },
+          { id: "fp-m12", text: "부모님과 돈 관리와 재무설계의 중요성에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 프로덕트 매니저 ────────────────────────────────────
+  "product-manager": {
+    id: "product-manager-roadmap",
+    occupationId: "product-manager",
+    occupationName: "프로덕트 매니저",
+    occupationEmoji: "🗂️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "pm-m1", text: "프로덕트 매니저(PM)가 하는 일을 3가지 찾아보기" },
+          { id: "pm-m2", text: "평소에 자주 쓰는 앱을 분석하며 개선하고 싶은 점 적기" },
+          { id: "pm-m3", text: "IT·경영 관련 직업을 3가지 알아보기" },
+          { id: "pm-m4", text: "가족에게 PM의 역할을 쉽게 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "pm-m5", text: "좋아하는 앱이나 서비스의 장점·단점 5가지 적기" },
+          { id: "pm-m6", text: "PM에게 필요한 능력 3가지 적기" },
+          { id: "pm-m7", text: "IT·경영 관련 유튜브 채널 1개 구독하기" },
+          { id: "pm-m8", text: "팀 프로젝트에서 조율과 기획 역할을 해본 경험 적기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "pm-m9",  text: "내가 만들고 싶은 앱·서비스 아이디어를 기획서로 적어보기" },
+          { id: "pm-m10", text: "PM 관련 학과나 진학 경로 조사하기" },
+          { id: "pm-m11", text: "PM·UX 디자이너·개발자 역할 차이 표로 정리하기" },
+          { id: "pm-m12", text: "부모님과 PM이 하는 일에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 평생교육사 ─────────────────────────────────────────
+  "lifelong-education-specialist": {
+    id: "lifelong-education-specialist-roadmap",
+    occupationId: "lifelong-education-specialist",
+    occupationName: "평생교육사",
+    occupationEmoji: "📚",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "les-m1", text: "평생교육사가 하는 일을 3가지 찾아보기" },
+          { id: "les-m2", text: "주민센터·도서관에서 운영하는 교육 프로그램 조사하기" },
+          { id: "les-m3", text: "교육 관련 직업을 3가지 비교하기" },
+          { id: "les-m4", text: "가족에게 평생교육사의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "les-m5", text: "나 또는 가족이 배우고 싶은 것을 위한 교육 프로그램 찾아보기" },
+          { id: "les-m6", text: "평생교육사에게 필요한 능력 3가지 적기" },
+          { id: "les-m7", text: "교육학·사회학·상담학 중 흥미 있는 분야 탐색하기" },
+          { id: "les-m8", text: "교육 관련 봉사활동 1가지 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "les-m9",  text: "내가 친구나 가족에게 가르쳐줄 수 있는 것 1가지 실천하기" },
+          { id: "les-m10", text: "평생교육사 관련 학과나 진학 경로 조사하기" },
+          { id: "les-m11", text: "교사·사서·평생교육사 역할 차이 표로 정리하기" },
+          { id: "les-m12", text: "부모님과 배움이 평생 이어지는 이유에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 청소년지도사 ────────────────────────────────────────
+  "youth-worker": {
+    id: "youth-worker-roadmap",
+    occupationId: "youth-worker",
+    occupationName: "청소년지도사",
+    occupationEmoji: "🌱",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "yw-m1", text: "청소년지도사가 하는 일을 3가지 찾아보기" },
+          { id: "yw-m2", text: "청소년 센터나 방과후 프로그램이 어디에 있는지 알아보기" },
+          { id: "yw-m3", text: "교육·사회복지 관련 직업을 3가지 비교하기" },
+          { id: "yw-m4", text: "가족에게 청소년지도사의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "yw-m5", text: "청소년지도사에게 필요한 능력 3가지 적기" },
+          { id: "yw-m6", text: "학교나 지역에서 또래를 돕는 활동을 탐색하기" },
+          { id: "yw-m7", text: "심리학·상담학·교육학 중 흥미 있는 분야 탐색하기" },
+          { id: "yw-m8", text: "내가 청소년 프로그램을 만든다면 어떤 내용인지 적기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "yw-m9",  text: "친구나 후배를 위한 작은 활동 1가지 기획하고 실천하기" },
+          { id: "yw-m10", text: "청소년지도사 관련 학과나 진학 경로 조사하기" },
+          { id: "yw-m11", text: "청소년지도사·사회복지사·교사 역할 차이 표로 정리하기" },
+          { id: "yw-m12", text: "부모님과 청소년 지원이 왜 중요한지 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 방과후교사 ─────────────────────────────────────────
+  "after-school-teacher": {
+    id: "after-school-teacher-roadmap",
+    occupationId: "after-school-teacher",
+    occupationName: "방과후교사",
+    occupationEmoji: "🖊️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "ast-m1", text: "방과후교사가 하는 일을 3가지 찾아보기" },
+          { id: "ast-m2", text: "학교 방과후 수업이나 돌봄 프로그램이 어떻게 운영되는지 알아보기" },
+          { id: "ast-m3", text: "교육·돌봄 관련 직업을 3가지 비교하기" },
+          { id: "ast-m4", text: "가족에게 방과후교사의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "ast-m5", text: "방과후교사에게 필요한 능력 3가지 적기" },
+          { id: "ast-m6", text: "내가 잘 가르칠 수 있는 분야 1가지 적어보기" },
+          { id: "ast-m7", text: "교육학·아동학·체육 중 흥미 있는 분야 탐색하기" },
+          { id: "ast-m8", text: "또래 친구에게 무언가를 가르쳐본 경험 적기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "ast-m9",  text: "친구나 동생을 위한 10분짜리 미니 수업 기획해보기" },
+          { id: "ast-m10", text: "방과후교사 관련 학과나 진학 경로 조사하기" },
+          { id: "ast-m11", text: "방과후교사·초등교사·청소년지도사 역할 차이 표로 정리하기" },
+          { id: "ast-m12", text: "부모님과 방과후 교육의 중요성에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 네트워크 엔지니어 ──────────────────────────────────
+  "network-engineer": {
+    id: "network-engineer-roadmap",
+    occupationId: "network-engineer",
+    occupationName: "네트워크 엔지니어",
+    occupationEmoji: "🌐",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "ne-m1", text: "네트워크 엔지니어가 하는 일을 3가지 찾아보기" },
+          { id: "ne-m2", text: "인터넷이 어떻게 작동하는지 영상으로 알아보기" },
+          { id: "ne-m3", text: "IT 인프라 관련 직업을 3가지 알아보기" },
+          { id: "ne-m4", text: "가족에게 네트워크가 무엇인지 쉽게 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "ne-m5", text: "IP 주소·라우터·서버 등 네트워크 용어 5가지 정리하기" },
+          { id: "ne-m6", text: "네트워크 엔지니어에게 필요한 능력 3가지 적기" },
+          { id: "ne-m7", text: "수학·정보·물리 과목 중 이 직업과 연결되는 것 탐색하기" },
+          { id: "ne-m8", text: "IT 관련 동아리나 코딩 활동 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "ne-m9",  text: "집 와이파이 구조를 그림으로 그려 설명해보기" },
+          { id: "ne-m10", text: "네트워크 엔지니어 관련 학과나 진학 경로 조사하기" },
+          { id: "ne-m11", text: "네트워크 엔지니어·보안전문가·클라우드 엔지니어 차이 정리하기" },
+          { id: "ne-m12", text: "부모님과 인터넷이 없으면 어떤 일이 생길지 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 모바일 앱 개발자 ───────────────────────────────────
+  "mobile-app-developer": {
+    id: "mobile-app-developer-roadmap",
+    occupationId: "mobile-app-developer",
+    occupationName: "모바일 앱 개발자",
+    occupationEmoji: "📱",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "mad-m1", text: "모바일 앱 개발자가 하는 일을 3가지 찾아보기" },
+          { id: "mad-m2", text: "평소에 자주 쓰는 앱을 고르고 좋은 점과 불편한 점 적기" },
+          { id: "mad-m3", text: "앱 개발 관련 직업(개발·기획·디자인)을 3가지 비교하기" },
+          { id: "mad-m4", text: "가족에게 앱 개발자의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "mad-m5", text: "MIT 앱인벤터로 간단한 앱 체험해보기" },
+          { id: "mad-m6", text: "모바일 앱 개발자에게 필요한 능력 3가지 적기" },
+          { id: "mad-m7", text: "코딩 기초 강의(스크래치·파이썬) 1강 수강하기" },
+          { id: "mad-m8", text: "IT 관련 동아리나 코딩 캠프 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "mad-m9",  text: "내가 만들고 싶은 앱 아이디어를 기획서로 적어보기" },
+          { id: "mad-m10", text: "모바일 앱 개발 관련 학과나 진학 경로 조사하기" },
+          { id: "mad-m11", text: "소프트웨어 엔지니어·앱 개발자·게임 개발자 차이 정리하기" },
+          { id: "mad-m12", text: "부모님과 내가 만들고 싶은 앱에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 방사선사 ───────────────────────────────────────────
+  "radiologic-technologist": {
+    id: "radiologic-technologist-roadmap",
+    occupationId: "radiologic-technologist",
+    occupationName: "방사선사",
+    occupationEmoji: "🩻",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "rt-m1", text: "방사선사가 하는 일을 3가지 찾아보기" },
+          { id: "rt-m2", text: "X선·CT·MRI 검사의 차이를 조사해보기" },
+          { id: "rt-m3", text: "의료 기사 관련 직업을 3가지 비교하기" },
+          { id: "rt-m4", text: "가족에게 방사선사의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "rt-m5", text: "방사선사가 되려면 어떤 학과와 국가면허가 필요한지 조사하기" },
+          { id: "rt-m6", text: "생물·물리·화학 중 이 직업과 연결되는 과목 탐색하기" },
+          { id: "rt-m7", text: "방사선사에게 필요한 능력 3가지 적기" },
+          { id: "rt-m8", text: "의료 분야 직업 체험 프로그램이나 영상 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "rt-m9",  text: "방사선사 관련 학과나 진학 경로 조사하기" },
+          { id: "rt-m10", text: "방사선사·임상병리사·간호사 역할 차이 표로 정리하기" },
+          { id: "rt-m11", text: "의료 영상 기술이 발전하면 어떤 점이 좋아질지 적어보기" },
+          { id: "rt-m12", text: "부모님과 방사선사의 하루와 역할에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 스포츠 테크 개발자 ─────────────────────────────────
+  "sports-tech-developer": {
+    id: "sports-tech-developer-roadmap",
+    occupationId: "sports-tech-developer",
+    occupationName: "스포츠 테크 개발자",
+    occupationEmoji: "⚡",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "std-m1", text: "스포츠 테크 개발자가 하는 일을 3가지 찾아보기" },
+          { id: "std-m2", text: "웨어러블 기기·스마트 운동 앱 사례를 1가지 찾아보기" },
+          { id: "std-m3", text: "스포츠와 IT가 만나는 분야를 3가지 조사하기" },
+          { id: "std-m4", text: "가족에게 스포츠 테크가 무엇인지 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "std-m5", text: "코딩 기초 강의 1강 수강하기" },
+          { id: "std-m6", text: "스포츠 테크 개발자에게 필요한 능력 3가지 적기" },
+          { id: "std-m7", text: "좋아하는 운동에서 기술로 개선할 수 있는 것 1가지 적기" },
+          { id: "std-m8", text: "IT·체육 중 이 직업과 연결되는 과목 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "std-m9",  text: "내가 만들고 싶은 스포츠 앱 아이디어를 적어보기" },
+          { id: "std-m10", text: "스포츠 테크 관련 학과나 진학 경로 조사하기" },
+          { id: "std-m11", text: "스포츠 데이터 분석가·스포츠 테크 개발자·앱 개발자 차이 정리하기" },
+          { id: "std-m12", text: "부모님과 스포츠와 기술의 결합에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 스포츠 마케터 ──────────────────────────────────────
+  "sports-marketer": {
+    id: "sports-marketer-roadmap",
+    occupationId: "sports-marketer",
+    occupationName: "스포츠 마케터",
+    occupationEmoji: "📣",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "sm-m1", text: "스포츠 마케터가 하는 일을 3가지 찾아보기" },
+          { id: "sm-m2", text: "좋아하는 스포츠 팀의 광고·SNS 마케팅 사례 1가지 찾아보기" },
+          { id: "sm-m3", text: "마케팅 관련 직업을 3가지 알아보기" },
+          { id: "sm-m4", text: "가족에게 스포츠 마케터의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "sm-m5", text: "좋아하는 스포츠 이벤트 홍보 아이디어 1가지 적기" },
+          { id: "sm-m6", text: "스포츠 마케터에게 필요한 능력 3가지 적기" },
+          { id: "sm-m7", text: "경영·국어·미디어 과목 중 이 직업과 연결되는 것 탐색하기" },
+          { id: "sm-m8", text: "마케팅 관련 유튜브 채널 1개 구독하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "sm-m9",  text: "좋아하는 스포츠 팀을 위한 간단한 홍보 포스터 만들기" },
+          { id: "sm-m10", text: "스포츠 마케팅 관련 학과나 진학 경로 조사하기" },
+          { id: "sm-m11", text: "스포츠 마케터·콘텐츠 기획자·브랜드 매니저 차이 표로 정리하기" },
+          { id: "sm-m12", text: "부모님과 좋아하는 스포츠 브랜드 마케팅에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 아웃도어 레저 기획자 ───────────────────────────────
+  "outdoor-leisure-planner": {
+    id: "outdoor-leisure-planner-roadmap",
+    occupationId: "outdoor-leisure-planner",
+    occupationName: "아웃도어 레저 기획자",
+    occupationEmoji: "🏕️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "olp-m1", text: "아웃도어 레저 기획자가 하는 일을 3가지 찾아보기" },
+          { id: "olp-m2", text: "등산·캠핑·자전거 등 야외 활동 1가지 체험하거나 관찰하기" },
+          { id: "olp-m3", text: "레저·관광 관련 직업을 3가지 알아보기" },
+          { id: "olp-m4", text: "가족에게 아웃도어 레저 기획자의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "olp-m5", text: "지역 아웃도어 프로그램이나 자연 체험 행사 탐색하기" },
+          { id: "olp-m6", text: "아웃도어 레저 기획자에게 필요한 능력 3가지 적기" },
+          { id: "olp-m7", text: "야외 활동 안전 수칙 5가지 정리하기" },
+          { id: "olp-m8", text: "환경·체육·사회 과목 중 이 직업과 연결되는 것 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "olp-m9",  text: "가족을 위한 1일 아웃도어 프로그램을 기획해보기" },
+          { id: "olp-m10", text: "아웃도어 레저·관광 관련 학과나 진학 경로 조사하기" },
+          { id: "olp-m11", text: "아웃도어 기획자·스포츠 지도사·해양레저 전문가 차이 정리하기" },
+          { id: "olp-m12", text: "부모님과 좋아하는 야외 활동과 그 직업에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 해양레저 전문가 ────────────────────────────────────
+  "marine-leisure-specialist": {
+    id: "marine-leisure-specialist-roadmap",
+    occupationId: "marine-leisure-specialist",
+    occupationName: "해양레저 전문가",
+    occupationEmoji: "🌊",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "mls-m1", text: "해양레저 전문가가 하는 일을 3가지 찾아보기" },
+          { id: "mls-m2", text: "서핑·다이빙·카약 등 해양 스포츠 종류를 5가지 조사하기" },
+          { id: "mls-m3", text: "해양 관련 직업을 3가지 알아보기" },
+          { id: "mls-m4", text: "가족에게 해양레저 전문가의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "mls-m5", text: "수상 안전 수칙 5가지를 찾아 정리하기" },
+          { id: "mls-m6", text: "해양레저 전문가에게 필요한 능력 3가지 적기" },
+          { id: "mls-m7", text: "해양 관련 체험 프로그램이나 해양 교육 탐색하기" },
+          { id: "mls-m8", text: "체육·환경·지구과학 과목 중 이 직업과 연결되는 것 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "mls-m9",  text: "해양 레저 안전 가이드를 글이나 그림으로 만들어보기" },
+          { id: "mls-m10", text: "해양레저·해양과학 관련 학과나 진학 경로 조사하기" },
+          { id: "mls-m11", text: "해양레저 전문가·수상안전요원·해양환경 연구원 차이 정리하기" },
+          { id: "mls-m12", text: "부모님과 바다와 레저 직업에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
+  // ── 수상안전요원 ────────────────────────────────────────
+  "water-safety-lifeguard": {
+    id: "water-safety-lifeguard-roadmap",
+    occupationId: "water-safety-lifeguard",
+    occupationName: "수상안전요원",
+    occupationEmoji: "🏊",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [
+          { id: "wsl-m1", text: "수상안전요원이 하는 일을 3가지 찾아보기" },
+          { id: "wsl-m2", text: "수상안전요원이 사용하는 장비와 기술을 조사하기" },
+          { id: "wsl-m3", text: "물 속 안전 수칙 5가지를 찾아 정리하기" },
+          { id: "wsl-m4", text: "가족에게 수상안전요원의 역할 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "나와 연결해보기",
+        missions: [
+          { id: "wsl-m5", text: "수상구조사 자격증 취득 과정을 조사하기" },
+          { id: "wsl-m6", text: "수상안전요원에게 필요한 능력 3가지 적기" },
+          { id: "wsl-m7", text: "수영 관련 활동이나 교육 프로그램 탐색하기" },
+          { id: "wsl-m8", text: "체육·안전·보건 과목 중 이 직업과 연결되는 것 탐색하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "작은 프로젝트 해보기",
+        missions: [
+          { id: "wsl-m9",  text: "수상 안전 체크리스트를 직접 만들어 가족과 공유하기" },
+          { id: "wsl-m10", text: "수상안전·체육·해양 관련 학과나 진학 경로 조사하기" },
+          { id: "wsl-m11", text: "수상안전요원·해양레저 전문가·스포츠 안전관리자 차이 정리하기" },
+          { id: "wsl-m12", text: "부모님과 안전 직업의 중요성과 나의 관심사에 대해 이야기 나눠보기" },
+        ],
+      },
+    ],
+  },
+
 };
 
 export function getRoadmap(occupationId: string): RoadmapData | null {
