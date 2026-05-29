@@ -710,6 +710,76 @@ key = legacy_occupation_id (= URL params.id)
 
 ---
 
+## 신규 29개 로드맵 Smoke Test 결과 (2026-05-28)
+
+### 검증 방법
+코드 기준 정적 분석 (tsc + 구조 검증 스크립트 + 금지 표현 grep)
+실제 브라우저 접속 없이 코드 구조 전수 확인.
+
+### 커버리지 재확인
+
+| 항목 | 결과 |
+|---|---:|
+| 대표 직업 | 100 |
+| 대표 직업 중 전용 로드맵 보유 | 100 |
+| 대표 직업 중 전용 로드맵 미작성 | **0** |
+| 전체 roadmaps.ts 등록 | 102 |
+
+### 29개 전수 검증 결과
+
+| URL 경로 | 3단계 | 미션 수 | 직업명 | 결과 |
+|---|---|---|---|---|
+| /roadmap/historian | ✅ | 12 | 역사학자 | PASS |
+| /roadmap/train-driver | ✅ | 12 | 철도 기관사 | PASS |
+| /roadmap/climate-data-analyst | ✅ | 12 | 기후데이터 분석가 | PASS |
+| /roadmap/resource-recycling-specialist | ✅ | 12 | 자원순환 전문가 | PASS |
+| /roadmap/green-building-specialist | ✅ | 12 | 녹색건축 전문가 | PASS |
+| /roadmap/environmental-consultant | ✅ | 12 | 환경 컨설턴트 | PASS |
+| /roadmap/disaster-safety-manager | ✅ | 12 | 재난안전관리자 | PASS |
+| /roadmap/probation-officer | ✅ | 12 | 보호관찰관 | PASS |
+| /roadmap/correctional-officer | ✅ | 12 | 교정직 공무원 | PASS |
+| /roadmap/public-administration-officer | ✅ | 12 | 일반행정 공무원 | PASS |
+| /roadmap/aircraft-maintenance-technician | ✅ | 12 | 항공정비사 | PASS |
+| /roadmap/logistics-manager | ✅ | 12 | 물류관리사 | PASS |
+| /roadmap/video-director | ✅ | 12 | 영상 감독 | PASS |
+| /roadmap/game-planner | ✅ | 12 | 게임 기획자 | PASS |
+| /roadmap/sports-commentator | ✅ | 12 | 스포츠 해설가 | PASS |
+| /roadmap/human-resources-specialist | ✅ | 12 | 인사담당자 | PASS |
+| /roadmap/financial-planner | ✅ | 12 | 재무설계사 | PASS |
+| /roadmap/product-manager | ✅ | 12 | 프로덕트 매니저 | PASS |
+| /roadmap/lifelong-education-specialist | ✅ | 12 | 평생교육사 | PASS |
+| /roadmap/youth-worker | ✅ | 12 | 청소년지도사 | PASS |
+| /roadmap/after-school-teacher | ✅ | 12 | 방과후교사 | PASS |
+| /roadmap/network-engineer | ✅ | 12 | 네트워크 엔지니어 | PASS |
+| /roadmap/mobile-app-developer | ✅ | 12 | 모바일 앱 개발자 | PASS |
+| /roadmap/radiologic-technologist | ✅ | 12 | 방사선사 | PASS |
+| /roadmap/sports-tech-developer | ✅ | 12 | 스포츠 테크 개발자 | PASS |
+| /roadmap/sports-marketer | ✅ | 12 | 스포츠 마케터 | PASS |
+| /roadmap/outdoor-leisure-planner | ✅ | 12 | 아웃도어 레저 기획자 | PASS |
+| /roadmap/marine-leisure-specialist | ✅ | 12 | 해양레저 전문가 | PASS |
+| /roadmap/water-safety-lifeguard | ✅ | 12 | 수상안전요원 | PASS |
+
+**전체: 29/29 PASS**
+
+### 추가 검증 항목
+
+| 항목 | 결과 |
+|---|---|
+| 미션 ID 내부 중복 | 없음 ✅ |
+| 미션 ID 슬러그 간 중복 | 없음 ✅ |
+| 총 미션 수 (29×12) | 348개 ✅ |
+| ProgressCircle 0-safe | totalMissions=12 > 0 ✅ |
+| fallback 경로 | applyStaticFallback() → getRoadmap(slug) → null 아님 ✅ |
+| 금지 표현 | 0건 ✅ |
+| tsc --noEmit | PASS ✅ |
+| npm run build | PASS ✅ |
+
+### 발견 이슈
+
+없음 (P0/P1/P2 모두 0건)
+
+---
+
 ## 경진대회 사업계획서용 기능 현황 정리 이력
 
 - `docs/competition-gg-publicdata-ai-feature-status.md` 문서 신규 작성 (2026-05-27)
