@@ -474,7 +474,8 @@ LIMIT 20;
 
 ---
 
-| 2026-05-30 | 프로덕션 베타 운영 전 최종 실사용 점검 완료 (`docs/production-beta-readiness-check.md`) | — |
+| 2026-05-30 | 플랜별 권한표 및 사용량 제한 정책 문서화 (`docs/plan-permission-and-usage-policy.md`) | — |
+| 2026-05-30 | 프로덕션 베타 운영 전 최종 실사용 점검 완료 (`docs/production-beta-readiness-check.md`) | de4da76 |
 | 2026-05-30 | 베타 운영 관리 체계 문서화 (`docs/beta-operation-guide.md` 신규 작성) | e466aca |
 | 2026-05-28 | 학부모 체험하기 카드 라우팅 오류 수정 (report/myeonddara 인라인 안내 전환) | ea555a3 |
 | 2026-05-27 | 관심 운동 기반 관련 직업 섹션 검증 완료 (SportsInterestCareerSection) | — |
