@@ -346,3 +346,4 @@
 | 2026-05-30 | `docs/beta-operation-guide.md` 신규 작성 | 베타 운영 단계 진입 준비 완료 |
 | 2026-05-30 | `docs/production-beta-readiness-check.md` 신규 작성 | 최종 실사용 점검 완료. 판정: A. 베타 운영 가능 |
 | 2026-05-30 | `docs/plan-permission-and-usage-policy.md` 신규 작성 | 플랜별 권한표 및 사용량 제한 정책 기준선 문서화. 베타 운영과 정식 결제 오픈 전 기준 분리 정리. |
+| 2026-05-30 | 정책 ↔ UI 문구 정합성 점검 및 최소 보정 | pricing "50개→100개", "무료 체험→무료 이용", FAQ/guide 공동 양육자 베타 비활성 반영. |

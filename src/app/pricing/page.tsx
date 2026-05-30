@@ -71,7 +71,7 @@ const PLANS: Plan[] = [
         subLabel: "질문 생성, 부모 대화 가이드 포함",
       },
       { label: "자녀 1명 집중 관리",                   included: true },
-      { label: "진로 탐색 50개 직업 전체 열람",        included: true },
+      { label: "진로 탐색 100개 직업 열람",             included: true },
       {
         label:    "명따라 정밀 진로 성향 리포트",
         included: true,
@@ -100,7 +100,7 @@ const PLANS: Plan[] = [
         subLabel: "질문 생성, 부모 대화 가이드, 관심사 기반 활동 추천 포함",
       },
       { label: "자녀 1명 집중 관리",                   included: true },
-      { label: "진로 탐색 50개 직업 전체 열람",        included: true },
+      { label: "진로 탐색 100개 직업 열람",             included: true },
       {
         label:    "명따라 정밀 진로 성향 리포트",
         included: true,
@@ -365,7 +365,7 @@ function FreePlanBox({ onStart }: { onStart: () => void }) {
     >
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-2">
-        <span className="text-sm font-bold text-base-text">베타 기간 무료 체험</span>
+        <span className="text-sm font-bold text-base-text">베타 기간 무료 이용</span>
         <span className="text-lg font-bold text-base-text">0원</span>
       </div>
 
@@ -380,7 +380,7 @@ function FreePlanBox({ onStart }: { onStart: () => void }) {
         {[
           "베이직 수준의 핵심 기능 체험",
           "자녀 1명 진로 탐색 관리",
-          "진로 탐색 50개 직업 전체 열람",
+          "진로 탐색 100개 직업 열람",
           "명따라 참고 리포트 1회 체험",
         ].map((item) => (
           <li key={item} className="flex items-center gap-2">
