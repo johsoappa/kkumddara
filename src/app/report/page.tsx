@@ -226,7 +226,12 @@ export default function ReportPage() {
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle();
-        if (!parentData) { router.replace("/"); return; }
+        // parent 레코드가 없으면 학생 역할로 판단 → 학생 홈으로 안내
+        if (!parentData) {
+          const r = user.user_metadata?.role as string | undefined;
+          router.replace(r === "student" ? "/student/home" : "/");
+          return;
+        }
 
         // 3. 첫 번째 active child
         const { data: childData } = await supabase

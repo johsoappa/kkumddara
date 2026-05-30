@@ -2,15 +2,22 @@
 
 // ====================================================
 // 하단 네비게이션 바 컴포넌트
-// - 4개 탭: 홈 / 탐색 / 로드맵 / 리포트
+// - 5개 탭: 홈 / 탐색 / 로드맵 / 리포트(부모) or 내 활동(학생) / 설정
 // - 활성 탭: 레드오렌지 색상
 // - 비활성 탭: 미드 그레이
+//
+// [역할별 리포트 탭 분리]
+//   parent → "리포트" (/report) : 부모 주간 리포트
+//   student → "내 활동" (/student/home) : 완료 미션 확인 흐름
+//   미로딩 → "리포트" 기본값 유지 (깜빡임 방지)
 // ====================================================
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Map, BarChart2, Settings } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Home, Search, Map, BarChart2, Settings, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/lib/supabase";
 
 // CS 페이지 목록 (설정 탭 활성화용)
 const CS_PATHS = ["/settings", "/pricing", "/terms", "/privacy", "/refund", "/youth", "/faq", "/guide", "/contact"];
@@ -18,8 +25,8 @@ const CS_PATHS = ["/settings", "/pricing", "/terms", "/privacy", "/refund", "/yo
 // 새싹 모드 경로 (홈 탭 활성화용)
 const SPROUT_PATHS = ["/sprout"];
 
-// 탭 메뉴 정의
-const navItems = [
+// 부모 탭 정의
+const PARENT_NAV_ITEMS = [
   { href: "/home",     label: "홈",     icon: Home     },
   { href: "/explore",  label: "탐색",   icon: Search   },
   { href: "/roadmap",  label: "로드맵", icon: Map      },
@@ -27,9 +34,29 @@ const navItems = [
   { href: "/settings", label: "설정",   icon: Settings },
 ];
 
+// 학생 탭 정의 — "리포트" 대신 "내 활동" (/student/home)
+const STUDENT_NAV_ITEMS = [
+  { href: "/student/home", label: "홈",     icon: Home     },
+  { href: "/explore",      label: "탐색",   icon: Search   },
+  { href: "/roadmap",      label: "로드맵", icon: Map      },
+  { href: "/student/home", label: "내 활동", icon: Zap     },
+  { href: "/settings",     label: "설정",   icon: Settings },
+];
+
 export default function BottomNav() {
-  // 현재 경로를 가져와서 활성 탭 판별
   const pathname = usePathname();
+  const [role, setRole] = useState<"parent" | "student" | null>(null);
+
+  // 사용자 역할 확인 — user_metadata.role 기준
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      const r = user?.user_metadata?.role as "parent" | "student" | undefined;
+      setRole(r ?? null);
+    });
+  }, []);
+
+  // 역할에 따라 탭 선택 (미로딩 상태는 부모 기본값)
+  const navItems = role === "student" ? STUDENT_NAV_ITEMS : PARENT_NAV_ITEMS;
 
   return (
     <nav
