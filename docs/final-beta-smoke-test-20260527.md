@@ -474,7 +474,8 @@ LIMIT 20;
 
 ---
 
-| 2026-05-30 | 베타 피드백·문의·오류 기록 템플릿 구축 (`docs/beta-feedback-and-issue-log-template.md`) | — |
+| 2026-05-30 | 베타 운영 전 OZ 수동 확인 체크리스트 (`docs/manual-beta-operation-checklist.md`) | — |
+| 2026-05-30 | 베타 피드백·문의·오류 기록 템플릿 구축 (`docs/beta-feedback-and-issue-log-template.md`) | 84f1b1c |
 | 2026-05-30 | 정책 문서 ↔ UI 문구 정합성 점검 및 최소 보정 (`docs/plan-policy-ui-consistency-audit.md`) | 60f9f31 |
 | 2026-05-30 | 플랜별 권한표 및 사용량 제한 정책 문서화 (`docs/plan-permission-and-usage-policy.md`) | 8c06b49 |
 | 2026-05-30 | 프로덕션 베타 운영 전 최종 실사용 점검 완료 (`docs/production-beta-readiness-check.md`) | de4da76 |
