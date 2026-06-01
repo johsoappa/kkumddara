@@ -9,7 +9,17 @@
 // [역할별 리포트 탭 분리]
 //   parent → "리포트" (/report) : 부모 주간 리포트
 //   student → "내 활동" (/student/activity) : 완료 미션 확인 전용 페이지
-//   미로딩 → "리포트" 기본값 유지 (깜빡임 방지)
+//
+// [표시 role 결정 우선순위]
+//   1. 실제 로그인 role (user_metadata.role)
+//   2. 명시적 roleOverride prop
+//   3. demo session role (체험 흐름, sessionStorage)
+//   4. pathname fallback (/student·/demo/student → student / /parent·/demo/parent·/report → parent)
+//   5. parent fallback (미로딩 깜빡임 방지)
+//
+//   ※ 학생 체험(/demo/student)에서 공용 /explore·/roadmap 으로 이동해도
+//     데모 role이 유지되어 "리포트" 대신 "내 활동"이 노출된다.
+//     단, 실제 로그인 role이 있으면 항상 실 role을 우선한다.
 // ====================================================
 
 import Link from "next/link";
@@ -18,6 +28,26 @@ import { useState, useEffect } from "react";
 import { Home, Search, Map, BarChart2, Settings, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+
+// 체험 모드 role 저장 키 (로그인 role이 없을 때만 보조 사용)
+export const DEMO_ROLE_KEY = "kkumddara_demo_role";
+
+type NavRole = "parent" | "student";
+
+// pathname 기반 role 추정 (확정 불가 시 null)
+function resolvePathnameRole(pathname: string): NavRole | null {
+  if (pathname.startsWith("/student") || pathname.startsWith("/demo/student")) {
+    return "student";
+  }
+  if (
+    pathname.startsWith("/parent") ||
+    pathname.startsWith("/demo/parent") ||
+    pathname.startsWith("/report")
+  ) {
+    return "parent";
+  }
+  return null;
+}
 
 // CS 페이지 목록 (설정 탭 활성화용)
 const CS_PATHS = ["/settings", "/pricing", "/terms", "/privacy", "/refund", "/youth", "/faq", "/guide", "/contact"];
@@ -43,20 +73,44 @@ const STUDENT_NAV_ITEMS = [
   { href: "/settings",         label: "설정",   icon: Settings },
 ];
 
-export default function BottomNav() {
-  const pathname = usePathname();
-  const [role, setRole] = useState<"parent" | "student" | null>(null);
+interface BottomNavProps {
+  /** 명시적 role 지정 (체험/특수 화면용). 실제 로그인 role이 있으면 무시됨. */
+  roleOverride?: NavRole;
+}
 
-  // 사용자 역할 확인 — user_metadata.role 기준
+export default function BottomNav({ roleOverride }: BottomNavProps = {}) {
+  const pathname = usePathname();
+  const [loginRole, setLoginRole] = useState<NavRole | null>(null);
+  const [demoRole,  setDemoRole]  = useState<NavRole | null>(null);
+
+  // 실제 로그인 role 확인 — user_metadata.role 기준
   useEffect(() => {
     supabase.auth.getUser().then(({ data: { user } }) => {
-      const r = user?.user_metadata?.role as "parent" | "student" | undefined;
-      setRole(r ?? null);
+      const r = user?.user_metadata?.role as NavRole | undefined;
+      if (r === "parent" || r === "student") {
+        setLoginRole(r);
+        // 실제 로그인 role이 확정되면 데모 role 잔재 제거 (실 role 우선)
+        try { sessionStorage.removeItem(DEMO_ROLE_KEY); } catch { /* noop */ }
+        setDemoRole(null);
+      } else {
+        setLoginRole(null);
+      }
     });
   }, []);
 
-  // 역할에 따라 탭 선택 (미로딩 상태는 부모 기본값)
-  const navItems = role === "student" ? STUDENT_NAV_ITEMS : PARENT_NAV_ITEMS;
+  // 데모 체험 role (sessionStorage) — 로그인 role이 없을 때만 보조 사용
+  useEffect(() => {
+    try {
+      const d = sessionStorage.getItem(DEMO_ROLE_KEY);
+      if (d === "parent" || d === "student") setDemoRole(d);
+    } catch { /* sessionStorage 미사용 환경 무시 */ }
+  }, [pathname]);
+
+  // 표시 role 결정 (우선순위는 파일 상단 주석 참고)
+  const resolvedRole: NavRole =
+    loginRole ?? roleOverride ?? demoRole ?? resolvePathnameRole(pathname) ?? "parent";
+
+  const navItems = resolvedRole === "student" ? STUDENT_NAV_ITEMS : PARENT_NAV_ITEMS;
 
   return (
     <nav

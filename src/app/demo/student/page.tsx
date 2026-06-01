@@ -8,10 +8,11 @@
 // ====================================================
 
 import Image from "next/image";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Zap, Compass, ChevronRight, Circle } from "lucide-react";
 import GuestLoginPrompt from "@/components/ui/GuestLoginPrompt";
+import { DEMO_ROLE_KEY } from "@/components/layout/BottomNav";
 import { OCCUPATIONS } from "@/data/occupations";
 import type { Grade, InterestField } from "@/types/family";
 import { GRADE_LABEL, INTEREST_LABEL } from "@/types/family";
@@ -59,6 +60,12 @@ function getOccupationReason(category: string, interests: InterestField[]): stri
 export default function DemoStudentPage() {
   const router = useRouter();
   const [showPrompt, setShowPrompt] = useState(false);
+
+  // 학생 체험 흐름 표식 — 공용 /explore·/roadmap 이동 시에도 BottomNav가 학생용으로 유지되도록
+  // sessionStorage에 데모 role을 남긴다. (실제 로그인 role이 있으면 BottomNav가 우선 처리)
+  useEffect(() => {
+    try { sessionStorage.setItem(DEMO_ROLE_KEY, "student"); } catch { /* noop */ }
+  }, []);
 
   const gradeLabel = GRADE_LABEL[DEMO_GRADE];
 

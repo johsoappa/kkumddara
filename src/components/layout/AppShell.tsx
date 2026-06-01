@@ -16,6 +16,7 @@ interface AppShellProps {
   showBack?: boolean;      // 헤더 뒤로가기 버튼 표시 여부
   backHref?: string;       // 뒤로가기 목적지 (없으면 router.back())
   backLabel?: string;      // 뒤로가기 버튼 텍스트
+  navRoleOverride?: "parent" | "student"; // BottomNav role 명시 지정 (실 로그인 role 우선)
 }
 
 export default function AppShell({
@@ -25,6 +26,7 @@ export default function AppShell({
   showBack = false,
   backHref,
   backLabel,
+  navRoleOverride,
 }: AppShellProps) {
   return (
     // 전체 화면 가운데 정렬 컨테이너
@@ -46,7 +48,7 @@ export default function AppShell({
         </main>
 
         {/* 하단 네비게이션 */}
-        {showNav && <BottomNav />}
+        {showNav && <BottomNav roleOverride={navRoleOverride} />}
       </div>
     </div>
   );

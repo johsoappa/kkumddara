@@ -497,6 +497,20 @@ LIMIT 20;
 
 ---
 
+## 26. 학생 체험 BottomNav "리포트" 노출 오류 수정 (2026-06-01)
+
+- 증상: 학생 체험(`/demo/student`)에서 공용 `/explore`·`/roadmap`로 이동 시 하단 BottomNav가 부모용으로 렌더되어 "리포트" 탭이 노출됨
+- 원인: `/demo/student`는 자체 레이아웃이라 BottomNav 미렌더. 공용 `/explore`(AppShell→BottomNav)에 진입할 때 비로그인 사용자라 role 미확정 → parent fallback → "리포트" 노출
+- 조치: BottomNav role 결정 로직을 우선순위 기반으로 재구성
+  1. 실제 로그인 role(user_metadata.role) 2. roleOverride prop 3. demo session role(sessionStorage) 4. pathname fallback 5. parent fallback
+- `/demo/student`·`/demo/parent` 진입 시 sessionStorage(`kkumddara_demo_role`)에 데모 role 기록 → 공용 화면 이동 후에도 학생/부모 nav 유지
+- 실제 로그인 role이 확정되면 데모 role 잔재 제거하여 항상 실 role 우선
+- AppShell 에 `navRoleOverride` prop 추가(실 로그인 role 우선, 보조용)
+- DB/migration/RLS/Auth 구조/부모 리포트 계산/`/student/activity` 표시 로직 변경 없음, tsc PASS, build PASS
+
+---
+
+| 2026-06-01 | 학생 체험 BottomNav "리포트" 노출 오류 수정 (role 우선순위 + demo session role, AppShell navRoleOverride) | — |
 | 2026-06-01 | 자녀 내 활동(`/student/activity`) 완료 미션 목록 표시 보강 (최대 5개, 미션 제목 + 관련 직업명) | — |
 | 2026-05-30 | 자녀 모드 "내 활동" 탭 → `/student/activity` 전용 페이지 분리, BottomNav 경로 보정, `/report` 학생 redirect 보정 | — |
 | 2026-05-30 | 자녀 모드 내 활동 UI 추가 (BottomNav role-aware, student/home 내 활동 섹션, report redirect 수정) | — |

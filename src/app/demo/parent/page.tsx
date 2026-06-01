@@ -8,8 +8,9 @@
 // ====================================================
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { DEMO_ROLE_KEY } from "@/components/layout/BottomNav";
 import {
   FileText,
   MessageSquare,
@@ -84,6 +85,11 @@ export default function DemoParentPage() {
   const [copied,        setCopied]        = useState(false);
   /** 클릭한 기능 id — 해당 카드 아래에 로그인 유도 안내 박스 표시 */
   const [hintFeatureId, setHintFeatureId] = useState<string | null>(null);
+
+  // 부모 체험 흐름 표식 — 공용 화면 이동 시 BottomNav 부모용 유지 (실 로그인 role 우선)
+  useEffect(() => {
+    try { sessionStorage.setItem(DEMO_ROLE_KEY, "parent"); } catch { /* noop */ }
+  }, []);
 
   const gradeLabel     = GRADE_LABEL[DEMO_CHILD.school_grade];
   const interestLabels = DEMO_CHILD.interests
