@@ -8,7 +8,7 @@
 //
 // [역할별 리포트 탭 분리]
 //   parent → "리포트" (/report) : 부모 주간 리포트
-//   student → "내 활동" (/student/home) : 완료 미션 확인 흐름
+//   student → "내 활동" (/student/activity) : 완료 미션 확인 전용 페이지
 //   미로딩 → "리포트" 기본값 유지 (깜빡임 방지)
 // ====================================================
 
@@ -34,13 +34,13 @@ const PARENT_NAV_ITEMS = [
   { href: "/settings", label: "설정",   icon: Settings },
 ];
 
-// 학생 탭 정의 — "리포트" 대신 "내 활동" (/student/home)
+// 학생 탭 정의 — "리포트" 대신 "내 활동" (/student/activity 전용 페이지)
 const STUDENT_NAV_ITEMS = [
-  { href: "/student/home", label: "홈",     icon: Home     },
-  { href: "/explore",      label: "탐색",   icon: Search   },
-  { href: "/roadmap",      label: "로드맵", icon: Map      },
-  { href: "/student/home", label: "내 활동", icon: Zap     },
-  { href: "/settings",     label: "설정",   icon: Settings },
+  { href: "/student/home",     label: "홈",     icon: Home     },
+  { href: "/explore",          label: "탐색",   icon: Search   },
+  { href: "/roadmap",          label: "로드맵", icon: Map      },
+  { href: "/student/activity", label: "내 활동", icon: Zap     },
+  { href: "/settings",         label: "설정",   icon: Settings },
 ];
 
 export default function BottomNav() {

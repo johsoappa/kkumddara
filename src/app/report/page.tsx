@@ -226,10 +226,11 @@ export default function ReportPage() {
           .select("id")
           .eq("user_id", user.id)
           .maybeSingle();
-        // parent 레코드가 없으면 학생 역할로 판단 → 학생 홈으로 안내
+        // parent 레코드가 없으면 학생 역할로 판단 → 자녀 "내 활동" 전용 페이지로 안내
+        // (부모 주간 리포트가 학생에게 노출되지 않도록, 학생 의도에 맞는 /student/activity로 이동)
         if (!parentData) {
           const r = user.user_metadata?.role as string | undefined;
-          router.replace(r === "student" ? "/student/home" : "/");
+          router.replace(r === "student" ? "/student/activity" : "/");
           return;
         }
 

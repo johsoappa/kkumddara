@@ -358,25 +358,9 @@ export default function StudentHomePage() {
     return allMissions.filter((m) => !completedSet.has(m.id)).slice(0, 3);
   }, [chosenRoadmapId, completedMissions, dbMissions]);
 
-  // ── 내 활동 — 완료한 미션 상세 (최근 3개) ──────────────────
-  // 학생 홈 "내 활동" 섹션에서 사용
-  const completedMissionDetails = useMemo(() => {
-    if (!completedMissions.length || !chosenRoadmapId) return [];
-    const completedSet = new Set(completedMissions);
-
-    // DB 미션 기준
-    if (dbMissions && dbMissions.length > 0) {
-      return dbMissions.filter((m) => completedSet.has(m.id)).slice(0, 3);
-    }
-
-    // static ROADMAPS fallback
-    const roadmap = getRoadmap(chosenRoadmapId);
-    if (!roadmap) return [];
-    const all = roadmap.stages.flatMap((s) =>
-      s.missions.map((m) => ({ id: m.id, text: m.text, stageTitle: s.title }))
-    );
-    return all.filter((m) => completedSet.has(m.id)).slice(0, 3);
-  }, [completedMissions, chosenRoadmapId, dbMissions]);
+  // ── 내 활동 상세(완료 미션 목록)는 /student/activity 전용 페이지로 이동 ──
+  //    홈에서는 완료 미션 개수 요약만 노출하므로 상세 계산은 제거.
+  //    (완료 미션 상세 계산 로직은 StudentActivitySection 으로 통합)
 
   // ── 추천 직업 — 관심분야 교집합 매칭 ────────────────────────
   const recommendedOccupations = useMemo((): DbOccupation[] => {
@@ -637,74 +621,50 @@ export default function StudentHomePage() {
           </section>
 
           {/* ══════════════════════════════════════════
-              섹션 1.5 — 내 활동
-              완료한 미션 중심으로 학생 스스로 확인.
-              부모 주간 리포트와 분리된 학생 전용 활동 기록.
-              - 완료 미션 있음: 개수 + 최근 3개 목록 + 로드맵 버튼
-              - 완료 미션 없음: 빈 상태 안내 + 탐색 버튼
+              섹션 1.5 — 내 활동 (요약 카드)
+              완료 미션 상태를 홈에서 간단히 보여주고,
+              상세 기록은 /student/activity 전용 페이지로 이동.
+              (BottomNav "내 활동" 탭 목적지와 동일)
           ══════════════════════════════════════════ */}
           <section>
-            <div className="flex items-center gap-1.5 mb-3">
-              <Zap size={15} strokeWidth={2} style={{ color: "#E84B2E" }} />
-              <h2 className="text-sm font-bold text-base-text">내 활동</h2>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-1.5">
+                <Zap size={15} strokeWidth={2} style={{ color: "#E84B2E" }} />
+                <h2 className="text-sm font-bold text-base-text">내 활동</h2>
+              </div>
+              <button
+                onClick={() => router.push("/student/activity")}
+                className="text-xs text-base-muted flex items-center gap-0.5"
+              >
+                자세히 보기 <ChevronRight size={12} />
+              </button>
             </div>
 
-            <div className="bg-white rounded-card-lg shadow-card overflow-hidden">
+            <button
+              onClick={() => router.push("/student/activity")}
+              className="w-full bg-white rounded-card-lg shadow-card px-4 py-5 text-left hover:bg-base-off transition-colors"
+            >
               {completedMissions.length === 0 ? (
-                /* 완료한 미션 없음 */
-                <div className="px-4 py-5">
+                <>
                   <p className="text-sm font-bold text-base-text mb-1">
                     아직 완료한 미션이 없어요.
                   </p>
-                  <p className="text-xs text-base-muted leading-relaxed mb-3">
+                  <p className="text-xs text-base-muted leading-relaxed">
                     관심 있는 직업을 골라 작은 미션부터 시작해볼까요?
                   </p>
-                  <button
-                    onClick={() => router.push("/explore")}
-                    className="inline-flex items-center gap-1 text-xs font-semibold"
-                    style={{ color: "#E84B2E" }}
-                  >
-                    직업 탐색하러 가기 <ChevronRight size={13} />
-                  </button>
-                </div>
+                </>
               ) : (
-                /* 완료한 미션 있음 */
-                <div>
-                  <div className="px-4 pt-4 pb-3 border-b border-base-border">
-                    <p className="text-sm font-bold text-base-text">
-                      지금까지 {completedMissions.length}개의 미션을 완료했어요.
-                    </p>
-                    <p className="text-xs text-base-muted mt-0.5 leading-relaxed">
-                      작은 활동이 모이면 내가 좋아하는 일을 더 잘 알 수 있어요.
-                    </p>
-                  </div>
-
-                  {completedMissionDetails.length > 0 && (
-                    <div className="px-4 py-3 border-b border-base-border">
-                      <p className="text-xs font-semibold text-base-muted mb-2">최근 완료한 미션</p>
-                      <div className="flex flex-col gap-1.5">
-                        {completedMissionDetails.map((m) => (
-                          <div key={m.id} className="flex items-start gap-2">
-                            <span className="text-xs mt-0.5" style={{ color: "#E84B2E" }}>✓</span>
-                            <p className="text-xs text-base-text leading-relaxed">{m.text}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="px-4 py-3">
-                    <button
-                      onClick={() => router.push(chosenRoadmapId ? `/roadmap/${chosenRoadmapId}` : "/explore")}
-                      className="inline-flex items-center gap-1 text-xs font-semibold"
-                      style={{ color: "#E84B2E" }}
-                    >
-                      로드맵 이어가기 <ChevronRight size={13} />
-                    </button>
-                  </div>
-                </div>
+                <p className="text-sm font-bold text-base-text">
+                  완료한 미션 {completedMissions.length}개를 확인할 수 있어요.
+                </p>
               )}
-            </div>
+              <span
+                className="mt-3 inline-flex items-center gap-1 text-xs font-semibold"
+                style={{ color: "#E84B2E" }}
+              >
+                내 활동 자세히 보기 <ChevronRight size={13} />
+              </span>
+            </button>
           </section>
 
           {/* ══════════════════════════════════════════

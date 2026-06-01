@@ -474,6 +474,18 @@ LIMIT 20;
 
 ---
 
+## 24. 자녀 모드 "내 활동" 전용 페이지 분리 (2026-05-30)
+
+- 증상: BottomNav "내 활동" 탭이 `/student/home`으로 연결되어, 미션 선택/완료 후 탭을 눌러도 홈으로 튕기는 것처럼 보임
+- 조치: `/student/activity` 전용 페이지 신규 생성, 완료 미션 기록을 독립적으로 확인하도록 분리
+- BottomNav 학생 "내 활동" 경로 → `/student/activity`, student/home은 "내 활동" 요약 카드로 변경 (상세는 `/student/activity`)
+- 완료 미션 계산 로직은 `StudentActivitySection` 컴포넌트로 통합 (home/activity 중복 방지)
+- 학생 `/report` 직접 접근 시 redirect 대상을 `/student/home` → `/student/activity`로 변경 (부모 리포트 미노출 유지)
+- DB/migration/API/AI/요금제/부모 리포트 계산 로직 변경 없음, tsc PASS, build PASS
+
+---
+
+| 2026-05-30 | 자녀 모드 "내 활동" 탭 → `/student/activity` 전용 페이지 분리, BottomNav 경로 보정, `/report` 학생 redirect 보정 | — |
 | 2026-05-30 | 자녀 모드 내 활동 UI 추가 (BottomNav role-aware, student/home 내 활동 섹션, report redirect 수정) | — |
 | 2026-05-30 | 베타 운영 전 OZ 수동 확인 체크리스트 (`docs/manual-beta-operation-checklist.md`) | a194735 |
 | 2026-05-30 | 베타 피드백·문의·오류 기록 템플릿 구축 (`docs/beta-feedback-and-issue-log-template.md`) | 84f1b1c |

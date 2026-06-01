@@ -349,3 +349,4 @@
 | 2026-05-30 | 정책 ↔ UI 문구 정합성 점검 및 최소 보정 | pricing "50개→100개", "무료 체험→무료 이용", FAQ/guide 공동 양육자 베타 비활성 반영. |
 | 2026-05-30 | `docs/beta-feedback-and-issue-log-template.md` 신규 작성 | 베타 사용자 피드백, 문의, 오류 제보를 일관되게 기록하기 위한 운영 템플릿 문서 추가. |
 | 2026-05-30 | `docs/manual-beta-operation-checklist.md` 신규 작성 | 베타 운영 전 OZ가 실제 운영 도메인에서 직접 확인할 항목을 정리한 수동 확인 체크리스트 문서 추가. |
+| 2026-05-30 | 자녀 모드의 "내 활동" 탭이 학생 홈으로 이동하던 문제를 확인하고, `/student/activity` 전용 페이지로 분리하여 완료 미션 기록을 독립적으로 확인할 수 있도록 보정함. | BottomNav 학생 "내 활동" → `/student/activity`, student/home은 요약 카드로 변경, 학생 `/report` 접근 시 `/student/activity`로 redirect. DB/리포트 계산 로직 변경 없음. |
