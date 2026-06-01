@@ -721,6 +721,17 @@ export default function OnboardingForm({ isEdit = false }: OnboardingFormProps) 
                     {authLoading ? "처리 중..." : "테스트 계정 만들기"}
                   </button>
                 </div>
+
+                {/* 비밀번호 재설정 링크 — 덜 강조된 텍스트 링크, 터치 영역 확보 */}
+                <div className="flex justify-center mt-1">
+                  <button
+                    type="button"
+                    onClick={() => router.push("/auth/forgot-password")}
+                    className="text-xs text-base-muted underline underline-offset-2 px-3 py-2 active:opacity-60 transition-opacity"
+                  >
+                    비밀번호를 잊으셨나요?
+                  </button>
+                </div>
               </div>
             </div>
           </>

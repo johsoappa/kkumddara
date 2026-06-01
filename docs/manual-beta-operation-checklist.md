@@ -221,6 +221,23 @@
 | 비로그인 상태에서 보호 페이지 접근 시 홈 또는 안내 흐름 정상 |  |  |
 | 로그인 실패 시 불친절한 오류 문구 없음 |  |  |
 
+### 이메일 인증 / 비밀번호 재설정 메일 확인 (신규)
+
+> ⚠️ 실제 이메일 계정으로 직접 확인. Supabase Auth 메일 템플릿/리디렉트 URL 허용 목록(`/auth/reset-password`) 점검 포함.
+
+| 확인 항목 | 결과 | 메모 |
+|---|---|---|
+| 가입 시 인증 메일 수신 (스팸함 포함) |  |  |
+| 인증 메일 발신자명/제목/본문 한글 깨짐 없음 |  |  |
+| 로그인 화면에 "비밀번호를 잊으셨나요?" 링크 표시 |  |  |
+| 링크 클릭 시 `/auth/forgot-password` 이동 |  |  |
+| 이메일 입력 후 재설정 메일 수신 (스팸함 포함) |  |  |
+| 재설정 메일 링크 클릭 시 `/auth/reset-password` 진입 |  |  |
+| 새 비밀번호 + 확인 입력 후 변경 완료 |  |  |
+| 변경한 새 비밀번호로 로그인 성공 |  |  |
+| 만료/오류 시 안내 문구 자연스러움 (원문 비노출) |  |  |
+| 모바일에서 재설정 화면 입력창/버튼 깨짐·가로 스크롤 없음 |  |  |
+
 ---
 
 ## 11. 자녀 등록 흐름 확인
@@ -450,5 +467,6 @@ OZ 수동 확인 후 아래 기준으로 최종 판정한다.
 | 2026-05-30 | 자녀 모드 내 활동 UI 추가 반영 | BottomNav role-aware, student/home 내 활동 섹션, report redirect 수정 반영. 학생 체험 확인 항목 보강. |
 | 2026-05-30 | 자녀 모드 "내 활동" 탭이 학생 홈으로 이동하던 문제를 확인하고, `/student/activity` 전용 페이지로 분리하여 완료 미션 기록을 독립적으로 확인할 수 있도록 보정함. | BottomNav 학생 "내 활동" → `/student/activity`, student/home은 요약 카드로 변경, 학생 `/report` 접근 시 `/student/activity`로 redirect. 확인 항목에 `/student/activity` 섹션 추가. |
 | 2026-06-01 | 자녀 내 활동 화면에서 완료 미션 개수뿐 아니라 실제 완료한 미션 목록을 확인할 수 있도록 UI 표시 기준을 보강함. | StudentActivitySection 완료 미션 카드 목록(최대 5개, 미션 제목 + 관련 직업명) 추가. student/home 요약 카드 문구 정리. 완료일 데이터 없음 → 미표시. |
+| 2026-06-02 | 비밀번호 재설정 UI 추가 — 로그인 화면 "비밀번호를 잊으셨나요?" 링크 + `/auth/forgot-password`(reset 메일 발송) + `/auth/reset-password`(새 비밀번호 저장). | §10에 이메일 인증/비밀번호 재설정 메일 OZ 수동 확인 항목 추가. Auth 구조/회원가입 role/DB 변경 없음. |
 | 2026-06-01 | 학생 체험하기 및 학생 체험 기반 직업 탐색 화면에서 BottomNav에 부모용 "리포트" 탭이 노출되는 문제를 확인하고, 학생 체험 흐름에서는 "내 활동" 탭이 표시되도록 보정함. | BottomNav role 결정 우선순위(실 로그인 role → roleOverride → demo session role → pathname → parent) 도입, /demo/student·/demo/parent에서 sessionStorage 데모 role 설정. 실 로그인 role 우선. |
 | 2026-06-01 | 학생 체험 흐름에서 "내 활동" 탭이 보호 라우트 `/student/activity`로 이동해 홈으로 튕기던 문제를 확인하고, 비로그인 학생 체험 전용 `/demo/student/activity` 화면으로 분기하도록 보정함. | 데모 학생 모드에서 내 활동/홈 href를 `/demo/student/activity`·`/demo/student`로 분기(실 로그인 학생은 `/student/activity`·`/student/home` 유지). `/demo/student/activity` 데모 안내 페이지 신규 생성. |

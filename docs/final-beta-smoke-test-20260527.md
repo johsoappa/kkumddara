@@ -510,6 +510,23 @@ LIMIT 20;
 
 ---
 
+## 30. 비밀번호 재설정 UI 추가 (2026-06-02)
+
+- 배경: 로그인 화면에 비밀번호 찾기/재설정 메뉴가 없어 베타 계정 복구 흐름 테스트 불가
+- 로그인 폼(OnboardingForm 이메일 로그인 영역)에 "비밀번호를 잊으셨나요?" 링크 추가 → `/auth/forgot-password`
+- `/auth/forgot-password` 신규: 이메일 입력 → `supabase.auth.resetPasswordForEmail(email, { redirectTo: .../auth/reset-password })`, 성공/보조(스팸함)/에러/로딩 상태 + "로그인으로 돌아가기"
+- `/auth/reset-password` 신규: 메일 링크 진입(recovery 세션 자동 처리, `PASSWORD_RECOVERY` 감지) → 새 비밀번호+확인 입력 → `supabase.auth.updateUser({ password })`. 일치/최소 6자/빈값 검증, 성공/만료 안내
+- 친화적 에러 문구(원문 비노출), 모바일 레이아웃 고려
+- 미들웨어 matcher에 `/auth/*` 미포함 → 비로그인 접근 가능
+- Auth callback 구조 / Kakao OAuth / 회원가입 role 로직 / DB / RLS 변경 없음, tsc PASS, build PASS
+- ⚠️ 실 메일 발송/수신·링크 클릭·변경 후 로그인은 OZ 실 환경 확인 필요 (Supabase Auth 메일 템플릿/리디렉트 URL 허용 목록 점검 포함)
+
+---
+
+| 2026-06-02 | 비밀번호 재설정 UI 추가 (로그인 화면 링크 + `/auth/forgot-password` + `/auth/reset-password`, Supabase Auth reset flow 연동) | — |
+
+---
+
 ## 29. 환불 기준 문구 보정 + 이용 개시 안내 문구 기준 정리 (2026-06-02)
 
 - `/refund` 제3조 환불 기준 재구성 (체리피킹 리스크 완화):
