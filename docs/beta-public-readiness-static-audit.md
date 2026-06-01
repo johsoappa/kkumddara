@@ -145,7 +145,7 @@ order by tablename, policyname;
 
 | 우선순위 | 수정 후보 | 이유 | 권장 처리 |
 |---|---|---|---|
-| P1 | 환불 문구 단일화 (`pricing.tsx:202` vs `faq.tsx:38`) | "24시간 무조건 전액" vs "7일 조건부" 충돌 | refund 페이지 기준으로 FAQ/pricing 문구 통일 |
+| ✅ 완료(2026-06-01) | 환불 문구 단일화 (`pricing.tsx` vs `faq.tsx`) | "24시간 무조건 전액" vs "7일 조건부" 충돌 | pricing·faq present-tense 문구를 베타 기준으로 보정, refund 정식 정책(베타 배너) 유지 — 해소 |
 | P1 | 다자녀 현재 자녀 표시/선택 | report/명따라/상담이 첫 자녀 자동 선택, 전환 불가 | 자녀 표시 라벨 + (가능 시) 선택 UI |
 | P1 | 데모 role 로그아웃 정리 | 로그아웃 단독 시 sessionStorage 잔존 가능(희박) | 로그아웃 시 `kkumddara_demo_role` 제거 |
 | P2 | 커스텀 not-found/error | 기본 영문 404/500 노출 | 브랜드 톤 한국어 페이지 |
@@ -186,6 +186,6 @@ order by tablename, policyname;
 ## 13. 다음 권장 작업
 
 1. ✅ **(P0 — 완료)** RLS 실 활성·정책 OZ 확인 완료(2026-06-01): 23개 테이블 전부 `rowsecurity=true`, policy 53개 → **P0 RLS 리스크 해소**
-2. **(P1)** 환불 문구 단일화 + 다자녀 자녀 표시/선택 UI 검토 (2단계 선별 수정 작업지시서)
+2. **(P1)** ✅ 환불 문구 단일화 완료(2026-06-01) + 구독/결제 관리 UI(`/settings/billing`) 추가 완료 / 다자녀 자녀 표시·선택 UI는 후속 검토
 3. **(P2)** `metadataBase`/robots/sitemap/커스텀 404 — 운영 도메인·색인 정책 확정 후 일괄 보강
 4. **(잔여 확인)** 실 메일 발송 테스트 + 미성년자 동의 문구 정책/법무 판단

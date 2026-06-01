@@ -510,6 +510,18 @@ LIMIT 20;
 
 ---
 
+## 28. 구독 및 결제 관리 안내 UI 추가 + 환불 문구 단일화 (2026-06-01)
+
+- 배경: 정적 점검(P1)에서 환불 문구 충돌(`pricing` "24시간 무조건 전액" ↔ `faq` "7일 조건부") + 구독/결제 관리 UI 경로 부재 확인
+- `/settings/billing` 신규 생성: 베타 무료 이용 / 결제 수단 없음 / 환불·구독 해지 대상 없음 안내 + 요금제·환불정책·문의 CTA. "구독 해지" 버튼은 미노출(해지 대상 없음)
+- 설정 페이지에 "구독 및 결제 관리" 진입 카드 추가 (→ `/settings/billing`)
+- 문구 단일화: `pricing`/`faq`의 present-tense 결제/해지/환불 단정 문구를 베타 기준("정식 결제 오픈 전, 실제 결제 없음, 정식 오픈 시 안내")으로 보정
+- 유지: `refund` 정식 환불정책(베타 배너로 "정식 도입 시 기준" 명시), `terms` 정식 약관, 데모/가이드 "베타 무료 이용·자동결제 없음", 명따라 1회 무료 체험(실 베타 기능)
+- 실제 구독 해지/환불/결제 수단/PG/subscription 상태 변경 등 결제 로직은 구현하지 않음(결제 오픈 전)
+- DB/migration/RLS/Auth/AI/결제 로직/요금제 권한/subscription_plan 구조 변경 없음, tsc PASS, build PASS
+
+---
+
 ## 27. 학생 체험 "내 활동" 탭 홈 이동 오류 수정 (2026-06-01)
 
 - 증상: 학생 체험(비로그인)에서 BottomNav "내 활동" 클릭 시 보호 라우트 `/student/activity`로 이동 → 미들웨어(`/student/:path*` role=student 필요)에 걸려 홈/랜딩으로 튕김
@@ -531,6 +543,7 @@ LIMIT 20;
 
 ---
 
+| 2026-06-01 | 구독 및 결제 관리 안내 UI 추가 (`/settings/billing` 신규) + 환불/결제 문구 베타 기준 단일화 (pricing·faq present-tense 결제·해지·환불 문구 보정) | — |
 | 2026-06-01 | 학생 체험 "내 활동" 탭 홈 이동 오류 수정 (`/demo/student/activity` 신규 + BottomNav 데모 href 분기) | — |
 | 2026-06-01 | 학생 체험 BottomNav "리포트" 노출 오류 수정 (role 우선순위 + demo session role, AppShell navRoleOverride) | — |
 | 2026-06-01 | 자녀 내 활동(`/student/activity`) 완료 미션 목록 표시 보강 (최대 5개, 미션 제목 + 관련 직업명) | — |
