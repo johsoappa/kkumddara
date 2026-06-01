@@ -30,13 +30,15 @@ export default function ResetPasswordPage() {
   const [errorMsg,  setErrorMsg]  = useState<string | null>(null);
   const [recovery,  setRecovery]  = useState<Recovery>("checking");
 
-  // recovery 세션 감지
-  //   메일 링크 진입: Supabase 클라이언트가 URL 토큰을 자동 처리 →
-  //     PASSWORD_RECOVERY / SIGNED_IN 이벤트 + 세션 생성
-  //   직접 URL 접근: 세션 없음 → "invalid" 안내 화면 표시 (입력폼 미노출)
+  // recovery 세션 확보
+  //   순서: ① 기존 세션 확인 → ② URL code 파라미터면 exchangeCodeForSession
+  //         → ③ getSession 재확인 → ④ PASSWORD_RECOVERY/SIGNED_IN 이벤트 → ⑤ 5초 타임아웃
+  //   메일 링크 진입: 위 과정으로 세션 확보 → ready
+  //   직접 URL 접근(세션 없음): invalid 안내 (입력폼 미노출)
   useEffect(() => {
     let resolved = false;
-    const markReady = () => { resolved = true; setRecovery("ready"); };
+    const markReady   = () => { if (!resolved) { resolved = true; setRecovery("ready"); } };
+    const markInvalid = () => { if (!resolved) { resolved = true; setRecovery("invalid"); } };
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "PASSWORD_RECOVERY" || (event === "SIGNED_IN" && session)) {
@@ -44,18 +46,43 @@ export default function ResetPasswordPage() {
       }
     });
 
-    // 이미 토큰 처리가 끝나 세션이 있는 경우 커버
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) markReady();
-    });
+    (async () => {
+      try {
+        // ① 이미 세션이 있으면(detectSessionInUrl 자동 교환 완료 등) ready
+        const { data: pre } = await supabase.auth.getSession();
+        if (pre.session) { markReady(); return; }
 
-    // 일정 시간 내 recovery 세션이 감지되지 않으면 잘못된/만료된 접근으로 처리
+        // ② URL code 파라미터가 있으면 명시적으로 세션 교환
+        const code = new URLSearchParams(window.location.search).get("code");
+        if (code) {
+          const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (error) {
+            console.error("[reset-password] exchangeCodeForSession failed", {
+              message: error.message, status: error.status, name: error.name,
+            });
+            // 자동 교환이 먼저 처리했을 수 있으니 세션 재확인
+            const { data: post } = await supabase.auth.getSession();
+            if (post.session) markReady();
+            else markInvalid();
+            return;
+          }
+          // ③ 교환 후 세션 확인
+          const { data: post } = await supabase.auth.getSession();
+          if (post.session) { markReady(); return; }
+        }
+        // 세션/이벤트 미확보 → ④ onAuthStateChange 또는 ⑤ 타임아웃에 맡김
+      } catch (err) {
+        console.error("[reset-password] recovery init error", err);
+      }
+    })();
+
+    // ⑤ 5초 내 세션이 확보되지 않으면 잘못된/만료된 접근으로 처리 (느린 네트워크 고려)
     const timer = setTimeout(async () => {
       if (resolved) return;
       const { data: { session } } = await supabase.auth.getSession();
       if (session) markReady();
-      else setRecovery("invalid");
-    }, 2500);
+      else markInvalid();
+    }, 5000);
 
     return () => { subscription.unsubscribe(); clearTimeout(timer); };
   }, []);
@@ -83,10 +110,26 @@ export default function ResetPasswordPage() {
     setStatus("loading");
     try {
       const { error } = await supabase.auth.updateUser({ password });
-      if (error) throw error;
+      if (error) {
+        // 개발자 콘솔에는 실제 Supabase error 기록 (원문은 사용자에게 노출하지 않음)
+        console.error("[reset-password] updateUser failed", {
+          message: error.message, status: error.status, name: error.name,
+        });
+        const lower = error.message?.toLowerCase() ?? "";
+        if (lower.includes("different from the old") || lower.includes("should be different")) {
+          // 동일 비밀번호 정책 위반은 구분 안내
+          setErrorMsg("새 비밀번호는 이전 비밀번호와 다르게 설정해 주세요.");
+        } else {
+          setErrorMsg(
+            "비밀번호 변경 중 문제가 발생했습니다. 재설정 링크가 만료되었을 수 있습니다. 다시 비밀번호 재설정을 요청해 주세요."
+          );
+        }
+        setStatus("error");
+        return;
+      }
       setStatus("success");
     } catch (err) {
-      console.error("[reset-password] updateUser 오류:", err);
+      console.error("[reset-password] updateUser unexpected error", err);
       setErrorMsg(
         "비밀번호 변경 중 문제가 발생했습니다. 재설정 링크가 만료되었을 수 있습니다. 다시 비밀번호 재설정을 요청해 주세요."
       );

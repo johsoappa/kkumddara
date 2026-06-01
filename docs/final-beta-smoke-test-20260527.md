@@ -510,6 +510,25 @@ LIMIT 20;
 
 ---
 
+## 32. 비밀번호 재설정 updateUser 실패 보정 (2026-06-02)
+
+- 증상(OZ 실환경): 메일 발송·링크 진입·새 비밀번호 화면까지 정상이나, 새 비밀번호 저장 시 updateUser 실패 → "비밀번호 변경 중 문제..." 에러
+- 추정 원인: PKCE recovery 링크의 `?code=` 세션 교환 미완료 상태에서 updateUser 실행 / 2.5초 대기 부족
+- 조치(`/auth/reset-password`):
+  - recovery 확보 순서 정립: ① getSession ② `?code=`면 `exchangeCodeForSession(code)` ③ getSession 재확인 ④ PASSWORD_RECOVERY/SIGNED_IN 이벤트 ⑤ 타임아웃
+  - 자동 교환이 먼저 처리한 경우 중복 교환 회피(세션 선확인) + 교환 실패 시 세션 재확인 fallback
+  - recovery 대기 시간 2.5초 → **5초** 상향 (느린 네트워크 고려)
+  - updateUser 실패 시 개발자 콘솔에 Supabase error(message/status/name) 기록, 사용자에겐 친화 문구 유지. 동일 비밀번호 정책 위반은 "새 비밀번호는 이전 비밀번호와 다르게 설정해 주세요"로 구분
+- 직접 URL 접근 invalid 안내 유지
+- Auth 구조/회원가입 role/Kakao OAuth/callback 변경 없음, tsc PASS, build PASS
+- ⚠️ 메일 링크 진입 후 실제 변경 성공은 OZ 실 환경 재확인 필요 (동일 브라우저에서 요청·링크 클릭 시 PKCE verifier 일치 전제)
+
+---
+
+| 2026-06-02 | 비밀번호 재설정 updateUser 실패 보정 (`?code=` exchangeCodeForSession + 세션 확인 강화 + 대기 5초 + updateUser 에러 로깅/동일PW 구분) | — |
+
+---
+
 ## 31. 비밀번호 재설정 링크 노출 보정 + reset 직접 접근 처리 (2026-06-02)
 
 - 증상: 실제 학부모/학생 로그인 화면에 "비밀번호를 잊으셨나요?" 링크 미노출

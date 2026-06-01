@@ -357,3 +357,4 @@
 | 2026-06-02 | 환불 기준 문구 보정 + 이용 개시 안내 문구 기준 정리. | `/refund` 제3조에서 "24시간 이용 이력 무관 전액 환불" 삭제(체리피킹 완화), 7일 미이용/이용내역/7일 초과·지속형/오류·중복 기준으로 재구성, "환불 불가" 단정 대신 완화 표현 채택. 이용 개시 모달 문구 기준·정식 결제 오픈 전 과제는 문서화만(미구현). 결제/DB/Auth/PG 변경 없음. |
 | 2026-06-02 | 비밀번호 재설정 UI 추가. | 로그인 화면에 "비밀번호를 잊으셨나요?" 링크 + `/auth/forgot-password`(reset 메일 발송) + `/auth/reset-password`(새 비밀번호 저장) 신규. Supabase Auth reset flow 연동. Auth 구조/회원가입 role/Kakao OAuth/DB 변경 없음. OZ는 실 메일 수신·링크·변경 후 로그인 확인 필요. |
 | 2026-06-02 | 비밀번호 재설정 링크 노출 보정. | 실제 로그인 화면(`page.tsx` step=auth, signin 모드)에 링크 추가(직전엔 OnboardingForm 개발테스트 블록에만 있어 미노출). `/auth/reset-password` 직접 접근 시 recovery 세션 없으면 만료/재요청 안내(입력폼 미노출). Auth/DB 변경 없음. |
+| 2026-06-02 | 비밀번호 재설정 updateUser 실패 보정. | `/auth/reset-password`에서 `?code=` exchangeCodeForSession 명시 처리 + getSession 확인 강화 + recovery 대기 2.5→5초 + updateUser 실패 시 Supabase error 콘솔 기록(동일 PW 구분 안내). Auth/DB 변경 없음. 메일 링크 변경 성공은 OZ 재확인. |

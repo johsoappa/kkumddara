@@ -469,5 +469,6 @@ OZ 수동 확인 후 아래 기준으로 최종 판정한다.
 | 2026-06-01 | 자녀 내 활동 화면에서 완료 미션 개수뿐 아니라 실제 완료한 미션 목록을 확인할 수 있도록 UI 표시 기준을 보강함. | StudentActivitySection 완료 미션 카드 목록(최대 5개, 미션 제목 + 관련 직업명) 추가. student/home 요약 카드 문구 정리. 완료일 데이터 없음 → 미표시. |
 | 2026-06-02 | 비밀번호 재설정 UI 추가 — 로그인 화면 "비밀번호를 잊으셨나요?" 링크 + `/auth/forgot-password`(reset 메일 발송) + `/auth/reset-password`(새 비밀번호 저장). | §10에 이메일 인증/비밀번호 재설정 메일 OZ 수동 확인 항목 추가. Auth 구조/회원가입 role/DB 변경 없음. |
 | 2026-06-02 | 비밀번호 재설정 링크 노출 보정 — 실제 로그인 화면(`page.tsx`)에 링크 추가(미노출 이슈 수정), `/auth/reset-password` 직접 접근 시 recovery 세션 없으면 만료/재요청 안내. | 학부모/학생 로그인 공통 화면에 노출. Auth/DB 변경 없음. |
+| 2026-06-02 | 비밀번호 재설정 updateUser 실패 보정 — `?code=` 세션 교환 명시 처리, 세션 확인 강화, 대기 5초, updateUser 에러 콘솔 로깅. | 메일 링크 변경 성공은 OZ 재확인 필요(동일 브라우저 전제). Auth/DB 변경 없음. |
 | 2026-06-01 | 학생 체험하기 및 학생 체험 기반 직업 탐색 화면에서 BottomNav에 부모용 "리포트" 탭이 노출되는 문제를 확인하고, 학생 체험 흐름에서는 "내 활동" 탭이 표시되도록 보정함. | BottomNav role 결정 우선순위(실 로그인 role → roleOverride → demo session role → pathname → parent) 도입, /demo/student·/demo/parent에서 sessionStorage 데모 role 설정. 실 로그인 role 우선. |
 | 2026-06-01 | 학생 체험 흐름에서 "내 활동" 탭이 보호 라우트 `/student/activity`로 이동해 홈으로 튕기던 문제를 확인하고, 비로그인 학생 체험 전용 `/demo/student/activity` 화면으로 분기하도록 보정함. | 데모 학생 모드에서 내 활동/홈 href를 `/demo/student/activity`·`/demo/student`로 분기(실 로그인 학생은 `/student/activity`·`/student/home` 유지). `/demo/student/activity` 데모 안내 페이지 신규 생성. |
