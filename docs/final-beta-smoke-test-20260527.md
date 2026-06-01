@@ -521,6 +521,14 @@ LIMIT 20;
 - 미들웨어 matcher에 `/demo/*` 미포함 → 데모 라우트는 비보호, 튕김 없음
 - DB/migration/RLS/Auth 구조/`/student/activity` 표시 로직/부모 리포트 변경 없음, tsc PASS, build PASS
 
+**실 브라우저 검증 (OZ, 2026-06-01 22:32, Chrome / PC·모바일) — 판정: PASS, 이슈 종료**
+- 비로그인 `/demo/student` 진입 정상
+- 학생 체험 → 직업 탐색 이동 정상, BottomNav 홈/직업 탐색/내 활동 정상 표시
+- 학생 체험 상태에서 "리포트" 미노출 정상
+- "내 활동" 클릭 시 `/demo/student/activity` 이동 정상, 홈 튕김 현상 없음
+- 실제 학생 로그인 시 `/student/activity` 정상 이동
+- 부모 리포트는 학부모 모드에서 정상 진입
+
 ---
 
 | 2026-06-01 | 학생 체험 "내 활동" 탭 홈 이동 오류 수정 (`/demo/student/activity` 신규 + BottomNav 데모 href 분기) | — |
