@@ -485,6 +485,19 @@ LIMIT 20;
 
 ---
 
+## 25. 자녀 내 활동 완료 미션 목록 표시 보강 (2026-06-01)
+
+- 니즈: 완료 개수만으로는 회고·성취감이 부족 → 실제 완료한 미션을 자녀가 직접 확인 가능하게 보강
+- StudentActivitySection 에 완료 미션 카드 목록 추가 (최근 최대 5개, 미션 제목 + 관련 직업명)
+- 미션 제목 없음 → "완료한 미션", 직업명 없음 → "관련 직업 정보 확인 중" fallback
+- `checked_missions` 구조상 미션별 완료일이 없어 완료일은 표시하지 않음 (지시서 기준 준수)
+- 완료 미션 5개 초과 시 "최근 완료한 미션 5개만 보여줄게요." 안내
+- student/home 요약 카드는 그대로 유지(상세 목록 미노출), 문구만 "지금까지 N개의 미션을 완료했어요 / 자세한 기록은 내 활동에서"로 정리
+- DB/migration/API/AI/요금제/부모 리포트 계산 로직 변경 없음, tsc PASS, build PASS
+
+---
+
+| 2026-06-01 | 자녀 내 활동(`/student/activity`) 완료 미션 목록 표시 보강 (최대 5개, 미션 제목 + 관련 직업명) | — |
 | 2026-05-30 | 자녀 모드 "내 활동" 탭 → `/student/activity` 전용 페이지 분리, BottomNav 경로 보정, `/report` 학생 redirect 보정 | — |
 | 2026-05-30 | 자녀 모드 내 활동 UI 추가 (BottomNav role-aware, student/home 내 활동 섹션, report redirect 수정) | — |
 | 2026-05-30 | 베타 운영 전 OZ 수동 확인 체크리스트 (`docs/manual-beta-operation-checklist.md`) | a194735 |

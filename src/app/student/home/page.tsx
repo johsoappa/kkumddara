@@ -654,9 +654,14 @@ export default function StudentHomePage() {
                   </p>
                 </>
               ) : (
-                <p className="text-sm font-bold text-base-text">
-                  완료한 미션 {completedMissions.length}개를 확인할 수 있어요.
-                </p>
+                <>
+                  <p className="text-sm font-bold text-base-text mb-1">
+                    지금까지 {completedMissions.length}개의 미션을 완료했어요.
+                  </p>
+                  <p className="text-xs text-base-muted leading-relaxed">
+                    자세한 기록은 내 활동에서 확인할 수 있어요.
+                  </p>
+                </>
               )}
               <span
                 className="mt-3 inline-flex items-center gap-1 text-xs font-semibold"

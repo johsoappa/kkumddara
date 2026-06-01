@@ -28,6 +28,17 @@ interface MissionDetail {
   stageTitle: string;
 }
 
+// 완료 미션 목록 표시용 — 미션 제목 + 관련 직업명
+// (checked_missions 구조상 미션별 완료일 데이터가 없어 completedAt은 미표시)
+interface CompletedMissionView {
+  id:             string;
+  title:          string;
+  occupationName: string;
+}
+
+// 표시할 최근 완료 미션 최대 개수
+const MAX_COMPLETED_VIEW = 5;
+
 export default function StudentActivitySection() {
   const router = useRouter();
 
@@ -167,23 +178,36 @@ export default function StudentActivitySection() {
     loadData();
   }, [router]);
 
-  // ── 완료한 미션 상세 (최근 3개) ────────────────────────────
-  // student/home 의 completedMissionDetails 와 동일 규칙
-  const completedMissionDetails = useMemo<MissionDetail[]>(() => {
+  // ── 완료한 미션 상세 (최근 N개) ────────────────────────────
+  // 미션 제목 + 관련 직업명으로 구성. 미션 제목/직업명을 찾지 못하면 안전 fallback 사용.
+  const completedMissionDetails = useMemo<CompletedMissionView[]>(() => {
     if (!completedMissions.length || !chosenRoadmapId) return [];
     const completedSet = new Set(completedMissions);
+    const occName = occupationName ?? "관련 직업 정보 확인 중";
 
+    const toView = (m: MissionDetail): CompletedMissionView => ({
+      id:             m.id,
+      title:          m.text?.trim() ? m.text : "완료한 미션",
+      occupationName: occName,
+    });
+
+    // DB 미션 기준 (prep + action)
     if (dbMissions && dbMissions.length > 0) {
-      return dbMissions.filter((m) => completedSet.has(m.id)).slice(0, 3);
+      return dbMissions.filter((m) => completedSet.has(m.id)).map(toView);
     }
 
+    // static ROADMAPS fallback
     const roadmap = getRoadmap(chosenRoadmapId);
     if (!roadmap) return [];
     const all = roadmap.stages.flatMap((s) =>
       s.missions.map((m) => ({ id: m.id, text: m.text, stageTitle: s.title }))
     );
-    return all.filter((m) => completedSet.has(m.id)).slice(0, 3);
-  }, [completedMissions, chosenRoadmapId, dbMissions]);
+    return all.filter((m) => completedSet.has(m.id)).map(toView);
+  }, [completedMissions, chosenRoadmapId, dbMissions, occupationName]);
+
+  // 최근 표시분(최대 5개) + 초과 여부
+  const recentCompleted = completedMissionDetails.slice(0, MAX_COMPLETED_VIEW);
+  const hasMoreCompleted = completedMissionDetails.length > MAX_COMPLETED_VIEW;
 
   if (loading) {
     return (
@@ -234,17 +258,41 @@ export default function StudentActivitySection() {
           )}
         </div>
 
-        {completedMissionDetails.length > 0 && (
-          <div className="px-4 py-3">
-            <p className="text-xs font-semibold text-base-muted mb-2">최근 완료한 미션</p>
-            <div className="flex flex-col gap-1.5">
-              {completedMissionDetails.map((m) => (
-                <div key={m.id} className="flex items-start gap-2">
-                  <span className="text-xs mt-0.5" style={{ color: "#E84B2E" }}>✓</span>
-                  <p className="text-xs text-base-text leading-relaxed">{m.text}</p>
-                </div>
+        {recentCompleted.length > 0 && (
+          <div className="px-4 py-4">
+            <p className="text-sm font-bold text-base-text">내가 완료한 미션</p>
+            <p className="text-xs text-base-muted mt-0.5 mb-3">
+              최근에 완료한 미션을 확인할 수 있어요.
+            </p>
+
+            <ul className="flex flex-col gap-2">
+              {recentCompleted.map((m) => (
+                <li
+                  key={m.id}
+                  className="flex items-start gap-2.5 px-3 py-2.5 rounded-button bg-base-card"
+                >
+                  {/* 완료 체크 배지 */}
+                  <span
+                    className="shrink-0 mt-0.5 w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold"
+                    style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+                  >
+                    ✓
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-base-text leading-snug">
+                      {m.title}
+                    </p>
+                    <p className="text-xs text-base-muted mt-0.5">{m.occupationName}</p>
+                  </div>
+                </li>
               ))}
-            </div>
+            </ul>
+
+            {hasMoreCompleted && (
+              <p className="text-[11px] text-base-muted mt-2.5">
+                최근 완료한 미션 {MAX_COMPLETED_VIEW}개만 보여줄게요.
+              </p>
+            )}
           </div>
         )}
       </div>
