@@ -521,7 +521,13 @@ LIMIT 20;
   - updateUser 실패 시 개발자 콘솔에 Supabase error(message/status/name) 기록, 사용자에겐 친화 문구 유지. 동일 비밀번호 정책 위반은 "새 비밀번호는 이전 비밀번호와 다르게 설정해 주세요"로 구분
 - 직접 URL 접근 invalid 안내 유지
 - Auth 구조/회원가입 role/Kakao OAuth/callback 변경 없음, tsc PASS, build PASS
-- ⚠️ 메일 링크 진입 후 실제 변경 성공은 OZ 실 환경 재확인 필요 (동일 브라우저에서 요청·링크 클릭 시 PKCE verifier 일치 전제)
+
+**실 환경 검증 (OZ, 2026-06-02, 기준 commit `64e2140`) — 판정: PASS, 이슈 종료**
+- 학부모/학생 로그인 화면 비밀번호 재설정 링크 노출 확인
+- `/auth/forgot-password` 진입 + 가입 이메일 재설정 메일 발송·수신 확인
+- 메일 링크 클릭 → `/auth/reset-password` 진입 확인
+- 새 비밀번호 입력 후 **변경 성공** 확인 ("비밀번호가 변경되었습니다. 새 비밀번호로 다시 로그인해 주세요.")
+- → updateUser 실패 이슈 종료
 
 ---
 
