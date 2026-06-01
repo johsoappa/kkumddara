@@ -47,20 +47,38 @@ export default function RefundPage() {
           <h2 className="text-sm font-bold mb-4" style={{ color: "#E84B2E" }}>제3조 (환불 기준)</h2>
           <div className="flex flex-col gap-2">
             {[
-              { condition: "결제 후 24시간 이내", result: "전액 환불 (이용 이력 무관)" },
-              { condition: "7일 이내 + 미이용",   result: "전액 환불" },
-              { condition: "7일 이내 + 이용 개시", result: "이용 범위·잔여기간 고려 산정" },
-              { condition: "7일 초과",             result: "환불 불가 (해지는 언제든 가능)" },
+              {
+                condition: "결제 후 7일 이내 + 미이용",
+                result:    "전액 환불 안내",
+                desc:      "유료 기능의 진단 시작, 리포트 열람, AI 상담 사용, 유료 데이터 조회 등 실제 이용 내역이 없는 경우를 기준으로 합니다.",
+              },
+              {
+                condition: "7일 이내 + 이용 내역 있음",
+                result:    "이용 내역 기준 안내",
+                desc:      "실제 이용 내역과 제공된 서비스 범위에 따라 환불 기준이 달라질 수 있습니다.",
+              },
+              {
+                condition: "7일 초과 또는 지속형 서비스",
+                result:    "상품 유형·잔여 기간 기준 안내",
+                desc:      "단건 콘텐츠와 지속형 구독 여부, 이용 내역, 잔여 기간을 기준으로 환불 또는 해지 가능 여부를 안내합니다.",
+              },
+              {
+                condition: "서비스 오류 또는 중복 결제",
+                result:    "확인 후 별도 처리",
+                desc:      "표시된 내용과 다른 서비스 제공, 중복 결제, 시스템 오류 등은 확인 후 별도로 안내합니다.",
+              },
             ].map((row) => (
               <div key={row.condition}
                 className="flex flex-col gap-1 p-3 rounded-card border border-base-border">
                 <span className="text-xs font-semibold text-base-muted">{row.condition}</span>
                 <span className="text-sm font-medium text-base-text">{row.result}</span>
+                <span className="text-xs text-base-muted leading-relaxed mt-0.5">{row.desc}</span>
               </div>
             ))}
           </div>
           <p className="text-xs text-base-muted mt-3 leading-relaxed">
-            결제 후 서비스 이용이 전혀 개시되지 않은 경우에도 이용 조건에 따라 처리됩니다.
+            ※ 이용 내역 안내: 진단 시작, 리포트 열람, AI 상담 사용, 유료 데이터 조회 등 실제 서비스 이용 내역이 있는 경우에는
+            환불 요청 시 이용 내역과 제공된 서비스 범위를 기준으로 안내될 수 있습니다.
           </p>
         </div>
 
