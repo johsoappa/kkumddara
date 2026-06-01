@@ -510,6 +510,23 @@ LIMIT 20;
 
 ---
 
+## 31. 비밀번호 재설정 링크 노출 보정 + reset 직접 접근 처리 (2026-06-02)
+
+- 증상: 실제 학부모/학생 로그인 화면에 "비밀번호를 잊으셨나요?" 링크 미노출
+- 원인: 직전 작업에서 링크를 `OnboardingForm`(개발 테스트용 이메일 로그인 블록)에 추가했으나, **실제 로그인 UI는 `src/app/page.tsx`의 `step === "auth"` 블록**이라 사용자 화면에 보이지 않았음
+- 조치: `src/app/page.tsx` 로그인 폼(signin 모드)의 비밀번호 입력 아래에 "비밀번호를 잊으셨나요?" 링크 추가 → `/auth/forgot-password` (학부모/학생 공통 동일 화면이라 양쪽 모두 노출)
+- `/auth/reset-password` 직접 접근 처리: recovery 세션 게이팅 추가 (checking/ready/invalid)
+  - 메일 링크 진입(PASSWORD_RECOVERY/SIGNED_IN 또는 세션 존재) → 새 비밀번호 입력폼
+  - 직접 URL 접근(세션 없음) → "재설정 링크가 만료되었거나 잘못된 접근입니다" 안내 + "재설정 메일 다시 받기"(→ `/auth/forgot-password`)
+  - 확인 중에는 로딩 안내
+- Auth 구조/회원가입 role/Kakao OAuth/callback 변경 없음, tsc PASS, build PASS
+
+---
+
+| 2026-06-02 | 비밀번호 재설정 링크 노출 보정 (실제 로그인 화면 `page.tsx`에 링크 추가) + reset-password 직접 접근 시 recovery 세션 게이팅 | — |
+
+---
+
 ## 30. 비밀번호 재설정 UI 추가 (2026-06-02)
 
 - 배경: 로그인 화면에 비밀번호 찾기/재설정 메뉴가 없어 베타 계정 복구 흐름 테스트 불가

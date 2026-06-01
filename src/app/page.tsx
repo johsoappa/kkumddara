@@ -475,6 +475,19 @@ function LandingContent() {
                   {authMode === "signup" && (
                     <PasswordConditions password={password} show={showConditions} />
                   )}
+
+                  {/* 비밀번호 재설정 링크 — 로그인 모드에서만 노출 */}
+                  {authMode === "signin" && (
+                    <div className="flex justify-end mt-1.5">
+                      <button
+                        type="button"
+                        onClick={() => router.push("/auth/forgot-password")}
+                        className="text-xs text-base-muted underline underline-offset-2 px-2 py-1 active:opacity-60 transition-opacity"
+                      >
+                        비밀번호를 잊으셨나요?
+                      </button>
+                    </div>
+                  )}
                 </div>
 
                 {/* 에러 */}
