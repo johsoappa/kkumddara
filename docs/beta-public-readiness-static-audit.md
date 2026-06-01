@@ -14,7 +14,7 @@
 
 | 구분 | 판정 | 메모 |
 |---|---|---|
-| P0 공개 전제 조건 | **확인 필요** | 코드/마이그레이션상 치명 결함 없음. 단 RLS **실 활성 상태**는 OZ가 Supabase에서 SQL로 직접 확인 필요 (코드만으로 확정 불가) |
+| P0 공개 전제 조건 | **PASS** | RLS 실 활성 상태 OZ 확인 완료(2026-06-01): public 23개 테이블 전부 `rowsecurity=true`, policy 53개. 비활성 테이블 0건 → P0 RLS 리스크 해소. (미성년자 동의 문구는 정책/법무 판단 잔여) |
 | P1 역할/세션/운영 안정성 | **보완 권장** | 역할 분리·보호 라우트·체험/실로그인 우선순위는 코드상 정상. 환불 문구 충돌(1건), 다자녀 선택 UI 부재, 데모 role 로그아웃 미정리 등 보완 후보 존재 |
 | P2 공개 품질 | **보완 권장** | 커스텀 404/500/loading 없음, robots/sitemap 없음, `metadataBase` 미설정(OG 공유 이미지 URL 리스크), per-page OG 없음 |
 
@@ -26,8 +26,9 @@
 
 | 항목 | 결과 | 우선순위 | 근거 파일/위치 | 후속 조치 |
 |---|---|---|---|---|
-| RLS 활성 (마이그레이션 기준) | 확인 필요 | P0 | `supabase/migrations/` 다수 `enable row level security` (아래 표 참조) | OZ가 Supabase SQL Editor에서 실 활성 상태 직접 확인 (§8 SQL) |
-| 사용자 데이터 테이블 RLS 정의 누락 | PASS(코드) | P0 | `parent/child/student/roadmap_progress/liked_occupations/myeonddara_sessions/ai_consult_*/myeonddara_usage/weekly_activity_completions/weekly_roadmap_missions` 모두 마이그레이션에 RLS enable 존재 | 실 활성 여부만 OZ 확인 |
+| RLS 활성 (실 DB 확인 완료) | **PASS** | P0 | OZ Supabase 확인(2026-06-01): public 23개 테이블 전부 `rowsecurity=true`, 비활성 0건 | 해소 완료 |
+| 사용자 데이터 테이블 policy 조건 | **PASS** | P0 | OZ 확인: pg_policies 53개. parent/student `user_id=auth.uid()`, child·roadmap_progress·weekly_*·liked_occupations는 parent/student 연결 조건, myeonddara_usage with_check 확인 | 해소 완료 |
+| 공개 콘텐츠 테이블 정책 | **PASS** | P0 | `occupation_*`는 published/active/current 공개 조회 + 관리자 수정은 `is_admin()` 분리 | 의도된 공개 — 정상 |
 | 회원가입/역할 결정 흐름 | PASS(코드) | P0 | `src/middleware.ts`, `src/app/onboarding/*`, `src/app/auth/callback` | OZ 실 브라우저 가입 1회 확인 |
 | 미성년자 동의/약관 노출 | 확인 필요 | P0 | `src/app/onboarding/student`, `src/app/terms`, `src/app/privacy`, `src/app/youth` | 학생 단독 가입 흐름의 법정대리인 동의 문구 유무 OZ/법무 판단 (본 리포트는 법률 판단 아님) |
 | "14일 무료 체험" 사용자 노출 | PASS | P0 | `src/` 전역 grep 결과 **0건** (docs·`.claude/worktrees/` 비배포 사본 제외) | 없음 |
@@ -113,8 +114,8 @@
 
 | 항목 | 이유 | 확인 방법 |
 |---|---|---|
-| RLS 실 활성 상태 | 코드만으로 실 DB 상태 확정 불가 | Supabase SQL Editor에서 아래 SQL 실행 |
-| RLS 정책 내용 | 정책 존재/허용 범위 확인 | 아래 정책 SQL 실행 |
+| ~~RLS 실 활성 상태~~ | ✅ **확인 완료(2026-06-01)** — 23개 테이블 전부 `rowsecurity=true` | (해소) 참고용 SQL은 아래 보존 |
+| ~~RLS 정책 내용~~ | ✅ **확인 완료** — policy 53개, 사용자 데이터 연결 조건/with_check 확인 | (해소) |
 | 실 메일 발송 | 가입 인증·비번 재설정 메일 수신/한글 깨짐 | 실 계정으로 가입·재설정 1회 |
 | 모바일 실렌더 | BottomNav 고정/CTA 가림/가로 스크롤 | 실기기(iOS/Android) `/`,`/demo/student/activity`,`/student/activity`,`/report`,`/myeonddara` |
 | OG 공유 미리보기 | `metadataBase` 미설정으로 이미지 URL 리스크 | 카카오톡/슬랙에 URL 공유 |
@@ -175,8 +176,8 @@ order by tablename, policyname;
 
 ## 12. 최종 판정
 
-- **보완 필요 (조건부 공개 가능)**
-  - P0: 코드/마이그레이션상 치명 결함 없음. **단 RLS 실 활성 상태 OZ 확인(§8)이 공개 전 필수 선행.**
+- **보완 필요 (조건부 공개 가능)** — *P0 RLS 선행 확인 완료(2026-06-01, PASS)로 공개 전제 조건 충족.*
+  - P0: RLS 실 활성/정책 OZ 확인 **PASS**(23개 테이블 전부 활성, policy 53개). 미성년자 동의 문구만 정책/법무 잔여.
   - P1: 환불 문구 충돌 1건은 공개 전 정리 권장. 다자녀/데모 role 잔존은 보완 후보.
   - P2: 404/robots/OG 보완은 품질 향상 항목(공개 차단 아님).
 
@@ -184,6 +185,7 @@ order by tablename, policyname;
 
 ## 13. 다음 권장 작업
 
-1. **(P0 선행)** OZ가 Supabase에서 §8 SQL로 RLS 실 활성·정책 확인 → 미적용 테이블 발견 시 2단계 최우선 처리
+1. ✅ **(P0 — 완료)** RLS 실 활성·정책 OZ 확인 완료(2026-06-01): 23개 테이블 전부 `rowsecurity=true`, policy 53개 → **P0 RLS 리스크 해소**
 2. **(P1)** 환불 문구 단일화 + 다자녀 자녀 표시/선택 UI 검토 (2단계 선별 수정 작업지시서)
 3. **(P2)** `metadataBase`/robots/sitemap/커스텀 404 — 운영 도메인·색인 정책 확정 후 일괄 보강
+4. **(잔여 확인)** 실 메일 발송 테스트 + 미성년자 동의 문구 정책/법무 판단
