@@ -510,6 +510,20 @@ LIMIT 20;
 
 ---
 
+## 27. 학생 체험 "내 활동" 탭 홈 이동 오류 수정 (2026-06-01)
+
+- 증상: 학생 체험(비로그인)에서 BottomNav "내 활동" 클릭 시 보호 라우트 `/student/activity`로 이동 → 미들웨어(`/student/:path*` role=student 필요)에 걸려 홈/랜딩으로 튕김
+- 조치: 데모 학생 모드에서는 내 활동/홈 href를 비보호 데모 라우트로 분기
+  - 내 활동: `/demo/student/activity`, 홈: `/demo/student`
+  - 실제 로그인 학생은 기존 `/student/activity`·`/student/home` 유지 (loginRole 우선)
+- `/demo/student/activity` 데모 안내 페이지 신규 생성 (실제 저장 데이터 미조회, 빈 상태 + 탐색/로그인 CTA, BottomNav navRoleOverride="student")
+- BottomNav `isDemoStudent = !loginRole && (demoRole==="student" || pathname.startsWith("/demo/student"))` 기준으로 href 분기, 데모 홈 탭 active는 정확 일치로 처리(하위 경로 중복 활성 방지)
+- 미들웨어 matcher에 `/demo/*` 미포함 → 데모 라우트는 비보호, 튕김 없음
+- DB/migration/RLS/Auth 구조/`/student/activity` 표시 로직/부모 리포트 변경 없음, tsc PASS, build PASS
+
+---
+
+| 2026-06-01 | 학생 체험 "내 활동" 탭 홈 이동 오류 수정 (`/demo/student/activity` 신규 + BottomNav 데모 href 분기) | — |
 | 2026-06-01 | 학생 체험 BottomNav "리포트" 노출 오류 수정 (role 우선순위 + demo session role, AppShell navRoleOverride) | — |
 | 2026-06-01 | 자녀 내 활동(`/student/activity`) 완료 미션 목록 표시 보강 (최대 5개, 미션 제목 + 관련 직업명) | — |
 | 2026-05-30 | 자녀 모드 "내 활동" 탭 → `/student/activity` 전용 페이지 분리, BottomNav 경로 보정, `/report` 학생 redirect 보정 | — |

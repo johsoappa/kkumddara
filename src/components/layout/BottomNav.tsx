@@ -64,14 +64,20 @@ const PARENT_NAV_ITEMS = [
   { href: "/settings", label: "설정",   icon: Settings },
 ];
 
-// 학생 탭 정의 — "리포트" 대신 "내 활동" (/student/activity 전용 페이지)
-const STUDENT_NAV_ITEMS = [
-  { href: "/student/home",     label: "홈",     icon: Home     },
-  { href: "/explore",          label: "탐색",   icon: Search   },
-  { href: "/roadmap",          label: "로드맵", icon: Map      },
-  { href: "/student/activity", label: "내 활동", icon: Zap     },
-  { href: "/settings",         label: "설정",   icon: Settings },
-];
+// 학생 탭 정의 — "리포트" 대신 "내 활동"
+// 데모(비로그인 체험) 학생 모드와 실제 로그인 학생 모드에서 홈/내 활동 경로가 다르다.
+//   실제 로그인: 홈 /student/home, 내 활동 /student/activity (보호 라우트)
+//   데모 체험:   홈 /demo/student, 내 활동 /demo/student/activity (비보호 데모 라우트)
+// 보호 라우트로 이동해 홈/랜딩으로 튕기는 것을 방지하기 위해 href를 분기한다.
+function getStudentNavItems(homeHref: string, activityHref: string) {
+  return [
+    { href: homeHref,     label: "홈",     icon: Home     },
+    { href: "/explore",   label: "탐색",   icon: Search   },
+    { href: "/roadmap",   label: "로드맵", icon: Map      },
+    { href: activityHref, label: "내 활동", icon: Zap      },
+    { href: "/settings",  label: "설정",   icon: Settings },
+  ];
+}
 
 interface BottomNavProps {
   /** 명시적 role 지정 (체험/특수 화면용). 실제 로그인 role이 있으면 무시됨. */
@@ -110,7 +116,19 @@ export default function BottomNav({ roleOverride }: BottomNavProps = {}) {
   const resolvedRole: NavRole =
     loginRole ?? roleOverride ?? demoRole ?? resolvePathnameRole(pathname) ?? "parent";
 
-  const navItems = resolvedRole === "student" ? STUDENT_NAV_ITEMS : PARENT_NAV_ITEMS;
+  // 데모(비로그인 체험) 학생 모드 여부 — 보호 라우트 대신 데모 라우트로 분기
+  //   실제 로그인 role이 있으면 항상 실제 학생 라우트(/student/*)를 사용한다.
+  const isDemoStudent =
+    !loginRole &&
+    (demoRole === "student" || pathname.startsWith("/demo/student"));
+
+  const studentHomeHref     = isDemoStudent ? "/demo/student"          : "/student/home";
+  const studentActivityHref = isDemoStudent ? "/demo/student/activity" : "/student/activity";
+
+  const navItems =
+    resolvedRole === "student"
+      ? getStudentNavItems(studentHomeHref, studentActivityHref)
+      : PARENT_NAV_ITEMS;
 
   return (
     <nav
@@ -136,6 +154,9 @@ export default function BottomNav({ roleOverride }: BottomNavProps = {}) {
                 SPROUT_PATHS.some(
                   (p) => pathname === p || pathname.startsWith(p + "/")
                 )
+              : href === "/demo/student"
+              // 데모 학생 홈 탭: 정확히 일치할 때만 (하위 /demo/student/activity 와 중복 활성 방지)
+              ? pathname === href
               : pathname === href || pathname.startsWith(href + "/");
 
           return (
