@@ -182,6 +182,69 @@ export default function SportsInterestSelector() {
           </div>
         </div>
 
+        {/* ── 선수의 길도 살펴볼 수 있어요 (정보 카드, /explore 링크 없음) ── */}
+        {selectedInterest.athletePath && (
+          <div className="mb-4 rounded-xl border border-brand-red/30 bg-brand-light p-3.5">
+            <p className="text-xs font-bold text-brand-red mb-1">
+              선수의 길도 살펴볼 수 있어요
+            </p>
+            <p className="text-[11px] text-base-muted leading-relaxed mb-3">
+              이 운동을 좋아한다면 선수라는 길도 자연스럽게 떠올릴 수 있어요. 다만 좋아하는 운동은
+              선수뿐 아니라 코치, 분석가, 기획자, 안전관리자 같은 다양한 직업으로도 이어질 수 있습니다.
+            </p>
+
+            <div className="rounded-xl bg-white border border-base-border p-3">
+              {/* 선수 직업명 */}
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="text-xl leading-none" aria-hidden="true">
+                  {SPORTS_EMOJI_MAP[selectedInterest.slug] ?? "🏅"}
+                </span>
+                <span className="text-sm font-bold text-base-text">
+                  {selectedInterest.athletePath.title}
+                </span>
+              </div>
+
+              {/* 설명 */}
+              <p className="text-xs text-base-muted leading-relaxed mb-2.5">
+                {selectedInterest.athletePath.description}
+              </p>
+
+              {/* 필요한 힘 */}
+              <p className="text-[11px] font-semibold text-base-text mb-1">필요한 힘</p>
+              <div className="flex flex-wrap gap-1.5 mb-2.5">
+                {selectedInterest.athletePath.strengths.map((s) => (
+                  <span
+                    key={s}
+                    className="text-xs font-medium text-brand-red bg-brand-light rounded-full px-2 py-0.5"
+                  >
+                    {s}
+                  </span>
+                ))}
+              </div>
+
+              {/* 지금 해볼 수 있는 작은 활동 */}
+              <p className="text-[11px] font-semibold text-base-text mb-1">
+                지금 해볼 수 있는 작은 활동
+              </p>
+              <ul className="flex flex-col gap-1 mb-2">
+                {selectedInterest.athletePath.starterActions.map((a) => (
+                  <li key={a} className="flex items-start gap-1.5 text-xs text-base-text leading-relaxed">
+                    <span className="text-brand-red mt-0.5 shrink-0">✓</span>
+                    <span>{a}</span>
+                  </li>
+                ))}
+              </ul>
+
+              {/* 안전/균형 문구 */}
+              {selectedInterest.athletePath.safetyNote && (
+                <p className="text-[11px] text-base-muted leading-relaxed mt-1.5 pt-1.5 border-t border-base-border">
+                  💡 {selectedInterest.athletePath.safetyNote}
+                </p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* 연결 직업 목록 */}
         <div>
           <p className="text-xs font-semibold text-brand-red mb-2">

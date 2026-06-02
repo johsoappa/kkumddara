@@ -255,3 +255,12 @@ P1 직접 작성 시 아래 기준을 준수한다.
 - `docs/competition-gg-publicdata-ai-feature-status.md` 문서 신규 작성 (2026-05-27)
 - P1 스포츠 5개 로드맵 smoke test PASS, P2 5개 fallback 유지 현황을 사업계획서 작성용으로 정리
 - DB/API/AI/RLS/요금제 변경 없이 문서화만 진행
+
+## Top10 종목별 "선수의 길" 안내 섹션 추가 이력 (2026-06-03)
+
+- "운동으로 찾는 직업"(`/explore/interests/sports`) 화면에 종목별 **"선수의 길도 살펴볼 수 있어요"** 정보 카드 추가
+- `sportsInterestData.ts`에 `athletePath`(선수명·설명·필요한 힘·작은 활동·안전 문구) 필드 추가, 10개 종목 모두 채움
+- 선수 직업은 **occupation_master에 추가하지 않고**, `/explore/[id]` 링크 없이 안내형 정보 카드로만 제공
+- 기존 스포츠 생태계 연결 직업(careerLinks) 섹션 그대로 유지 → "선수뿐 아니라 다양한 직업으로 이어진다" 확장 메시지
+- 육상선수 제외, 줄넘기 선수 포함. 부정 표현("선수가 못 되면" 등) 미사용
+- DB/migration/occupation_master/roadmaps.ts/AI/결제 변경 없음. tsc PASS, build PASS

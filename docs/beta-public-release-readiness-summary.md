@@ -230,3 +230,4 @@
 | 2026-06-02 | 명따라 결과 직업 탐색 연결 강화 + FAQ 보정. 명따라 결과에 "이런 성향이라면 함께 살펴볼 직업" 섹션 추가(오행 주기운 정적 매핑, 실재 `/explore/[id]`만 연결, 직업 단정 없음). FAQ 3번 "모드"→"단계", FAQ 9번 자녀 삭제 안내를 현재 UI(문의 채널/개인정보 처리방침)에 맞게 보정. 명따라 Phase 2/AI/DB/결제 변경 없음. |
 | 2026-06-02 | 명따라 추천 직업 링크 최신 상세 연결 보정. 추천 매핑을 occupation_master active + legacy==slug + goyo24(미래 지표) 검증 id 15개로 전면 교체, 구형 static(financial-analyst 등) 제거. occupation_master/migration 직접 수정 없음. |
 | 2026-06-03 | 고용24/API 데이터 활용 현황 점검 문서(`docs/go24-api-data-utilization-audit.md`) 생성. 공공 직업 데이터 활용 수준·미활용 후보·확장 설계 정리(유료화 전 가치 강화 방향). 코드/DB/API/AI 변경 없음. |
+| 2026-06-03 | 운동으로 찾는 직업 Top10 종목별 "선수의 길" 안내 섹션 추가. 선수는 occupation_master 미추가·정보 카드 전용, 기존 스포츠 생태계 연결 직업 유지(확장형 메시지). DB/migration/AI/결제 변경 없음. |

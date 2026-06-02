@@ -51,6 +51,25 @@ export interface SportsInterestCareerLink {
   reason: string;
 }
 
+/**
+ * 종목별 "선수의 길" 안내 데이터.
+ * - occupation_master에 추가하지 않고, 관심 운동 화면의 안내 카드로만 표시한다.
+ * - /explore/[id] 상세로 연결하지 않는다(정보 카드).
+ * - 부정적 표현("선수가 못 되면" 등) 금지, 확장형 메시지 유지.
+ */
+export interface SportsAthletePath {
+  /** 선수 직업명 (예: "축구선수") */
+  title: string;
+  /** 짧은 설명 */
+  description: string;
+  /** 필요한 힘 태그 */
+  strengths: string[];
+  /** 지금 해볼 수 있는 작은 활동 2~3개 */
+  starterActions: string[];
+  /** 안전/균형 안내 문구 */
+  safetyNote?: string;
+}
+
 export interface SportsInterestItem {
   /** 관심 운동 식별 slug */
   slug: SportsInterestSlug;
@@ -64,6 +83,8 @@ export interface SportsInterestItem {
   keywords: string[];
   /** 연결 직업 목록 */
   careerLinks: SportsInterestCareerLink[];
+  /** 종목별 "선수의 길" 안내 (occupation_master 미추가, 정보 카드 전용) */
+  athletePath?: SportsAthletePath;
   /** 화면 노출 순서 */
   displayOrder: number;
   /** 활성 여부 */
@@ -133,6 +154,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "학교 체육이나 경기장에서 사고를 예방하고 안전한 활동을 돕습니다.",
       },
     ],
+    athletePath: {
+      title: "축구선수",
+      description:
+        "팀원들과 함께 경기를 뛰며 골을 만들고, 전술과 체력을 바탕으로 경기장에서 실력을 보여주는 직업이에요.",
+      strengths: ["협동심", "빠른 판단력", "체력", "공간 이해력"],
+      starterActions: [
+        "하루 10분 드리블 연습하기",
+        "좋아하는 선수의 움직임 관찰하기",
+        "친구와 패스 연습하기",
+      ],
+      safetyNote: "무리한 훈련보다 즐겁고 안전한 연습부터 시작해요.",
+    },
     displayOrder: 1,
     isActive: true,
   },
@@ -196,6 +229,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "경기장 시설 점검과 사고 예방을 통해 안전한 야구 환경을 만듭니다.",
       },
     ],
+    athletePath: {
+      title: "야구선수",
+      description:
+        "타격, 수비, 주루, 투구처럼 역할을 나누어 팀 경기에서 실력을 발휘하는 직업이에요.",
+      strengths: ["집중력", "순발력", "반복 연습", "팀워크"],
+      starterActions: [
+        "캐치볼 연습하기",
+        "경기 규칙 하나씩 알아보기",
+        "타격 자세 영상 관찰하기",
+      ],
+      safetyNote: "무리한 훈련보다 즐겁고 안전한 연습부터 시작해요.",
+    },
     displayOrder: 2,
     isActive: true,
   },
@@ -259,6 +304,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "농구 훈련 분석 앱, 슈팅 측정 장비 등 기술 개발과 연결해볼 수 있습니다.",
       },
     ],
+    athletePath: {
+      title: "농구선수",
+      description:
+        "빠른 움직임과 패스, 슛, 수비를 통해 팀의 득점을 만들어가는 직업이에요.",
+      strengths: ["민첩성", "판단력", "협동심", "균형감각"],
+      starterActions: [
+        "드리블 30번 연속 도전하기",
+        "자유투 자세 연습하기",
+        "경기에서 패스 장면 찾아보기",
+      ],
+      safetyNote: "무리한 훈련보다 즐겁고 안전한 연습부터 시작해요.",
+    },
     displayOrder: 3,
     isActive: true,
   },
@@ -315,6 +372,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "배구 구단·브랜드 마케팅, 팬 이벤트 기획 등 스포츠 비즈니스와 연결됩니다.",
       },
     ],
+    athletePath: {
+      title: "배구선수",
+      description:
+        "서브, 리시브, 토스, 공격처럼 역할을 나누어 공을 연결하고 득점을 만드는 직업이에요.",
+      strengths: ["반응속도", "팀워크", "집중력", "점프력"],
+      starterActions: [
+        "공을 떨어뜨리지 않고 받아보기",
+        "배구 포지션 알아보기",
+        "서브 동작 따라 해보기",
+      ],
+      safetyNote: "무리한 훈련보다 즐겁고 안전한 연습부터 시작해요.",
+    },
     displayOrder: 4,
     isActive: true,
   },
@@ -371,6 +440,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "수영 시설과 경기장의 안전을 점검하고 사고를 예방하는 직업입니다.",
       },
     ],
+    athletePath: {
+      title: "수영선수",
+      description:
+        "물속에서 자유형, 배영, 평영, 접영 같은 영법을 훈련하고 기록을 겨루는 직업이에요.",
+      strengths: ["지구력", "호흡 조절", "자기관리", "꾸준함"],
+      starterActions: [
+        "안전한 환경에서 기본 발차기 연습하기",
+        "수영 영법 이름 알아보기",
+        "수영 경기 영상 보고 기록 방식 알아보기",
+      ],
+      safetyNote: "반드시 보호자와 함께 안전한 환경에서 시작해요.",
+    },
     displayOrder: 5,
     isActive: true,
   },
@@ -427,6 +508,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "경기 영상과 기록 데이터를 분석해 전술 개선에 활용하는 직업입니다.",
       },
     ],
+    athletePath: {
+      title: "태권도 선수",
+      description:
+        "품새, 겨루기, 기본 동작을 꾸준히 훈련하며 몸과 마음의 균형을 키우는 직업이에요.",
+      strengths: ["예의", "집중력", "순발력", "절제력"],
+      starterActions: [
+        "기본 자세 바르게 서기",
+        "품새 동작 하나 연습하기",
+        "태권도 경기 규칙 알아보기",
+      ],
+      safetyNote: "무리한 훈련보다 즐겁고 안전한 연습부터 시작해요.",
+    },
     displayOrder: 6,
     isActive: true,
   },
@@ -493,6 +586,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "줄넘기 횟수, 리듬, 체력 변화 같은 데이터를 기록하고 분석하는 방향으로 연결됩니다.",
       },
     ],
+    athletePath: {
+      title: "줄넘기 선수",
+      description:
+        "빠른 발놀림과 리듬감, 체력을 바탕으로 다양한 기술과 기록에 도전하는 직업이에요.",
+      strengths: ["리듬감", "지구력", "순발력", "꾸준함"],
+      starterActions: [
+        "1분 동안 줄넘기 횟수 기록하기",
+        "새로운 줄넘기 기술 하나 연습하기",
+        "친구와 기록 비교해보기",
+      ],
+      safetyNote: "무리한 훈련보다 즐겁고 안전한 연습부터 시작해요.",
+    },
     displayOrder: 7,
     isActive: true,
   },
@@ -556,6 +661,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "골프 코스·클럽하우스 안전 관리로 이용객이 안전하게 즐길 수 있도록 합니다.",
       },
     ],
+    athletePath: {
+      title: "골프선수",
+      description:
+        "정확한 스윙과 집중력을 바탕으로 코스 전략을 세우고 경기를 운영하는 직업이에요.",
+      strengths: ["집중력", "침착함", "균형감각", "전략적 사고"],
+      starterActions: [
+        "퍼팅 자세 연습하기",
+        "골프 경기 규칙 알아보기",
+        "선수들이 코스를 읽는 방법 관찰하기",
+      ],
+      safetyNote: "무리한 훈련보다 즐겁고 안전한 연습부터 시작해요.",
+    },
     displayOrder: 8,
     isActive: true,
   },
@@ -622,6 +739,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "e스포츠 경기장과 훈련 시설의 안전 환경을 점검하고 관리하는 직업입니다.",
       },
     ],
+    athletePath: {
+      title: "e스포츠 선수",
+      description:
+        "게임 이해도, 빠른 판단, 팀 전략을 바탕으로 대회에서 실력을 겨루는 직업이에요.",
+      strengths: ["빠른 판단력", "전략적 사고", "손과 눈의 협응", "팀워크"],
+      starterActions: [
+        "게임 시간을 정해두고 연습하기",
+        "경기 리플레이를 보며 전략 찾기",
+        "팀원과 역할을 나누어 플레이해보기",
+      ],
+      safetyNote: "정해진 시간을 지키고 바른 자세·눈 건강을 함께 챙기는 습관이 중요해요.",
+    },
     displayOrder: 9,
     isActive: true,
   },
@@ -695,6 +824,18 @@ export const sportsInterestData: SportsInterestItem[] = [
           "등산·트레킹에 필요한 근력, 지구력 강화 운동 프로그램을 설계하는 직업입니다.",
       },
     ],
+    athletePath: {
+      title: "아웃도어 스포츠 선수",
+      description:
+        "자연 속에서 체력, 안전 판단, 장비 활용 능력을 바탕으로 도전과 탐험을 이어가는 직업이에요.",
+      strengths: ["안전 판단력", "체력", "관찰력", "장비 이해력"],
+      starterActions: [
+        "안전한 산책 코스 기록하기",
+        "캠핑 장비 이름 알아보기",
+        "날씨와 지형을 확인하는 습관 만들기",
+      ],
+      safetyNote: "반드시 보호자와 함께, 장비를 점검하고 무리하지 않는 것이 가장 중요해요.",
+    },
     displayOrder: 10,
     isActive: true,
   },
