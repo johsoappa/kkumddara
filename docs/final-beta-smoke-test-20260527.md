@@ -535,7 +535,9 @@ LIMIT 20;
 | 2026-06-02 | 명따라 추천 직업 매핑을 최신 상세(occupation_master active + legacy==slug + goyo24 참고 지표) 검증 id로 전면 교체. 구형 static(financial-analyst 등) 제거, 050/051/053/054 seed 검증 15개 + fallback. 표시 데이터 매핑 직접 명시, VERIFIED_IDS 방어 필터. | bfd880f |
 | 2026-06-03 | (검증) 명따라 추천 직업 최신 상세 연결 OZ 실화면 PASS — 추천 3개 카드 정상 표시, 클릭 시 최신 상세 이동, 3개 모두 "미래를 그리는 참고 지표" 표시 확인, 구형 static 연결 문제 해소, 관심 운동 CTA·다시 분석하기 유지. 이슈 종료. | bfd880f |
 | 2026-06-03 | 고용24/API 데이터 활용 현황 점검 문서(`docs/go24-api-data-utilization-audit.md`) 생성 — 공공 직업 데이터 저장/활용 현황, 미활용 후보(job_satisfaction/traits/parent_questions 등), 직업상세·로드맵·명따라·부모리포트·AI상담 확장 후보 정리. 코드/DB/API/AI 변경 없음. | — |
-| 2026-06-03 | 운동으로 찾는 직업 화면에 Top10 종목별 "선수의 길도 살펴볼 수 있어요" 정보 카드 추가(`sportsInterestData.athletePath` + SportsInterestSelector). 선수는 occupation_master 미추가·/explore 링크 없음, 기존 연결 직업 유지, 부정 표현 없음. DB/migration/AI/결제 변경 없음. | — |
+| 2026-06-03 | 운동으로 찾는 직업 화면에 Top10 종목별 "선수의 길도 살펴볼 수 있어요" 정보 카드 추가(`sportsInterestData.athletePath` + SportsInterestSelector). 선수는 occupation_master 미추가·/explore 링크 없음, 기존 연결 직업 유지, 부정 표현 없음. DB/migration/AI/결제 변경 없음. | 982e3f2 |
+| 2026-06-03 | 아웃도어 종목 선수 섹션 명칭 보정 ("아웃도어 스포츠 선수" → "아웃도어 활동 전문가", 설명 전문가 톤). 다른 9개 종목·구조 변경 없음. | e7cb41b |
+| 2026-06-03 | (검증) 운동으로 찾는 직업 선수 섹션 OZ 실화면 PASS — `/explore/interests/sports` 정상, Top10 종목별 선수 섹션 표시, 종목 전환 시 카드 정상 반영, 기존 스포츠 생태계 연결 직업 유지, 모바일 레이아웃 이상 없음. 이슈 종료. | 982e3f2, e7cb41b |
 | 2026-06-02 | 명따라 결과 → "이런 성향이라면 함께 살펴볼 직업" 섹션 추가 (오행 주기운 정적 매핑, `/explore/[id]` 연결, 직업 단정 없음) + FAQ 3번 "모드"→"단계" 보정, FAQ 9번 자녀 정보 삭제 안내를 현재 UI(문의 채널/개인정보 처리방침 기준)에 맞게 보정 | — |
 | 2026-06-02 | 사용자 가이드 "모드 선택" 문구 보정 — 실제 화면은 학년 선택 구조라 `guide` 3단계 제목을 "학년 선택"으로 변경, 씨앗·새싹·나침반은 직접 선택 모드가 아닌 진로 탐색 단계 설명으로 정리 | — |
 | 2026-06-02 | 베타 공개 가능 상태 최종 정리 문서(`docs/beta-public-release-readiness-summary.md`) 생성 — P0/P1 확인 완료 요약, 쿠폰 기능을 정식 결제 오픈 전 후속 과제로 등록 | — |
