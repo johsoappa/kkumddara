@@ -359,3 +359,4 @@
 | 2026-06-02 | 비밀번호 재설정 링크 노출 보정. | 실제 로그인 화면(`page.tsx` step=auth, signin 모드)에 링크 추가(직전엔 OnboardingForm 개발테스트 블록에만 있어 미노출). `/auth/reset-password` 직접 접근 시 recovery 세션 없으면 만료/재요청 안내(입력폼 미노출). Auth/DB 변경 없음. |
 | 2026-06-02 | 비밀번호 재설정 updateUser 실패 보정. | `/auth/reset-password`에서 `?code=` exchangeCodeForSession 명시 처리 + getSession 확인 강화 + recovery 대기 2.5→5초 + updateUser 실패 시 Supabase error 콘솔 기록(동일 PW 구분 안내). Auth/DB 변경 없음. 메일 링크 변경 성공은 OZ 재확인. |
 | 2026-06-02 | 베타 공개 가능 상태 최종 정리 문서(`docs/beta-public-release-readiness-summary.md`) 생성. | P0/P1 핵심 확인 완료 요약, 베타 운영 기준 정리, 쿠폰 기능을 정식 결제 오픈 전 후속 과제로 등록(DB/UI/검증 API 미구현). 코드 변경 없음. |
+| 2026-06-02 | 사용자 가이드 "모드 선택" 문구 불일치 보정. | 실제 자녀 프로필 화면은 학년 선택 구조 → `guide` 3단계 제목을 "학년 선택"으로 변경, 씨앗·새싹·나침반은 직접 선택 모드가 아닌 진로 탐색 단계 설명으로 정리. UI/DB/로직 변경 없음(문구만). |
