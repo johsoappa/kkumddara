@@ -34,6 +34,20 @@ function formatManwon(value: number): string {
   return value.toLocaleString("ko-KR");
 }
 
+/**
+ * 직업만족도 표시 텍스트.
+ * - 74.0 → "74점", 74.5 → "74.5점"
+ * - null/undefined/NaN/0 이하 등 비정상 값 → null (미표시)
+ */
+function formatSatisfaction(value: number | string | null | undefined): string | null {
+  if (value === null || value === undefined || value === "") return null;
+  const num = typeof value === "number" ? value : Number(value);
+  if (!Number.isFinite(num) || num <= 0) return null;
+  const rounded = Math.round(num * 10) / 10;
+  const text = Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
+  return `${text}점`;
+}
+
 /** prospect_label → 이모지 매핑 */
 const PROSPECT_EMOJI: Record<string, string> = {
   "증가":     "📈",
@@ -87,8 +101,12 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
   const hasProspect = profile.prospect_label != null || profile.prospect_raw != null;
   const hasMajors   = profile.related_majors.length > 0;
 
+  // 직업만족도 — 값이 정상일 때만 표시 (없으면 줄 자체 미표시)
+  const satisfactionText = formatSatisfaction(profile.job_satisfaction);
+  const hasSatisfaction  = satisfactionText !== null;
+
   // 표시할 데이터가 하나도 없으면 섹션 자체 숨김
-  if (!hasSalary && !hasProspect && !hasMajors) return null;
+  if (!hasSalary && !hasProspect && !hasMajors && !hasSatisfaction) return null;
 
   // ── source 기반 뱃지·출처 분기 ──────────────────────────────
   // goyo24 API sync 데이터: "고용24 제공" 뱃지 + "출처: 고용24"
@@ -223,6 +241,21 @@ export default function Goyo24InfoSection({ profile }: Goyo24InfoSectionProps) {
                   : isGoyo24Provided
                   ? "고용24 조사 기준 참고값입니다."
                   : "공개 통계 기준 참고값입니다."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* ④ 직업만족도 (값이 있을 때만) */}
+        {hasSatisfaction && (
+          <div>
+            <p className="text-xs font-semibold text-base-text mb-1.5">😊 직업만족도</p>
+            <div className="bg-base-card rounded-lg px-4 py-3">
+              <p className="text-lg font-bold text-brand-red leading-snug">
+                {satisfactionText}
+              </p>
+              <p className="text-[11px] text-base-muted mt-1 leading-relaxed">
+                이 직업을 가진 사람들이 일에서 느끼는 만족도를 참고한 지표예요.
               </p>
             </div>
           </div>

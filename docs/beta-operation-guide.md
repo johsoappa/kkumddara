@@ -365,3 +365,4 @@
 | 2026-06-03 | 고용24/API 데이터 활용 현황 점검 문서(`docs/go24-api-data-utilization-audit.md`) 생성. | 공공 직업 데이터 저장/UI 활용 현황, 미활용 후보, 직업상세·로드맵·명따라·부모리포트·AI상담 확장 후보 및 유료화 전 우선 적용 후보 정리. 점검 문서만, 코드/DB/API/AI/결제 변경 없음. |
 | 2026-06-03 | 운동으로 찾는 직업 Top10 종목별 "선수의 길" 섹션 추가. | `/explore/interests/sports`에 종목별 선수 안내 카드(선수명·필요한 힘·작은 활동·안전 문구). 선수는 occupation_master 미추가, `/explore` 링크 없는 정보 카드. 기존 연결 직업 유지, 확장형 메시지. DB/occupation_master/roadmaps.ts/AI/결제 변경 없음. |
 | 2026-06-03 | 고용24 seed 콘텐츠 점검 및 직업 상세 확장 2단계 문서 생성. | seed 기준 점검: job_satisfaction은 goyo24 프로파일에 다수 존재(직업 상세 1줄 노출 P1 즉시 가능), occupation_traits/parent_questions/related_jobs/source_meta는 seed 0건(보류, seed 선행 필요). 3단계 우선순위 정리. 점검 문서만, 코드/DB/API/AI 변경 없음. |
+| 2026-06-03 | (3단계 P1) 직업 상세 참고 지표에 직업만족도 1줄 추가. | `Goyo24InfoSection`에 job_satisfaction "N점" 표시(정상값만, 없으면 미표시) + 참고 지표 안내 문구. 기존 임금/전망/관련학과 유지. DB/migration/고용24 API/occupation_master 변경 없음. |
