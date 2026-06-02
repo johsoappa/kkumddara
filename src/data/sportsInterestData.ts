@@ -825,9 +825,9 @@ export const sportsInterestData: SportsInterestItem[] = [
       },
     ],
     athletePath: {
-      title: "아웃도어 스포츠 선수",
+      title: "아웃도어 활동 전문가",
       description:
-        "자연 속에서 체력, 안전 판단, 장비 활용 능력을 바탕으로 도전과 탐험을 이어가는 직업이에요.",
+        "자연 속에서 안전하게 활동하고, 장비와 날씨를 이해하며 다양한 야외 활동을 돕는 전문가예요.",
       strengths: ["안전 판단력", "체력", "관찰력", "장비 이해력"],
       starterActions: [
         "안전한 산책 코스 기록하기",
