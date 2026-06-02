@@ -542,6 +542,7 @@ LIMIT 20;
 | 2026-06-03 | (3단계 P1) 직업 상세 "미래를 그리는 참고 지표"에 직업만족도 1줄 추가(`Goyo24InfoSection`). job_satisfaction 정상값 "N점"만 표시, 없으면 미표시. 기존 임금/전망/관련학과 유지. DB/migration/API 변경 없음. | 5ebc758 |
 | 2026-06-03 | (검증) 직업만족도 OZ 실화면 PASS — 직업 상세 "미래를 그리는 참고 지표"에 직업만족도 74점 표시 정상, 기존 고용 전망·관련 학과·임금 참고 정보 유지, 레이아웃 이상 없음. 이슈 종료. | 5ebc758 |
 | 2026-06-03 | 직업 역량 표현 표준안 및 traits seed 설계 1단계 문서(`docs/occupation-traits-seed-design-phase1.md`) 생성 — 역량 15개 표준안 + 샘플 10개 직업×3 traits 초안 + parent_questions 연결. 실제 스키마(content 단일/occupation_id UUID) 차이 명시. DB/migration/UI/seed 변경 없음. | — |
+| 2026-06-03 | (2단계 구현) 샘플 10개 직업 프론트 정적 traits seed(`occupationTraitSeed.ts`) + 직업 상세 "이 일을 할 때 자주 쓰는 힘" 섹션(`OccupationTraitSection`) 추가. db 모드 Goyo24InfoSection 아래 배치, 데이터 있는 직업만 표시. occupation_traits DB seed/스키마/migration 변경 없음. | — |
 | 2026-06-02 | 명따라 결과 → "이런 성향이라면 함께 살펴볼 직업" 섹션 추가 (오행 주기운 정적 매핑, `/explore/[id]` 연결, 직업 단정 없음) + FAQ 3번 "모드"→"단계" 보정, FAQ 9번 자녀 정보 삭제 안내를 현재 UI(문의 채널/개인정보 처리방침 기준)에 맞게 보정 | — |
 | 2026-06-02 | 사용자 가이드 "모드 선택" 문구 보정 — 실제 화면은 학년 선택 구조라 `guide` 3단계 제목을 "학년 선택"으로 변경, 씨앗·새싹·나침반은 직접 선택 모드가 아닌 진로 탐색 단계 설명으로 정리 | — |
 | 2026-06-02 | 베타 공개 가능 상태 최종 정리 문서(`docs/beta-public-release-readiness-summary.md`) 생성 — P0/P1 확인 완료 요약, 쿠폰 기능을 정식 결제 오픈 전 후속 과제로 등록 | — |

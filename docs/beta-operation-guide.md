@@ -367,3 +367,4 @@
 | 2026-06-03 | 고용24 seed 콘텐츠 점검 및 직업 상세 확장 2단계 문서 생성. | seed 기준 점검: job_satisfaction은 goyo24 프로파일에 다수 존재(직업 상세 1줄 노출 P1 즉시 가능), occupation_traits/parent_questions/related_jobs/source_meta는 seed 0건(보류, seed 선행 필요). 3단계 우선순위 정리. 점검 문서만, 코드/DB/API/AI 변경 없음. |
 | 2026-06-03 | (3단계 P1) 직업 상세 참고 지표에 직업만족도 1줄 추가. | `Goyo24InfoSection`에 job_satisfaction "N점" 표시(정상값만, 없으면 미표시) + 참고 지표 안내 문구. 기존 임금/전망/관련학과 유지. DB/migration/고용24 API/occupation_master 변경 없음. |
 | 2026-06-03 | 직업 역량 표현 표준안 및 traits seed 설계 1단계 문서 생성. | "이 일을 할 때 자주 쓰는 힘" 섹션용 역량 표준안 15개 + 샘플 10개 직업 traits 초안 + parent_questions 연결 구조. 실제 occupation_traits 스키마(content 단일 컬럼, occupation_id=UUID) 확인. 문서 설계만, DB/migration/seed/UI 변경 없음. |
+| 2026-06-03 | (2단계 구현) 샘플 10개 직업 "이 일을 할 때 자주 쓰는 힘" 직업 상세 섹션 추가. | 프론트 정적 seed(`occupationTraitSeed.ts`) + `OccupationTraitSection`(db 모드 참고 지표 아래). 데이터 있는 직업만 표시, 단정 표현 없음. occupation_traits DB seed/스키마/migration/AI/결제 변경 없음. |

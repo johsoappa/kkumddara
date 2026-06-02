@@ -33,6 +33,7 @@ import { supabase } from "@/lib/supabase";
 import { OCCUPATIONS } from "@/data/occupations";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
 import Goyo24InfoSection from "@/components/explore/Goyo24InfoSection";
+import OccupationTraitSection from "@/components/explore/OccupationTraitSection";
 import SportsInterestCareerSection from "@/components/explore/SportsInterestCareerSection";
 import { QUIZ_DATA } from "@/data/quizData";
 import type { Occupation } from "@/types/occupation";
@@ -442,6 +443,9 @@ export default function OccupationDetailPage() {
 
             {/* ⑤ 고용24 직업 참고 정보 (데이터 있을 때만 표시) */}
             <Goyo24InfoSection profile={goyo24Profile} />
+
+            {/* ⑤-1 이 일을 할 때 자주 쓰는 힘 (정적 seed 보유 직업만 표시) */}
+            <OccupationTraitSection occupationId={id} />
 
             {/* ⑥ 관심 운동 연결 직업 섹션 — 스포츠 관심 운동과 연결된 직업일 때만 표시 */}
             <SportsInterestCareerSection occupationSlug={master.slug} />

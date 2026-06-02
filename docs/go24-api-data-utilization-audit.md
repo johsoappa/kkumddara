@@ -165,3 +165,4 @@
 | 2026-06-03 | (2단계) seed 콘텐츠 점검 결과 `docs/go24-seed-content-audit-and-detail-expansion-plan.md`로 분리 정리. **job_satisfaction = seed 다수 보유(P1 즉시), traits/parent_questions/related_jobs/source_meta = seed 0건(보류)** 확정. 3단계 우선순위: ① 직업만족도 1줄 ② traits/parent_questions seed 선행 ③ 명따라 카드 근거(P2). |
 | 2026-06-03 | (3단계 P1 구현) 직업 상세 참고 지표에 직업만족도 1줄 추가(`Goyo24InfoSection`). 값 있을 때만 "N점" 표시. 미활용 후보 중 job_satisfaction 활용 시작. |
 | 2026-06-03 | occupation_traits seed 설계 1단계 문서 생성(`docs/occupation-traits-seed-design-phase1.md`) — 역량 표준안 + 샘플 10개 직업 traits 초안. 보류였던 traits의 seed 작업 선행 설계 시작. seed/UI 변경 없음. |
+| 2026-06-03 | (traits 활용 시작) 샘플 10개 직업 프론트 정적 traits seed + 직업 상세 "이 일을 할 때 자주 쓰는 힘" 섹션 UI 추가(A안, 스키마/DB seed 무변경). |

@@ -157,3 +157,4 @@
 | 날짜 | 내용 |
 |---|---|
 | 2026-06-03 | traits seed 설계 1단계 — 역량 표준안 15개 + 샘플 10개 직업 × 3 traits 초안 + parent_questions 연결 구조. 실제 스키마(content 단일 컬럼, occupation_id=UUID)와 작업지시서 가정의 차이 문서화. DB/migration/UI/seed 변경 없음. |
+| 2026-06-03 | (2단계 구현/A안) 샘플 10개 직업 프론트 정적 traits seed(`src/data/occupationTraitSeed.ts`) + 직업 상세 "이 일을 할 때 자주 쓰는 힘" 섹션(`OccupationTraitSection`, db 모드 Goyo24InfoSection 아래) 추가. occupation_traits DB seed/스키마 변경 없음, parent_questions 미구현 유지. |
