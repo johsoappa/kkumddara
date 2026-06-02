@@ -114,3 +114,4 @@ select count(distinct occupation_id) from public.occupation_source_meta;
 |---|---|
 | 2026-06-03 | 고용24 seed 콘텐츠 점검 — job_satisfaction은 goyo24 프로파일에 다수 채워짐(P1 즉시 가능), traits/parent_questions/related_jobs/source_meta는 seed 0건(보류). 직업 상세 확장 3단계 우선순위 정리. 코드/UI/DB 변경 없음. |
 | 2026-06-03 | (3단계 P1 적용) 직업 상세 "미래를 그리는 참고 지표"에 **직업만족도 1줄** 추가(`Goyo24InfoSection`). job_satisfaction 정상값일 때만 "N점" 표시, null/비정상값 미표시. 기존 임금/전망/관련학과 유지. traits/parent_questions/related_jobs는 seed 0건으로 계속 보류. DB/migration/API 변경 없음. |
+| 2026-06-03 | (보류 해제 선행) `occupation_traits` seed 설계 1단계 문서(`docs/occupation-traits-seed-design-phase1.md`) 생성 — 역량 표준안 15개 + 샘플 10개 직업×3 traits 초안 + parent_questions 연결 구조. 실제 스키마(content 단일 컬럼, occupation_id=UUID) 확인. seed INSERT/UI 변경 없음. |
