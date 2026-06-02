@@ -368,3 +368,4 @@
 | 2026-06-03 | (3단계 P1) 직업 상세 참고 지표에 직업만족도 1줄 추가. | `Goyo24InfoSection`에 job_satisfaction "N점" 표시(정상값만, 없으면 미표시) + 참고 지표 안내 문구. 기존 임금/전망/관련학과 유지. DB/migration/고용24 API/occupation_master 변경 없음. |
 | 2026-06-03 | 직업 역량 표현 표준안 및 traits seed 설계 1단계 문서 생성. | "이 일을 할 때 자주 쓰는 힘" 섹션용 역량 표준안 15개 + 샘플 10개 직업 traits 초안 + parent_questions 연결 구조. 실제 occupation_traits 스키마(content 단일 컬럼, occupation_id=UUID) 확인. 문서 설계만, DB/migration/seed/UI 변경 없음. |
 | 2026-06-03 | (2단계 구현) 샘플 10개 직업 "이 일을 할 때 자주 쓰는 힘" 직업 상세 섹션 추가. | 프론트 정적 seed(`occupationTraitSeed.ts`) + `OccupationTraitSection`(db 모드 참고 지표 아래). 데이터 있는 직업만 표시, 단정 표현 없음. occupation_traits DB seed/스키마/migration/AI/결제 변경 없음. |
+| 2026-06-03 | (보정) 심리상담사 traits 미표시 + 직업 탐색 동일 직업명 중복 수정. | OccupationTraitSection을 static 폴백 모드에도 추가(+seed alias psychologist→counselor) → 심리상담사 표시. `/explore` 목록에서 동일 name_ko 중복 카드를 클라이언트 dedupe(대표/최신 상세 우선)로 제거. 다른 직업 검색 결과·기존 9개 표시 유지. DB/migration 변경 없음. |

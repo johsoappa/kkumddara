@@ -196,7 +196,24 @@ export default function ExplorePage() {
             : null,
         }));
 
-        if (!cancelled) setOccupations(items);
+        // 동일 직업명(name_ko) 중복 제거 — DB occupation_master에 같은 이름 행이
+        // 둘 이상 있을 때(예: 외부 sync 원본 + 신규 seed) 검색 결과에 같은 이름 카드가
+        // 2개 노출되는 것을 방지한다. 유지 기준: 대표 직업 우선 → 소개(one_liner) 있는
+        // 최신 상세 우선 → (그 외) priority 높은 먼저 등장 행 유지.
+        // ※ 이름이 다른 직업은 그대로 유지되어 검색에서 사라지지 않는다.
+        const dedupedByName = new Map<string, OccupationListItem>();
+        for (const it of items) {
+          const prev = dedupedByName.get(it.name);
+          if (!prev) { dedupedByName.set(it.name, it); continue; }
+          const better =
+            (it.isRepresentative && !prev.isRepresentative) ||
+            (it.isRepresentative === prev.isRepresentative &&
+              it.description.trim().length > 0 && prev.description.trim().length === 0);
+          if (better) dedupedByName.set(it.name, it);
+        }
+        const deduped = Array.from(dedupedByName.values());
+
+        if (!cancelled) setOccupations(deduped);
       } catch (err) {
         console.error("[explore] occupation fetch 실패:", err);
         if (!cancelled) setError("직업 목록을 불러오지 못했어요.");

@@ -158,3 +158,4 @@
 |---|---|
 | 2026-06-03 | traits seed 설계 1단계 — 역량 표준안 15개 + 샘플 10개 직업 × 3 traits 초안 + parent_questions 연결 구조. 실제 스키마(content 단일 컬럼, occupation_id=UUID)와 작업지시서 가정의 차이 문서화. DB/migration/UI/seed 변경 없음. |
 | 2026-06-03 | (2단계 구현/A안) 샘플 10개 직업 프론트 정적 traits seed(`src/data/occupationTraitSeed.ts`) + 직업 상세 "이 일을 할 때 자주 쓰는 힘" 섹션(`OccupationTraitSection`, db 모드 Goyo24InfoSection 아래) 추가. occupation_traits DB seed/스키마 변경 없음, parent_questions 미구현 유지. |
+| 2026-06-03 | (보정) 심리상담사(counselor) traits 미표시 수정 — OccupationTraitSection이 db 모드에만 있어 counselor가 static 폴백 시 미표시되던 문제를 static 모드에도 섹션 추가하여 해결 + seed alias(psychologist→counselor). 직업 탐색 동일 직업명 중복(생명과학 연구원 등) → 목록 name 기준 dedupe(대표/최신 상세 우선)로 해소. DB/스키마/migration 변경 없음. |

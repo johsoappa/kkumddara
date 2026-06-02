@@ -122,7 +122,14 @@ export const OCCUPATION_TRAIT_SEED: Record<string, OccupationTraitSet> = {
   },
 };
 
-/** occupationId(legacy id)로 traits set 조회. 없으면 null. */
+// 같은 직업을 가리키는 다른 라우팅 id(legacy/slug) → 표준 seed key 매핑.
+// 심리상담사는 진입 id가 counselor / psychologist 등으로 갈릴 수 있어 별칭으로 흡수한다.
+const TRAIT_ID_ALIAS: Record<string, string> = {
+  psychologist: "counselor",
+};
+
+/** occupationId(legacy id/slug)로 traits set 조회. 별칭도 흡수. 없으면 null. */
 export function getOccupationTraits(occupationId: string): OccupationTraitSet | null {
-  return OCCUPATION_TRAIT_SEED[occupationId] ?? null;
+  const key = OCCUPATION_TRAIT_SEED[occupationId] ? occupationId : (TRAIT_ID_ALIAS[occupationId] ?? occupationId);
+  return OCCUPATION_TRAIT_SEED[key] ?? null;
 }

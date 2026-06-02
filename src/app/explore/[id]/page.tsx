@@ -643,6 +643,9 @@ export default function OccupationDetailPage() {
             </div>
           </section>
 
+          {/* ④-0 이 일을 할 때 자주 쓰는 힘 (정적 seed 보유 직업만 표시) — db/static 공통 */}
+          <OccupationTraitSection occupationId={occupation.id} />
+
           {/* ④-A 관심 운동 연결 직업 섹션 — 스포츠 관심 운동과 연결된 직업일 때만 표시 */}
           <SportsInterestCareerSection occupationSlug={occupation.id} />
 
