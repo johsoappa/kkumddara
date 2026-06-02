@@ -231,3 +231,4 @@
 | 2026-06-02 | 명따라 추천 직업 링크 최신 상세 연결 보정. 추천 매핑을 occupation_master active + legacy==slug + goyo24(미래 지표) 검증 id 15개로 전면 교체, 구형 static(financial-analyst 등) 제거. occupation_master/migration 직접 수정 없음. |
 | 2026-06-03 | 고용24/API 데이터 활용 현황 점검 문서(`docs/go24-api-data-utilization-audit.md`) 생성. 공공 직업 데이터 활용 수준·미활용 후보·확장 설계 정리(유료화 전 가치 강화 방향). 코드/DB/API/AI 변경 없음. |
 | 2026-06-03 | 운동으로 찾는 직업 Top10 종목별 "선수의 길" 안내 섹션 추가. 선수는 occupation_master 미추가·정보 카드 전용, 기존 스포츠 생태계 연결 직업 유지(확장형 메시지). DB/migration/AI/결제 변경 없음. |
+| 2026-06-03 | 고용24 seed 콘텐츠 점검 2단계 문서 생성. job_satisfaction은 seed 다수(직업 상세 1줄 P1 즉시), traits/parent_questions/related_jobs/source_meta는 seed 0건(보류). 코드/DB 변경 없음. |

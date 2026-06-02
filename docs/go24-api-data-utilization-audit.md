@@ -162,3 +162,4 @@
 | 날짜 | 내용 |
 |---|---|
 | 2026-06-03 | 고용24/API 데이터 활용 현황 점검 문서 생성. 공공 직업 데이터 활용 수준·미활용 후보(job_satisfaction/traits/parent_questions/related_jobs/source_meta) 정리, 직업 상세/로드맵/명따라/부모 리포트/AI 상담 확장 후보 정리. 코드/DB/API/AI/결제 변경 없음. |
+| 2026-06-03 | (2단계) seed 콘텐츠 점검 결과 `docs/go24-seed-content-audit-and-detail-expansion-plan.md`로 분리 정리. **job_satisfaction = seed 다수 보유(P1 즉시), traits/parent_questions/related_jobs/source_meta = seed 0건(보류)** 확정. 3단계 우선순위: ① 직업만족도 1줄 ② traits/parent_questions seed 선행 ③ 명따라 카드 근거(P2). |
