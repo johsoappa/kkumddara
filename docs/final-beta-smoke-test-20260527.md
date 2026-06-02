@@ -532,6 +532,7 @@ LIMIT 20;
 
 ---
 
+| 2026-06-02 | 베타 공개 가능 상태 최종 정리 문서(`docs/beta-public-release-readiness-summary.md`) 생성 — P0/P1 확인 완료 요약, 쿠폰 기능을 정식 결제 오픈 전 후속 과제로 등록 | — |
 | 2026-06-02 | 비밀번호 재설정 updateUser 실패 보정 (`?code=` exchangeCodeForSession + 세션 확인 강화 + 대기 5초 + updateUser 에러 로깅/동일PW 구분) | — |
 
 ---
