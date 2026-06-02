@@ -17,6 +17,7 @@ import { ArrowLeft } from "lucide-react";
 import { MYEONDDARA_SAJU_KEY, MYEONDDARA_RESULT_KEY } from "@/data/myeonddara";
 import type { ManseryeokResult } from "@/lib/manseryeok";
 import { buildRuleBasedGuide } from "@/lib/myeonddara-rules";
+import { getMyeonddaraCareerLinks } from "@/data/myeonddaraCareerLinks";
 
 // ── Phase 2 Claude 분석 타입 ─────────────────────────────────────
 interface InterestArea {
@@ -151,6 +152,9 @@ export default function MyeonddaraResultPage() {
   const { saju, inputData, hasAnalysis, analysis } = session;
   const { yearPillar, monthPillar, dayPillar, hourPillar, ohaeng } = saju;
   const ruleGuide = buildRuleBasedGuide(saju);
+
+  // 함께 살펴볼 직업 — 오행 주기운 기반 정적 매핑 (직업 단정 아님, 존재하는 slug만)
+  const careerLinks = getMyeonddaraCareerLinks(ohaeng.dominant);
 
   const ohaengBars = OHAENG_META.map((m) => ({
     ...m,
@@ -505,6 +509,65 @@ export default function MyeonddaraResultPage() {
                 </p>
               )}
             </>
+          )}
+
+          {/* ── 이런 성향이라면 함께 살펴볼 직업 ──────────────
+              명따라 결과(성향 참고)를 꿈따라 직업 탐색으로 연결.
+              사주로 직업을 단정하지 않고 "함께 탐색해볼 직업"으로 제안. */}
+          {careerLinks.cards.length > 0 && (
+            <div className="bg-white rounded-card-lg shadow-card p-5">
+              <h3 className="text-sm font-bold text-base-text mb-1">
+                이런 성향이라면 함께 살펴볼 직업
+              </h3>
+              <p className="text-[11px] text-base-muted mb-3 leading-relaxed">
+                명따라 결과는 아이의 성향을 이해하기 위한 참고 자료예요. 아래 직업들은 아이의 강점과
+                관심사를 함께 비교해보며 탐색해볼 수 있는 예시입니다.
+              </p>
+
+              {careerLinks.isFallback && (
+                <p className="text-[11px] leading-relaxed mb-3 px-3 py-2 rounded-card"
+                  style={{ backgroundColor: "#FFF8F4", color: "#7A3A20" }}>
+                  아직 결과와 연결된 직업을 세밀하게 분류하기 어려워요. 먼저 다양한 직업을 가볍게
+                  살펴보며 아이가 흥미를 보이는 방향을 찾아보세요.
+                </p>
+              )}
+
+              <div className="flex flex-col gap-2.5">
+                {careerLinks.cards.map((card) => (
+                  <button
+                    key={card.id}
+                    onClick={() => router.push(`/explore/${card.id}`)}
+                    className="w-full rounded-card border border-base-border p-3.5 flex items-start gap-3 text-left hover:bg-base-off active:opacity-80 transition-colors"
+                  >
+                    <span className="text-2xl leading-none shrink-0 mt-0.5">{card.emoji}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-bold text-base-text">{card.name}</p>
+                      <p className="text-xs text-base-muted mt-0.5 leading-relaxed">
+                        {card.description}
+                      </p>
+                      <p className="text-[11px] mt-1.5 leading-relaxed" style={{ color: "#C83A20" }}>
+                        함께 탐색해볼 이유: {card.reason}
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold shrink-0 mt-0.5" style={{ color: "#E84B2E" }}>
+                      살펴보기 ›
+                    </span>
+                  </button>
+                ))}
+              </div>
+
+              <button
+                onClick={() => router.push("/explore")}
+                className="w-full mt-3 py-2.5 rounded-button text-sm font-semibold"
+                style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+              >
+                더 많은 직업 보러 가기
+              </button>
+
+              <p className="text-[10px] text-base-muted mt-2 leading-relaxed opacity-80">
+                명따라 결과는 직업을 정해주는 것이 아니라, 아이와의 진로 대화를 시작하는 출발점이에요.
+              </p>
+            </div>
           )}
 
           {/* ── 관심 운동 진로 탐색 CTA ──────────────────── */}
