@@ -235,3 +235,4 @@
 | 2026-06-03 | (3단계 P1) 직업 상세 참고 지표에 직업만족도 1줄 추가(`Goyo24InfoSection`). 값 있을 때만 "N점", 없으면 미표시. 고용24 미활용 데이터 활용 시작. DB/API 변경 없음. |
 | 2026-06-03 | 직업 역량(traits) seed 설계 1단계 문서 생성(`docs/occupation-traits-seed-design-phase1.md`). "이 일을 할 때 자주 쓰는 힘" 역량 표준안 + 샘플 10개 직업 traits 초안. seed/UI/DB 변경 없음(설계 문서). |
 | 2026-06-03 | (구현) 샘플 10개 직업 직업 상세에 "이 일을 할 때 자주 쓰는 힘" 섹션 추가. 프론트 정적 seed(A안), 스키마/DB seed 무변경. 데이터 있는 직업만 표시. |
+| 2026-06-03 | 자녀 추가/삭제(비활성) 관리 기능 추가 — `/settings/children`(목록·추가 폼·삭제 모달) + 설정 진입 카드. child_limit DB 기준 준수, 삭제는 soft delete(`profile_status='inactive'`). FAQ 9번 실기능 보정. DB/migration/RLS 변경 없음. **후속 과제: 다자녀 전환(자녀 선택) UI** — 현재 부모 홈/리포트/명따라는 첫 active child 기준 동작. |

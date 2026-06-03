@@ -91,6 +91,25 @@ export default function SettingsPage() {
           </span>
         </button>
 
+        {/* 자녀 프로필 관리 진입 카드 */}
+        <button
+          onClick={() => router.push("/settings/children")}
+          className="w-full bg-white rounded-card-lg shadow-card px-5 py-4 text-left hover:bg-base-off active:bg-base-off transition-colors flex items-center justify-between gap-3"
+        >
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="text-2xl leading-none shrink-0">👨‍👩‍👧</span>
+            <div className="min-w-0">
+              <p className="text-sm font-bold text-base-text">자녀 프로필 관리</p>
+              <p className="text-xs text-base-muted mt-0.5 leading-relaxed">
+                등록된 자녀 정보를 확인하고 새 자녀를 추가할 수 있어요.
+              </p>
+            </div>
+          </div>
+          <span className="flex items-center gap-0.5 text-xs font-semibold shrink-0" style={{ color: "#E84B2E" }}>
+            관리하기 <ChevronRight size={14} />
+          </span>
+        </button>
+
         {/* 메뉴 그룹 */}
         {CS_MENUS.map((group) => (
           <div key={group.group}>
