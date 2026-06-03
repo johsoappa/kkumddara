@@ -30,6 +30,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import GuideModal from "@/components/common/GuideModal";
 import StudentStartChecklistCard from "@/components/student/StudentStartChecklistCard";
+import StudentInactiveNotice from "@/components/student/StudentInactiveNotice";
+import BottomNav from "@/components/layout/BottomNav";
 import {
   Zap,
   Compass,
@@ -76,6 +78,8 @@ export default function StudentHomePage() {
   const [chosenRoadmapId, setChosen]      = useState<string | null>(null);
   const [completedMissions, setCompleted] = useState<string[]>([]);
   const [loading, setLoading]             = useState(true);
+  /** 연결 child가 inactive(삭제/비활성)이면 true → 일반 홈 대신 차단 안내 */
+  const [blocked, setBlocked]             = useState(false);
   /**
    * dbMissions — DB Stage 1 미션 목록 (prep + action 혼합)
    *   null  : 아직 조회 전 (로딩 중)
@@ -127,6 +131,11 @@ export default function StudentHomePage() {
             .maybeSingle();
 
           if (childData) {
+            // 삭제/비활성 자녀(soft delete) 연결 학생 → 일반 홈 차단
+            if ((childData as { profile_status?: string }).profile_status !== "active") {
+              setBlocked(true);
+              return; // finally에서 setLoading(false)
+            }
             resolvedChild = childData as Child;
             setChild(resolvedChild);
           }
@@ -402,6 +411,17 @@ export default function StudentHomePage() {
     );
   }
 
+  // 비활성(삭제)된 자녀 연결 학생 → 차단 안내 (일반 홈/미션/활동 미표시, BottomNav 미표시)
+  if (blocked) {
+    return (
+      <div className="min-h-screen bg-base-off flex justify-center">
+        <div className="w-full max-w-mobile bg-base-off">
+          <StudentInactiveNotice />
+        </div>
+      </div>
+    );
+  }
+
   // grade_level(초1~고3) 우선, school_grade(초3~고3) fallback
   // 초1·초2 자녀는 grade_level에만 값이 있으므로 반드시 grade_level을 먼저 확인
   const gradeLabel =
@@ -429,7 +449,9 @@ export default function StudentHomePage() {
         ctaLabel="시작하기"
       />
 
-      <div className="w-full max-w-mobile bg-base-off">
+      <div className="w-full max-w-mobile bg-base-off pb-24">
+        {/* 하단 네비게이션 (role-aware) — 로그인 학생 홈에서도 항상 표시 */}
+        <BottomNav />
 
         {/* ── 헤더 ─────────────────────────────────── */}
         <header className="sticky top-0 z-10 bg-white border-b border-base-border px-5 h-14 flex items-center justify-between">

@@ -472,3 +472,5 @@ OZ 수동 확인 후 아래 기준으로 최종 판정한다.
 | 2026-06-02 | 비밀번호 재설정 updateUser 실패 보정 — `?code=` 세션 교환 명시 처리, 세션 확인 강화, 대기 5초, updateUser 에러 콘솔 로깅. | 메일 링크 변경 성공은 OZ 재확인 필요(동일 브라우저 전제). Auth/DB 변경 없음. |
 | 2026-06-01 | 학생 체험하기 및 학생 체험 기반 직업 탐색 화면에서 BottomNav에 부모용 "리포트" 탭이 노출되는 문제를 확인하고, 학생 체험 흐름에서는 "내 활동" 탭이 표시되도록 보정함. | BottomNav role 결정 우선순위(실 로그인 role → roleOverride → demo session role → pathname → parent) 도입, /demo/student·/demo/parent에서 sessionStorage 데모 role 설정. 실 로그인 role 우선. |
 | 2026-06-01 | 학생 체험 흐름에서 "내 활동" 탭이 보호 라우트 `/student/activity`로 이동해 홈으로 튕기던 문제를 확인하고, 비로그인 학생 체험 전용 `/demo/student/activity` 화면으로 분기하도록 보정함. | 데모 학생 모드에서 내 활동/홈 href를 `/demo/student/activity`·`/demo/student`로 분기(실 로그인 학생은 `/student/activity`·`/student/home` 유지). `/demo/student/activity` 데모 안내 페이지 신규 생성. |
+| 2026-06-03 | 자녀 프로필 관리(`/settings/children`) — 자녀 추가/삭제(soft delete `profile_status='inactive'`). child_limit DB 준수. FAQ 9번 실기능 보정. | 확인 항목: 설정>자녀 프로필 관리 진입, 자녀 추가(한도 내), 한도 초과 안내, 자녀 삭제 모달·삭제 후 목록/부모 홈 반영. |
+| 2026-06-03 | 삭제된 자녀 학생 접근 차단 + 로그인 홈 BottomNav 표시 보정. | 확인 항목: 삭제 자녀 학생 로그인 시 비활성 안내(홈/활동 데이터 미표시·로그아웃), 학부모/학생 홈 BottomNav 표시(학생=내 활동/학부모=리포트), 설정 바로 접근, 비로그인/온보딩 nav 미표시. |

@@ -12,6 +12,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import GuideModal from "@/components/common/GuideModal";
 import ParentStartChecklistCard from "@/components/parent/ParentStartChecklistCard";
+import BottomNav from "@/components/layout/BottomNav";
 import {
   FileText,
   MessageSquare,
@@ -360,7 +361,9 @@ export default function ParentHomePage() {
         ctaLabel="시작해볼게요"
       />
 
-      <div className="w-full max-w-mobile bg-base-off">
+      <div className="w-full max-w-mobile bg-base-off pb-24">
+        {/* 하단 네비게이션 (role-aware) — 로그인 학부모 홈에서도 항상 표시 */}
+        <BottomNav />
 
         {/* ── 앱 헤더 ──────────────────────────────── */}
         <header className="sticky top-0 z-10 bg-white border-b border-base-border px-5 h-14 flex items-center justify-between">
