@@ -546,7 +546,8 @@ LIMIT 20;
 | 2026-06-03 | (보정) 심리상담사 traits 미표시 수정(static 폴백 모드에도 OccupationTraitSection 추가 + seed alias psychologist→counselor) + 직업 탐색 동일 직업명 중복 카드 제거(목록 name dedupe, 대표/최신 상세 우선). 기존 9개 직업 표시·다른 직업 검색 결과 유지. DB/migration 변경 없음. | b949eac |
 | 2026-06-03 | (검증) 심리상담사 traits + 생명과학 연구원 중복 보정 OZ 실화면 PASS — 심리상담사 상세 "이 일을 할 때 자주 쓰는 힘" 정상 표시, traits UI 흐름 정상, 생명과학 연구원 검색 단일 카드 노출·클릭/상세 흐름 정상. 이슈 종료. | b949eac |
 | 2026-06-03 | 자녀 추가/삭제(비활성) 관리 기능 추가 — `/settings/children` 신규(active 목록·경량 추가 폼·삭제 모달), `/settings`에 진입 카드. child_limit DB 기준 준수(초과 시 추가 차단 안내), 삭제는 soft delete(`profile_status='inactive'`, 하드 삭제/cascade 없음). FAQ 9번 실기능 기준 보정. DB schema/migration/RLS 변경 없음. 다자녀 전환 selector는 후속. | 378e686 |
-| 2026-06-03 | 삭제(비활성)된 자녀 연결 학생 접근 차단 + 로그인 홈 BottomNav 표시 보정 — student/home·student/activity에서 연결 child `profile_status≠'active'`면 `StudentInactiveNotice`(미션/활동/로드맵 미표시, nav 숨김, 로그아웃) 표시. parent/home·student/home 자체 레이아웃에 role-aware BottomNav 추가(pb-24). DB/migration/RLS/Auth 변경 없음. | — |
+| 2026-06-03 | 삭제(비활성)된 자녀 연결 학생 접근 차단 + 로그인 홈 BottomNav 표시 보정 — student/home·student/activity에서 연결 child `profile_status≠'active'`면 `StudentInactiveNotice`(미션/활동/로드맵 미표시, nav 숨김, 로그아웃) 표시. parent/home·student/home 자체 레이아웃에 role-aware BottomNav 추가(pb-24). DB/migration/RLS/Auth 변경 없음. | 32a6949 |
+| 2026-06-03 | (검증) 삭제된 자녀 학생 접근 차단 + 홈 BottomNav OZ 실화면 PASS — 학부모 홈 BottomNav(홈/탐색/로드맵/리포트/설정) 정상 표시·접근, 삭제 자녀 연결 학생 로그인 시 일반 홈 미표시·"이 자녀 프로필은 현재 사용할 수 없어요" 안내·로그아웃 버튼 정상. 이슈 종료. | 32a6949 |
 | 2026-06-02 | 명따라 결과 → "이런 성향이라면 함께 살펴볼 직업" 섹션 추가 (오행 주기운 정적 매핑, `/explore/[id]` 연결, 직업 단정 없음) + FAQ 3번 "모드"→"단계" 보정, FAQ 9번 자녀 정보 삭제 안내를 현재 UI(문의 채널/개인정보 처리방침 기준)에 맞게 보정 | — |
 | 2026-06-02 | 사용자 가이드 "모드 선택" 문구 보정 — 실제 화면은 학년 선택 구조라 `guide` 3단계 제목을 "학년 선택"으로 변경, 씨앗·새싹·나침반은 직접 선택 모드가 아닌 진로 탐색 단계 설명으로 정리 | — |
 | 2026-06-02 | 베타 공개 가능 상태 최종 정리 문서(`docs/beta-public-release-readiness-summary.md`) 생성 — P0/P1 확인 완료 요약, 쿠폰 기능을 정식 결제 오픈 전 후속 과제로 등록 | — |
