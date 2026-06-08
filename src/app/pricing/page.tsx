@@ -46,7 +46,7 @@ const PLANS: PlanDef[] = [
     priceM:    0,
     priceY:    0,
     status:    "free",
-    subtitle:  "검사는 무료로도 할 수 있습니다",
+    subtitle:  "아이의 관심 탐색은 무료로 시작할 수 있습니다",
     highlight: false,
     features:  [
       "기본 직업 탐색",
@@ -401,7 +401,7 @@ export default function PricingPage() {
             아이의 관심이 진로 대화로 이어지도록
           </h1>
           <p className="text-xs text-base-muted leading-relaxed mb-2">
-            검사는 무료로도 할 수 있습니다.
+            아이의 관심은 무료로 가볍게 살펴볼 수 있습니다.
           </p>
           <p className="text-xs text-base-muted leading-relaxed">
             꿈따라는 부모와 아이가 함께 직업을 살펴보고,<br />
