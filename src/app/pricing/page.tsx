@@ -50,7 +50,7 @@ const PLANS: PlanDef[] = [
     highlight: false,
     features:  [
       "기본 직업 탐색",
-      "진로 검사 1종",
+      "기본 흥미 탐색 1종",
       "AI 진로 상담 월 3회",
       "자녀 1명 등록",
     ],
