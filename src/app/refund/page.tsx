@@ -84,20 +84,53 @@ export default function RefundPage() {
 
         {/* 제4조 요금제 */}
         <div className="bg-white rounded-card-lg p-5 shadow-card">
-          <h2 className="text-sm font-bold mb-4" style={{ color: "#E84B2E" }}>제4조 (요금제별 안내)</h2>
-          <div className="grid grid-cols-2 gap-2">
+          <h2 className="text-sm font-bold mb-1" style={{ color: "#E84B2E" }}>제4조 (요금제별 안내)</h2>
+          <p className="text-xs text-base-muted mb-4 leading-relaxed">
+            v2.5 기준 — 정식 결제 기능 오픈 시 적용될 가격입니다.
+          </p>
+
+          {/* 구독 요금제 */}
+          <p className="text-xs font-semibold text-base-muted mb-2">구독 요금제</p>
+          <div className="grid grid-cols-3 gap-2 mb-4">
             {[
-              { plan: "베이직",       price: "9,900원" },
-              { plan: "프리미엄",     price: "14,900원" },
-              { plan: "패밀리",       price: "19,900원" },
-              { plan: "패밀리플러스", price: "24,900원" },
+              { plan: "Seed 무료",        price: "0원",      sub: "무료" },
+              { plan: "Sprout 베이직",    price: "5,900원",  sub: "월간" },
+              { plan: "Compass 프리미엄", price: "11,900원", sub: "월간" },
             ].map((p) => (
               <div key={p.plan}
                 className="flex flex-col items-center gap-1 p-3 rounded-card border border-base-border text-center">
-                <span className="text-xs text-base-muted">{p.plan}</span>
-                <span className="text-sm font-bold text-base-text">{p.price}<span className="text-xs font-normal">/월</span></span>
+                <span className="text-xs text-base-muted leading-snug">{p.plan}</span>
+                <span className="text-sm font-bold text-base-text">
+                  {p.price}
+                  <span className="text-xs font-normal">/{p.sub}</span>
+                </span>
               </div>
             ))}
+          </div>
+
+          {/* 단건 상품 */}
+          <p className="text-xs font-semibold text-base-muted mb-2">단건 상품 (구독 불필요)</p>
+          <div className="grid grid-cols-2 gap-2 mb-3">
+            {[
+              { plan: "꿈따라 진로 리포트 PDF", price: "3,900원" },
+              { plan: "명따라 진로 성향 리포트", price: "6,900원" },
+            ].map((p) => (
+              <div key={p.plan}
+                className="flex flex-col items-center gap-1 p-3 rounded-card border border-base-border text-center">
+                <span className="text-xs text-base-muted leading-snug">{p.plan}</span>
+                <span className="text-sm font-bold text-base-text">{p.price}<span className="text-xs font-normal"> / 건</span></span>
+              </div>
+            ))}
+          </div>
+          <div
+            className="rounded-card p-3"
+            style={{ backgroundColor: "#FFF7ED", border: "1px solid #FED7AA" }}
+          >
+            <p className="text-xs leading-relaxed" style={{ color: "#92400E" }}>
+              단건 상품(PDF 리포트, 명따라 리포트)은 결제 즉시 생성되는 디지털 콘텐츠입니다.
+              리포트 생성 후에는 환불 또는 청약철회가 제한될 수 있습니다.
+              결제 전 상품 구성과 고지사항을 확인해 주세요.
+            </p>
           </div>
         </div>
 

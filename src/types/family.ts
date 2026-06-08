@@ -130,7 +130,8 @@ export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
     roadmapFullAccess:     false,
     hasAdvancedReport:     false,
   },
-  // 베이직 (9,900원): 자녀 1명, 명따라 연 3회, AI 코치 메시지 월 30개, 보호자 2명(+1)
+  // [v2.5] Sprout 베이직 (월 5,900원 / 연 59,000원): 자녀 1명, 명따라 연 3회, AI 상담 월 20회, 보호자 2명(+1)
+  // 내부 plan_name=basic 유지 (DB 변경 금지)
   basic: {
     maxChildren:           1,
     maxGuardians:          1,   // 추가 초대 1명 = 보호자 2명(부모+공동양육자)
@@ -139,7 +140,8 @@ export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
     roadmapFullAccess:     true,
     hasAdvancedReport:     false,
   },
-  // 패밀리 (19,900원): 자녀 2명, 명따라 아이당 연 3회 (총 6회), AI 코치 메시지 가구 월 120개 (자녀 2명 × 60회), 보호자 2명
+  // [v2.5 기준 미사용 플랜] family는 v2.5 공개 티어(Seed/Sprout/Compass)에 포함되지 않음.
+  // 구 가격(19,900원) 무효. DB 플랜 식별자로만 유지. 신규 판매 금지.
   family: {
     maxChildren:           2,
     maxGuardians:          1,   // 추가 초대 1명 = 보호자 2명
@@ -148,7 +150,8 @@ export const PLAN_ENTITLEMENTS: Record<PlanName, PlanEntitlement> = {
     roadmapFullAccess:     true,
     hasAdvancedReport:     true,
   },
-  // 프리미엄 (14,900원): 자녀 1명 집중, AI 코치 메시지 월 100개, 명따라 연 3회, 보호자 2명
+  // [v2.5] Compass 프리미엄 (월 11,900원 / 연 119,000원): 자녀 추가 등록, AI 상담 월 100회, 명따라 심층 예정, 보호자 2명
+  // 내부 plan_name=premium 유지 (DB 변경 금지)
   premium: {
     maxChildren:           1,
     maxGuardians:          1,   // 추가 초대 1명 = 보호자 2명
