@@ -48,7 +48,7 @@ export default function ContactPage() {
           <div className="flex-1">
             <p className="text-sm font-bold" style={{ color: "#3C1E1E" }}>카카오채널로 문의</p>
             <p className="text-xs mt-0.5" style={{ color: "#5C3D1E" }}>
-              꿈따라 카카오채널 · 가장 빠른 답변
+              꿈따라_자녀 진로 탐색 · 가장 빠른 답변
             </p>
           </div>
           <span className="text-lg">→</span>

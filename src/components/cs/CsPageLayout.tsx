@@ -50,9 +50,14 @@ export default function CsPageLayout({ title, children }: CsPageLayoutProps) {
           {children}
 
           {/* ── 하단 푸터 ── */}
+          {/*
+            [PG심사 준비 — 사업자정보]
+            아래 정보는 OZ.Kim 대표 제공 기준값(2026-06-08).
+            최종 제출 전 사업자등록증·통신판매업 신고증 표기와 1:1 일치 여부를 확인한다.
+          */}
           <footer className="mt-8 border-t border-base-border pt-5">
             <p className="text-center text-xs font-semibold text-base-text mb-2">
-              OZ.K Lab | 꿈따라
+              오즈케이랩 | 꿈따라
             </p>
             {/* 약관 링크 행 */}
             <div className="flex flex-wrap justify-center gap-x-1 gap-y-1 mb-3">
@@ -70,8 +75,16 @@ export default function CsPageLayout({ title, children }: CsPageLayoutProps) {
                 </span>
               ))}
             </div>
+            {/* 사업자정보 */}
+            <div className="text-center text-[10px] text-base-muted leading-relaxed space-y-0.5 mb-2 px-2">
+              <p>상호: 오즈케이랩 &nbsp;|&nbsp; 대표: 김문수</p>
+              <p>사업자등록번호: 337-23-02160 &nbsp;|&nbsp; 통신판매업 신고번호: 2026-화성병점-0513</p>
+              <p>주소: 경기도 화성시 병점구 태안로85, 102-701</p>
+              <p>대표 전화: 010-4796-8013 &nbsp;|&nbsp; 대표 이메일: contact@ozklab.com</p>
+              <p>꿈따라 문의: kkumddara@ozklab.com</p>
+            </div>
             <p className="text-center text-[11px] text-base-muted">
-              ⓒ 2026 OZ.K Lab. All rights reserved.
+              ⓒ 2026 오즈케이랩. All rights reserved.
             </p>
           </footer>
         </main>

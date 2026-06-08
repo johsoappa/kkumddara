@@ -85,7 +85,7 @@ export default function YouthPage() {
           <div className="flex flex-col gap-2 text-sm">
             <div className="flex justify-between">
               <span className="text-base-muted">성명</span>
-              <span className="text-base-text">OZ.Kim</span>
+              <span className="text-base-text">김문수</span>
             </div>
             <div className="flex justify-between">
               <span className="text-base-muted">직책</span>
