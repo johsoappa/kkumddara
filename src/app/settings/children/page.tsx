@@ -165,6 +165,11 @@ export default function ChildrenManagePage() {
           <p className="text-xs text-base-muted mt-1 leading-relaxed">
             등록된 자녀 정보를 확인하고, 필요한 경우 새 자녀를 추가할 수 있어요.
           </p>
+          <p className="text-[11px] text-base-muted mt-2 leading-relaxed px-3 py-2 rounded-card"
+            style={{ backgroundColor: "#FFF8F4" }}>
+            아이의 학년에 따라 씨앗모드(초1~초2), 새싹모드(초3~초4), 나침반모드(초5~고등) 기준으로
+            진로 탐색 흐름을 다르게 안내합니다.
+          </p>
         </div>
 
         {/* ── 자녀 목록 ───────────────────────────── */}

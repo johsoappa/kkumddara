@@ -228,8 +228,8 @@ function LandingContent() {
                 <span style={{ color: "#E84B2E" }}>좋아하는 것에서 직업을 찾아요</span>
               </h1>
               <p className="mt-3 text-sm text-base-muted leading-relaxed">
-                꿈따라는 아이가 좋아하는 관심사에서 출발해 관련 직업군을 발견하고,
-                이번 주 해볼 수 있는 진로 활동까지 제안해요.
+                꿈따라는 초1부터 고등까지, 아이가 좋아하는 관심사에서 출발해
+                관련 직업군을 발견하고, 이번 주 해볼 수 있는 진로 활동까지 제안해요.
               </p>
               <div className="mt-4 flex flex-col gap-2">
                 {[
