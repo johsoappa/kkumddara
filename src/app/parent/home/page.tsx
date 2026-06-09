@@ -386,13 +386,22 @@ export default function ParentHomePage() {
 
         <div className="px-5 py-6 flex flex-col gap-5">
 
-          {/* ── 인사말 ────────────────────────────── */}
+          {/* ── 인사말 + 학부모 화면 포지셔닝 ────────────────
+              학부모 = 관찰 / 대화 / 다음 액션 (학생 = 탐색/미션)
+              첫인상에서 "무엇을 하는 화면인지" 바로 드러나도록 안내 문구 노출 */}
           <div>
-            <p className="text-xs text-base-muted">학부모 홈</p>
-            <h1 className="mt-0.5 text-xl font-bold text-base-text leading-snug">
+            <p className="text-sm font-semibold" style={{ color: "#E84B2E" }}>
+              학부모 홈
+            </p>
+            <h1 className="mt-1 text-2xl font-bold text-base-text leading-snug">
               오늘도 함께
               <span style={{ color: "#E84B2E" }}> 꿈을 설계</span>해요
             </h1>
+            <p className="mt-2 text-[15px] text-base-muted leading-relaxed">
+              아이의 관심과 활동을 한눈에 살펴보고,
+              <br />
+              오늘 나눌 진로 대화의 실마리를 확인해보세요.
+            </p>
           </div>
 
           {/* ══════════════════════════════════════════
@@ -407,9 +416,9 @@ export default function ParentHomePage() {
           ══════════════════════════════════════════ */}
           <section>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-bold text-base-text">자녀 현황</h2>
+              <h2 className="text-lg font-bold text-base-text">자녀 현황</h2>
               {plan && (
-                <span className="text-xs text-base-muted">
+                <span className="text-sm text-base-muted">
                   플랜:{" "}
                   <span className="font-semibold text-base-text">
                     {PLAN_LABEL[plan.plan_name] ?? plan.plan_name}
@@ -428,10 +437,10 @@ export default function ParentHomePage() {
                   hover:border-brand-red transition-colors
                 "
               >
-                <p className="text-sm font-semibold text-base-muted">
+                <p className="text-base font-semibold text-base-muted">
                   자녀 프로필이 없어요
                 </p>
-                <p className="text-xs text-base-muted mt-1">
+                <p className="text-sm text-base-muted mt-1">
                   탭하여 자녀 프로필을 추가해요
                 </p>
               </button>
@@ -452,8 +461,8 @@ export default function ParentHomePage() {
               </div>
             )}
 
-            {/* ── 베타 자녀 추가 제한 안내 ── */}
-            <p className="text-[11px] text-base-muted text-center mt-1 leading-relaxed px-1">
+            {/* ── 베타 자녀 추가 제한 안내 (보조 메타 정보) ── */}
+            <p className="text-xs text-base-muted text-center mt-2 leading-relaxed px-1">
               현재 베타 버전에서는 자녀 1명 기준으로 진로 탐색을 이용할 수 있어요.
               <br />
               자녀 추가 기능은 패밀리 플랜 오픈 시 제공될 예정입니다.
@@ -466,27 +475,38 @@ export default function ParentHomePage() {
           ══════════════════════════════════════════ */}
           {children.length > 0 && (
             <section>
-              <h2 className="text-sm font-bold text-base-text mb-3">
-                {children[0].name}
-                {pickParticle(children[0].name, "와", "과")} 해볼 대화 💬
+              <h2 className="text-lg font-bold text-base-text mb-1">
+                오늘 아이에게 물어볼 질문 💬
               </h2>
-              <div className="bg-white rounded-card-lg shadow-card p-4">
-                <div className="flex flex-col gap-3">
+              <p className="text-sm text-base-muted leading-relaxed mb-3">
+                정답을 찾기보다, {children[0].name}
+                {pickParticle(children[0].name, "가", "이")} 어떤 점에 끌렸는지 가볍게
+                물어보세요.
+              </p>
+              {/* 핵심 카드 — 부모가 바로 행동할 수 있는 대화 질문 (강조 톤 + accent border) */}
+              <div
+                className="rounded-card-lg p-5 border"
+                style={{ backgroundColor: "#FFF7F4", borderColor: "#FBD9CD" }}
+              >
+                <div className="flex flex-col gap-3.5">
                   {getConversationQuestions(children[0]).map((q, i) => (
                     <div key={i} className="flex items-start gap-3">
                       <span
-                        className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
-                        style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
+                        className="text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                        style={{ backgroundColor: "#FFE3D8", color: "#E84B2E" }}
                       >
                         {i + 1}
                       </span>
-                      <p className="text-sm text-base-text leading-relaxed">
+                      <p className="text-[15px] font-medium text-base-text leading-relaxed">
                         &ldquo;{q}&rdquo;
                       </p>
                     </div>
                   ))}
                 </div>
-                <p className="text-[11px] text-base-muted mt-3 pt-3 border-t border-base-border leading-relaxed">
+                <p
+                  className="text-xs text-base-muted mt-4 pt-3 border-t leading-relaxed"
+                  style={{ borderColor: "#FBD9CD" }}
+                >
                   💡 답변에 정답은 없어요. 자녀가 무엇에 관심 있는지 자연스럽게 파악하는 것이 목적이에요.
                 </p>
               </div>
@@ -500,13 +520,13 @@ export default function ParentHomePage() {
           {children.length > 0 && (
             <section>
               <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-bold text-base-text">
+                <h2 className="text-lg font-bold text-base-text">
                   {children[0].name}
                   {pickParticle(children[0].name, "가", "이")} 좋아요한 직업
                 </h2>
                 <button
                   onClick={() => router.push("/explore")}
-                  className="text-xs font-semibold"
+                  className="text-sm font-semibold shrink-0"
                   style={{ color: "#E84B2E" }}
                 >
                   전체 보기 →
@@ -515,17 +535,19 @@ export default function ParentHomePage() {
 
               {likedOccs.length === 0 ? (
                 /* 빈 상태 */
-                <div className="bg-white rounded-card-lg shadow-card p-5 flex flex-col items-center text-center gap-2">
-                  <p className="text-2xl leading-none">🤍</p>
-                  <p className="text-sm font-semibold text-base-text">
-                    아직 좋아요한 직업이 없어요
+                <div className="bg-white rounded-card-lg shadow-card p-6 flex flex-col items-center text-center gap-2">
+                  <p className="text-3xl leading-none">🤍</p>
+                  <p className="text-base font-semibold text-base-text">
+                    아직 기록된 활동이 없어요
                   </p>
-                  <p className="text-xs text-base-muted leading-relaxed">
-                    아이가 직업 탐색에서 하트를 누르면<br />여기에서 바로 확인할 수 있어요.
+                  <p className="text-sm text-base-muted leading-relaxed">
+                    아이와 함께 관심 직업을 하나 살펴보면,
+                    <br />
+                    이곳에 활동 흐름이 쌓입니다.
                   </p>
                   <button
                     onClick={() => router.push("/explore")}
-                    className="mt-1 text-xs font-semibold px-4 py-2 rounded-full"
+                    className="mt-2 text-sm font-semibold px-5 py-2.5 rounded-full"
                     style={{ backgroundColor: "#FFF0EB", color: "#E84B2E" }}
                   >
                     직업 탐색 바로가기
@@ -544,13 +566,13 @@ export default function ParentHomePage() {
                         ${idx < likedOccs.length - 1 ? "border-b border-base-border" : ""}
                       `}
                     >
-                      <span className="text-xl leading-none w-8 text-center shrink-0">
+                      <span className="text-2xl leading-none w-9 text-center shrink-0">
                         {occ.emoji ?? "🎯"}
                       </span>
-                      <span className="text-sm font-medium text-base-text flex-1 leading-snug">
+                      <span className="text-base font-medium text-base-text flex-1 leading-snug">
                         {occ.name}
                       </span>
-                      <ChevronRight size={14} className="text-base-muted shrink-0" />
+                      <ChevronRight size={16} className="text-base-muted shrink-0" />
                     </button>
                   ))}
 
@@ -574,7 +596,7 @@ export default function ParentHomePage() {
               섹션 2 — 부모 전용 기능 진입
           ══════════════════════════════════════════ */}
           <section>
-            <h2 className="text-sm font-bold text-base-text mb-3">부모 전용 기능</h2>
+            <h2 className="text-lg font-bold text-base-text mb-3">부모 전용 기능</h2>
             <div className="flex flex-col gap-2.5">
               {PARENT_FEATURES.map((feat) => (
                 <ParentFeatureRow
@@ -583,6 +605,29 @@ export default function ParentHomePage() {
                   onClick={() => router.push(feat.href)}
                 />
               ))}
+            </div>
+          </section>
+
+          {/* ══════════════════════════════════════════
+              섹션 3 — 학부모/학생 역할 차이 안내 (보조 카드)
+              새 전환 기능/라우팅 변경 없음 — 정적 안내 문구만 노출
+          ══════════════════════════════════════════ */}
+          <section>
+            <div className="bg-white rounded-card-lg border border-base-border p-4 flex flex-col gap-2.5">
+              <div className="flex items-start gap-2.5">
+                <span className="text-base leading-none mt-0.5">👀</span>
+                <p className="text-sm text-base-text leading-relaxed">
+                  <span className="font-semibold">학부모 화면</span>에서는 아이의 활동을
+                  요약하고, 대화로 이어갈 힌트를 확인할 수 있어요.
+                </p>
+              </div>
+              <div className="flex items-start gap-2.5">
+                <span className="text-base leading-none mt-0.5">🧭</span>
+                <p className="text-sm text-base-text leading-relaxed">
+                  <span className="font-semibold">학생 화면</span>에서는 아이가 직접 직업을
+                  탐색하고 작은 미션을 진행해요.
+                </p>
+              </div>
             </div>
           </section>
 
@@ -638,13 +683,13 @@ function ChildSummaryCard({
       {/* 이름 + 학년 + 수정 버튼 */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
-          <span className="text-xl leading-none">{child.avatar_emoji}</span>
+          <span className="text-2xl leading-none">{child.avatar_emoji}</span>
           <div>
-            <p className="text-base font-bold text-base-text">{child.name}</p>
+            <p className="text-lg font-bold text-base-text leading-snug">{child.name}</p>
             {gradeLabel ? (
-              <p className="text-xs text-base-muted">{gradeLabel}</p>
+              <p className="text-sm text-base-muted">{gradeLabel}</p>
             ) : (
-              <p className="text-xs text-base-muted">학년 미설정</p>
+              <p className="text-sm text-base-muted">학년 미설정</p>
             )}
           </div>
         </div>
@@ -682,16 +727,16 @@ function ChildSummaryCard({
       <div className="mb-2.5">
         {isStudentConnected ? (
           <div
-            className="flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1.5 rounded-button w-fit"
+            className="flex items-center gap-1.5 text-xs font-semibold px-2.5 py-1.5 rounded-button w-fit"
             style={{ background: "#F0FDF4", color: "#16A34A" }}
           >
-            <Check size={11} />
+            <Check size={12} />
             {studentNickname
               ? `${studentNickname} 연결됨`
               : "학생 계정 연결됨"}
           </div>
         ) : (
-          <p className="text-[11px] text-base-muted">
+          <p className="text-xs text-base-muted">
             학생 계정 미연결 — 초대 코드를 공유해 주세요
           </p>
         )}
@@ -701,8 +746,8 @@ function ChildSummaryCard({
       {child.invite_code && (
         <div className="flex items-center justify-between bg-base-off rounded-button px-3 py-2.5">
           <div>
-            <p className="text-[10px] text-base-muted mb-0.5">학생 초대 코드</p>
-            <p className="text-sm font-mono font-bold tracking-widest text-base-text">
+            <p className="text-xs text-base-muted mb-0.5">학생 초대 코드</p>
+            <p className="text-base font-mono font-bold tracking-widest text-base-text">
               {child.invite_code}
             </p>
           </div>
@@ -763,14 +808,14 @@ function ParentFeatureRow({
       {/* 텍스트 */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <p className="text-sm font-bold text-base-text">{feature.label}</p>
+          <p className="text-base font-bold text-base-text">{feature.label}</p>
           {feature.badge && (
             <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-base-card text-base-muted">
               {feature.badge}
             </span>
           )}
         </div>
-        <p className="text-xs text-base-muted mt-0.5 leading-relaxed">
+        <p className="text-sm text-base-muted mt-0.5 leading-relaxed">
           {feature.description}
         </p>
       </div>

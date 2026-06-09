@@ -54,10 +54,10 @@ export default function ParentStartChecklistCard() {
     <div className="bg-white rounded-card-lg shadow-card p-5">
 
       {/* ── 제목 + 설명 ── */}
-      <h2 className="text-sm font-bold text-base-text mb-1">
+      <h2 className="text-lg font-bold text-base-text mb-1">
         꿈따라 시작 체크리스트
       </h2>
-      <p className="text-xs text-base-muted leading-relaxed mb-4">
+      <p className="text-sm text-base-muted leading-relaxed mb-4">
         아이의 진로 탐색을 시작하려면 아래 순서대로 진행해보세요.<br />
         처음에는 전부 완벽하게 입력하지 않아도 괜찮습니다.
       </p>
@@ -68,7 +68,7 @@ export default function ParentStartChecklistCard() {
           <div key={item.num} className="flex gap-3 items-start">
             {/* 번호 배지 */}
             <span
-              className="w-5 h-5 rounded-full text-[11px] font-bold flex items-center justify-center shrink-0 mt-0.5"
+              className="w-6 h-6 rounded-full text-xs font-bold flex items-center justify-center shrink-0 mt-0.5"
               style={{ backgroundColor: ACCENT_BG, color: ACCENT }}
             >
               {item.num}
@@ -76,10 +76,10 @@ export default function ParentStartChecklistCard() {
 
             {/* 내용 */}
             <div>
-              <p className="text-sm font-semibold text-base-text leading-snug">
+              <p className="text-base font-semibold text-base-text leading-snug">
                 {item.heading}
               </p>
-              <p className="text-xs text-base-muted leading-relaxed mt-0.5">
+              <p className="text-sm text-base-muted leading-relaxed mt-0.5">
                 {item.body}
               </p>
             </div>
