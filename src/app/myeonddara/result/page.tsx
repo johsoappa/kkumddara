@@ -261,10 +261,52 @@ export default function MyeonddaraResultPage() {
             </div>
           </div>
 
-          {/* ── Phase 1: 규칙 기반 정보 카드 + AI 준비중 안내 ── */}
+          {/* ── Phase 1: 규칙 기반 7섹션 + 추가 참고 카드 ── */}
           {!hasAnalysis && (
             <>
-              {/* ① 일간 한줄 해설 */}
+              {/* ① 우리 아이 성향 한 줄 요약 */}
+              <div className="rounded-card-lg p-5 border border-orange-200"
+                style={{ backgroundColor: "#FFF8F4" }}>
+                <p className="text-[11px] font-bold mb-2 tracking-wide uppercase" style={{ color: "#E84B2E" }}>
+                  ① 우리 아이 성향 한 줄 요약
+                </p>
+                <p className="text-base font-bold text-base-text leading-relaxed">
+                  {ruleGuide.summaryLine}
+                </p>
+                <p className="text-[11px] text-base-muted mt-2 leading-relaxed">
+                  만세력 기반 참고 표현이에요. 아이를 단정하기보다 대화의 출발점으로 활용해보세요.
+                </p>
+              </div>
+
+              {/* ② 강점으로 볼 수 있는 부분 */}
+              <div className="bg-white rounded-card-lg shadow-card p-5">
+                <h3 className="text-sm font-bold text-base-text mb-3">② 강점으로 볼 수 있는 부분</h3>
+                <ul className="flex flex-col gap-2.5">
+                  {ruleGuide.strengths.map((s, i) => (
+                    <li key={i} className="flex items-start gap-2.5">
+                      <span className="text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0 mt-0.5"
+                        style={{ backgroundColor: "#E84B2E" }}>
+                        ✓
+                      </span>
+                      <span className="text-sm text-base-text leading-relaxed">{s}</span>
+                    </li>
+                  ))}
+                </ul>
+                {/* 기질 키워드 칩 (보조 참고) */}
+                <div className="flex flex-wrap gap-2 mt-4 pt-4 border-t border-base-border">
+                  {ruleGuide.keywords.map((kw) => (
+                    <span
+                      key={kw}
+                      className="text-xs font-semibold px-3 py-1.5 rounded-full"
+                      style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}
+                    >
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* 일간 한줄 해설 (보조 참고) */}
               <div className="bg-white rounded-card-lg shadow-card p-5">
                 <p className="text-[11px] font-bold text-base-muted mb-3 tracking-wide uppercase">
                   일간(日干) · {saju.ilgan}
@@ -279,26 +321,10 @@ export default function MyeonddaraResultPage() {
                 </div>
               </div>
 
-              {/* ② 기질 키워드 */}
-              <div className="bg-white rounded-card-lg shadow-card p-5">
-                <h3 className="text-sm font-bold text-base-text mb-3">기질 키워드</h3>
-                <div className="flex flex-wrap gap-2">
-                  {ruleGuide.keywords.map((kw) => (
-                    <span
-                      key={kw}
-                      className="text-xs font-semibold px-3 py-1.5 rounded-full"
-                      style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}
-                    >
-                      {kw}
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              {/* ③ 부모 관찰 포인트 — 일상 체크리스트 */}
+              {/* ③ 부모가 관찰해볼 행동 — 일상 체크리스트 */}
               <div className="bg-white rounded-card-lg shadow-card p-5">
                 <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-bold text-base-text">부모 관찰 포인트</h3>
+                  <h3 className="text-sm font-bold text-base-text">③ 부모가 관찰해볼 행동</h3>
                   <span
                     className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                     style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}
@@ -322,6 +348,66 @@ export default function MyeonddaraResultPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+
+              {/* ④ 조심해서 대화할 부분 */}
+              <div className="bg-white rounded-card-lg shadow-card p-5">
+                <div className="flex items-center gap-2 mb-3">
+                  <h3 className="text-sm font-bold text-base-text">④ 조심해서 대화할 부분</h3>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                    style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}>
+                    부드럽게
+                  </span>
+                </div>
+                <ul className="flex flex-col gap-2.5">
+                  {ruleGuide.cautions.map((c, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-base-text leading-relaxed">
+                      <span className="shrink-0 mt-0.5" style={{ color: "#E84B2E" }}>💬</span>
+                      <span>{c}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* ⑥ 부모 대화 질문 3개 */}
+              <div className="bg-white rounded-card-lg shadow-card p-5">
+                <h3 className="text-sm font-bold text-base-text mb-1">⑥ 부모 대화 질문</h3>
+                <p className="text-[11px] text-base-muted mb-3 leading-relaxed">
+                  아이와 자연스럽게 이야기를 시작할 때 써보세요.
+                </p>
+                <ul className="flex flex-col gap-2">
+                  {ruleGuide.parentQuestions.map((q, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-base-text leading-relaxed">
+                      <span className="text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0 mt-0.5"
+                        style={{ backgroundColor: "#FFF0EB", color: "#C83A20" }}>
+                        {i + 1}
+                      </span>
+                      <span>{q}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+
+              {/* ⑦ 이번 주 작은 미션 2개 */}
+              <div className="rounded-card-lg p-5 border border-orange-200"
+                style={{ backgroundColor: "#FFF8F4" }}>
+                <p className="text-xs font-bold mb-3" style={{ color: "#E84B2E" }}>
+                  ⑦ 이번 주 작은 미션
+                </p>
+                <ul className="flex flex-col gap-2.5">
+                  {ruleGuide.weeklyMissions.map((m, i) => (
+                    <li key={i} className="flex items-start gap-2.5 text-sm text-base-text leading-relaxed">
+                      <span className="text-xs font-bold w-5 h-5 rounded-full flex items-center justify-center text-white shrink-0 mt-0.5"
+                        style={{ backgroundColor: "#E84B2E" }}>
+                        {i + 1}
+                      </span>
+                      <span>{m}</span>
+                    </li>
+                  ))}
+                </ul>
+                <p className="text-[10px] text-base-muted mt-3 leading-relaxed">
+                  ※ 함께 살펴볼 직업군은 아래 ‘이런 성향이라면 함께 살펴볼 직업’에서 확인할 수 있어요.
+                </p>
               </div>
 
               {/* ⑤ 오행 균형 해설 */}
@@ -364,11 +450,11 @@ export default function MyeonddaraResultPage() {
               {/* AI 준비중 안내 */}
               <div className="bg-white rounded-card-lg shadow-card p-6 text-center flex flex-col items-center gap-3">
                 <span className="text-4xl">🔮</span>
-                <h3 className="text-sm font-bold text-base-text">명따라 AI 기질 분석</h3>
+                <h3 className="text-sm font-bold text-base-text">명따라 AI 심층 해석</h3>
                 <p className="text-xs text-base-muted leading-relaxed">
-                  현재는 기본 만세력 결과만 제공됩니다.<br />
-                  성향 키워드 · 강점 · 관심을 넓혀볼 분야 등<br />
-                  심화 AI 해석은 준비 중입니다.
+                  위 내용은 만세력 기반 참고 해석이에요.<br />
+                  아이의 생활·관심 기록과 연결한<br />
+                  더 깊은 AI 맞춤 해석은 준비 중입니다.
                 </p>
                 <span
                   className="px-3 py-1.5 rounded-full text-xs font-semibold"

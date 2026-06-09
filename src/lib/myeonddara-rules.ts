@@ -151,6 +151,51 @@ const OHAENG_PARENT_TIP: Record<string, string> = {
   "수": "혼자 생각할 시간을 충분히 주세요. 답을 재촉하면 위축될 수 있어요.",
 };
 
+// ── 성향 한 줄 요약 — dominant 오행 기준 (참고용, 단정 금지) ──────
+const OHAENG_SUMMARY_LINE: Record<string, string> = {
+  "목": "호기심을 따라 스스로 탐색하며 성장해가는 모습이 보여요.",
+  "화": "감정과 생각을 밝게 표현하며 사람들과 잘 어울리는 모습이 보여요.",
+  "토": "차분하고 꾸준하게 자기 속도로 쌓아가는 모습이 보여요.",
+  "금": "원칙을 세우고 목표를 향해 또렷하게 나아가는 모습이 보여요.",
+  "수": "깊이 생각하고 충분히 이해한 뒤 움직이는 사색형 모습이 보여요.",
+};
+
+// ── 강점으로 볼 수 있는 부분 — dominant 오행 기준 3개 ────────────
+const OHAENG_STRENGTHS: Record<string, string[]> = {
+  "목": ["스스로 탐색하고 시도하는 자기주도성", "새로운 것에 대한 호기심", "성장하려는 의지"],
+  "화": ["밝은 표현력과 사교성", "주변을 활기차게 하는 에너지", "감정에 솔직한 소통력"],
+  "토": ["꾸준함과 성실함", "안정감 있는 책임감", "신중하게 판단하는 침착함"],
+  "금": ["분석력과 원칙 감각", "목표를 끝까지 해내는 집중력", "옳고 그름에 대한 또렷한 기준"],
+  "수": ["깊이 사고하는 탐구심", "상황을 유연하게 이해하는 힘", "한 가지에 몰입하는 집중력"],
+};
+
+// ── 조심해서 대화할 부분 — dominant 오행 기준 2개 (부드러운 권유) ──
+const OHAENG_CAUTIONS: Record<string, string[]> = {
+  "목": ["하고 싶은 것을 막기보다, 방향을 함께 정해 보세요.", "결과를 재촉하면 흥미를 잃을 수 있어요."],
+  "화": ["감정을 먼저 충분히 들어준 뒤 이야기해 보세요.", "다른 아이와 비교하는 말은 의욕을 꺾을 수 있어요."],
+  "토": ["갑작스러운 변화나 재촉은 부담이 될 수 있어요.", "느린 속도를 다그치기보다 기다려 주세요."],
+  "금": ["옳고 그름을 단정 짓기 전에 이유를 먼저 물어봐 주세요.", "방향을 자주 바꾸게 하면 혼란스러워할 수 있어요."],
+  "수": ["답을 재촉하면 위축될 수 있어요.", "생각을 정리할 시간을 충분히 준 뒤 이야기해 주세요."],
+};
+
+// ── 부모 대화 질문 — dominant 오행 기준 3개 ──────────────────────
+const OHAENG_PARENT_QUESTIONS: Record<string, string[]> = {
+  "목": ["요즘 가장 해보고 싶은 게 뭐야?", "혼자 해보고 싶은 일이 있어?", "새로 알게 된 것 중에 제일 재밌었던 건 뭐야?"],
+  "화": ["오늘 누구랑 뭐 하고 놀았어?", "요즘 제일 신나는 일이 뭐야?", "친구들한테 자랑하고 싶은 게 있어?"],
+  "토": ["요즘 꾸준히 하고 있는 게 있어?", "어떤 걸 할 때 마음이 가장 편해?", "더 잘해보고 싶은 게 있어?"],
+  "금": ["요즘 가장 궁금한 게 뭐야?", "끝까지 해보고 싶은 일이 있어?", "어떤 게 제일 멋있다고 생각해?"],
+  "수": ["요즘 어떤 생각을 자주 해?", "더 깊이 알아보고 싶은 게 있어?", "혼자 있을 때는 주로 뭘 해?"],
+};
+
+// ── 이번 주 작은 미션 — dominant 오행 기준 2개 ───────────────────
+const OHAENG_WEEKLY_MISSIONS: Record<string, string[]> = {
+  "목": ["아이가 관심 보인 분야를 하나 골라 함께 찾아보기", "아이가 스스로 정한 작은 목표 하나 응원해주기"],
+  "화": ["아이가 좋아하는 활동을 가족 앞에서 발표해보기", "오늘 느낀 감정을 함께 이야기하는 시간 갖기"],
+  "토": ["매일 같은 시간에 하는 작은 루틴 하나 함께 정해보기", "아이가 완성한 것을 함께 칭찬하며 돌아보기"],
+  "금": ["아이가 정한 목표 하나를 끝까지 함께 지켜보기", "‘왜 그렇게 생각했어?’ 하고 이유를 물어봐 주기"],
+  "수": ["아이가 궁금해한 질문 하나를 함께 깊이 알아보기", "생각을 정리할 혼자만의 시간 만들어주기"],
+};
+
 // ────────────────────────────────────────────────────────────────
 // 타입
 // ────────────────────────────────────────────────────────────────
@@ -161,6 +206,12 @@ export interface RuleBasedGuide {
   learningStyle:     { style: string; detail: string };
   parentTip:         string;
   observationPoints: string[]; // 부모가 일상에서 체크할 행동 단서 3개
+  // ── 결과 화면 7섹션용 (Phase 1 규칙 기반, 비AI) ──
+  summaryLine:       string;   // ① 우리 아이 성향 한 줄 요약
+  strengths:         string[]; // ② 강점으로 볼 수 있는 부분 (3)
+  cautions:          string[]; // ④ 조심해서 대화할 부분 (2)
+  parentQuestions:   string[]; // ⑥ 부모 대화 질문 (3)
+  weeklyMissions:    string[]; // ⑦ 이번 주 작은 미션 (2)
 }
 
 // ────────────────────────────────────────────────────────────────
@@ -226,5 +277,20 @@ export function buildRuleBasedGuide(saju: ManseryeokResult): RuleBasedGuide {
     "혼자 있는 시간과 함께하는 시간 중 어느 쪽을 더 즐기나요?",
   ];
 
-  return { ilganGuide, ohaengBalance, keywords, learningStyle, parentTip, observationPoints };
+  // ── 7. 결과 화면 7섹션용 (참고용 표현, 단정 금지) ────────
+  const summaryLine = OHAENG_SUMMARY_LINE[dominant]
+    ?? "아이만의 고유한 기질이 보여요. 관심을 따라 함께 살펴보세요.";
+  const strengths = OHAENG_STRENGTHS[dominant]
+    ?? ["자기만의 방식으로 몰입하는 힘", "관심 있는 것에 대한 집중력", "꾸준히 시도하는 태도"];
+  const cautions = OHAENG_CAUTIONS[dominant]
+    ?? ["아이의 속도를 존중하며 기다려 주세요.", "결과보다 과정을 함께 이야기해 주세요."];
+  const parentQuestions = OHAENG_PARENT_QUESTIONS[dominant]
+    ?? ["요즘 가장 재밌는 게 뭐야?", "더 해보고 싶은 일이 있어?", "오늘 어떤 게 기억에 남아?"];
+  const weeklyMissions = OHAENG_WEEKLY_MISSIONS[dominant]
+    ?? ["아이가 좋아하는 활동을 함께 하나 해보기", "아이의 이야기를 끝까지 들어주는 시간 갖기"];
+
+  return {
+    ilganGuide, ohaengBalance, keywords, learningStyle, parentTip, observationPoints,
+    summaryLine, strengths, cautions, parentQuestions, weeklyMissions,
+  };
 }
