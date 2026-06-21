@@ -1,8 +1,8 @@
 "use client";
 
 // ====================================================
-// 요금제 페이지 (/pricing)
-// [v2.5] 가격·B2C 부가상품 문서 v2.5 기준 UI/카피 반영
+// 이용 안내 페이지 (/pricing) — 무료 베타 톤
+// [v2.5] 가격·B2C 부가 항목 문서 v2.5 기준 UI/카피 반영 (무료 베타로 노출 OFF)
 //
 // [이번 작업 범위]
 //   - UI/카피/문서 정리만. 결제 구현 없음.
@@ -10,7 +10,7 @@
 //   - DB / migration / RLS / Auth 변경 없음
 //
 // [티어 구조] Seed(무료) / Sprout(베이직) / Compass(프리미엄)
-// [단건 상품] PDF 리포트(₩3,900) / 명따라 단건(₩6,900)
+// [단건 항목] PDF 리포트 / 명따라 단건 — 가격 데이터는 보존, 무료 베타로 노출 OFF
 // ====================================================
 
 import { useRouter } from "next/navigation";
@@ -21,7 +21,7 @@ import CsPageLayout from "@/components/cs/CsPageLayout";
 const ACCENT    = "#E84B2E";
 const ACCENT_BG = "#FFF0EB";
 
-// ─── 요금제 데이터 ────────────────────────────────────
+// ─── 플랜 데이터 (보존 — 무료 베타로 화면 노출 OFF) ─────
 interface PlanDef {
   id:          string;
   name:        string;
@@ -121,42 +121,52 @@ const COMPARISON_ROWS = [
   },
 ];
 
-// ─── FAQ 데이터 ────────────────────────────────────────
+// ─── FAQ 데이터 (무료 베타 톤) ──────────────────────────
 const FAQ_ITEMS = [
   {
-    q: "지금 결제해야 하나요?",
-    a: "아니요. 현재는 베타 기간으로, 정식 결제 기능은 추후 안내됩니다.\n지금은 무료로 먼저 꿈따라를 경험해볼 수 있어요.",
+    q: "지금 정말 무료인가요?",
+    a: "네. 현재 꿈따라는 무료 베타로 운영 중입니다.\n아이의 관심사 탐색, 직업 탐색, 로드맵과 미션 기능을 비용 없이 이용할 수 있습니다.",
   },
   {
-    q: "AI 상담 20회는 무엇을 기준으로 1회인가요?",
-    a: "AI 상담은 \"보낸 메시지 1건 = 1회\" 기준으로 계산됩니다.\n부모님이 AI에게 질문을 보내는 순간 1회가 차감되며, AI의 답변은 별도로 차감하지 않습니다.\n예를 들어 \"아이가 축구를 좋아하는데 어떤 직업을 함께 볼 수 있나요?\"라고 질문하면 1회가 사용됩니다.",
+    q: "나중에 유료 기능이 생기나요?",
+    a: "정식 서비스 과정에서 일부 유료 기능이 도입될 수 있습니다.\n다만 유료 기능이 생길 경우, 이용자가 혼동하지 않도록 사전에 명확히 안내하겠습니다.",
   },
   {
-    q: "구매한 단건 리포트는 언제까지 볼 수 있나요?",
-    a: "PDF 리포트는 구매 후 다운로드해 보관할 수 있습니다.\n다운로드한 PDF 파일은 사용자 기기에 저장되므로, 직접 보관할 수 있습니다.\n명따라 리포트는 계정이 유지되는 동안 서비스 안에서 다시 볼 수 있도록 운영하는 방향을 제안합니다.\n단, 계정 삭제 또는 서비스 종료 시에는 다시 보기 기능이 제한될 수 있습니다.\n구체적인 보관 기간과 다운로드 가능 기간은 저장 비용과 운영 정책 검토 후 최종 확정됩니다.",
+    q: "베타 기간에는 무엇을 하면 좋나요?",
+    a: "아이와 함께 관심사를 선택해보고, 끌리는 직업을 살펴본 뒤,\n로드맵과 미션을 보며 대화를 나눠보시면 좋습니다.",
   },
   {
-    q: "연간 요금제는 어떻게 할인되나요?",
-    a: "연간 요금제는 월 요금 대비 약 2개월 무료 혜택이 적용됩니다.\nSprout 베이직의 경우 월 ₩5,900 × 12 = ₩70,800이지만, 연간 결제 시 ₩59,000으로 이용할 수 있습니다.",
+    q: "학원이나 기관에서도 사용할 수 있나요?",
+    a: "학원·기관 도입은 별도 안내 페이지에서 확인할 수 있습니다.\n파일럿 도입이나 제휴 문의가 필요한 경우 학원용 안내를 참고해주세요.",
+  },
+];
+
+// ─── 성장단계 소개 (가격 무관 서비스 소개) ──────────────
+const GROWTH_STAGES = [
+  {
+    emoji: "🌱",
+    name:  "씨앗",
+    step:  "좋아하는 것을 발견하는 단계",
+    body:  "아직 꿈이 뚜렷하지 않아도 괜찮아요.\n아이가 좋아하는 것부터 천천히 찾아봅니다.",
   },
   {
-    q: "무료로 먼저 써볼 수 있나요?",
-    a: "네. 베타 기간 동안 무료로 먼저 경험해볼 수 있도록 안내합니다.\n지금 바로 시작해보세요.",
+    emoji: "🌿",
+    name:  "새싹",
+    step:  "관심을 직업으로 연결하는 단계",
+    body:  "좋아하는 활동이 어떤 직업과 이어지는지 살펴봅니다.\n아이의 관심이 더 넓어질 수 있도록 도와줍니다.",
   },
   {
-    q: "언제든지 해지할 수 있나요?",
-    a: "현재 꿈따라는 베타 운영 단계로 정식 유료 결제 기능은 아직 제공하지 않습니다.\n따라서 지금은 구독 해지 대상 결제가 없습니다. 정식 결제 기능 오픈 시 구독 해지 방법을 별도로 안내하겠습니다.",
-  },
-  {
-    q: "환불이 되나요?",
-    a: "현재는 베타 무료 이용 단계로 실제 결제가 발생하지 않아 환불 대상 결제가 없습니다.\n정식 결제 기능 오픈 시 환불 가능 조건과 처리 기준은 환불정책에서 안내하겠습니다.",
+    emoji: "🧭",
+    name:  "나침반",
+    step:  "진로 방향을 구체화하는 단계",
+    body:  "관심 있는 직업을 더 자세히 보고,\n로드맵과 미션으로 다음 행동을 정리합니다.",
   },
 ];
 
 // ─── 가격 표기 헬퍼 ───────────────────────────────────
-function formatPrice(n: number) {
-  return "₩" + n.toLocaleString("ko-KR");
-}
+// [무료 베타 전환] 가격 숫자/통화 표기 노출 OFF.
+//   PLANS의 priceM/priceY 데이터 구조는 보존하며, 화면 렌더링에서만 숨긴다.
+//   정식 결제 오픈 시 가격 표기를 다시 켜면 된다.
 
 // ─── FAQ 아이템 (아코디언) ────────────────────────────
 function FaqItem({ item }: { item: { q: string; a: string } }) {
@@ -186,17 +196,14 @@ function FaqItem({ item }: { item: { q: string; a: string } }) {
   );
 }
 
-// ─── 요금제 카드 ──────────────────────────────────────
+// ─── 플랜 카드 (보존 — 현재 화면 비노출) ──────────────
 function PlanCard({
   plan,
-  annual,
   onStart,
 }: {
   plan:    PlanDef;
-  annual:  boolean;
   onStart: () => void;
 }) {
-  const isFree    = plan.priceM === 0;
   const isComing  = plan.status === "coming";
   const isBeta    = plan.status === "beta";
 
@@ -249,38 +256,15 @@ function PlanCard({
         {/* 부제목 */}
         <p className="text-xs text-base-muted leading-relaxed mb-3">{plan.subtitle}</p>
 
-        {/* 가격 */}
-        {isFree ? (
-          <div className="mb-4">
-            <span className="text-2xl font-bold" style={{ color: "#1A1A1A" }}>₩0</span>
-            <span className="text-xs text-base-muted ml-1">/ 월</span>
-          </div>
-        ) : (
-          <div className="mb-4">
-            <div className="flex items-baseline gap-1">
-              <span
-                className="text-2xl font-bold"
-                style={{ color: plan.highlight ? ACCENT : "#1A1A1A" }}
-              >
-                {formatPrice(plan.priceM)}
-              </span>
-              <span className="text-xs text-base-muted">/ 월</span>
-            </div>
-            {annual && (
-              <div className="mt-0.5 flex flex-col gap-0.5">
-                <span className="text-xs text-base-muted">
-                  연 {formatPrice(plan.priceY)}
-                </span>
-                <span
-                  className="text-[11px] font-semibold"
-                  style={{ color: ACCENT }}
-                >
-                  약 2개월 무료
-                </span>
-              </div>
-            )}
-          </div>
-        )}
+        {/* 가격 자리 — 무료 베타 안내 (가격 숫자 노출 OFF) */}
+        <div className="mb-4">
+          <span
+            className="text-base font-bold"
+            style={{ color: plan.highlight ? ACCENT : "#1A1A1A" }}
+          >
+            베타 기간 무료
+          </span>
+        </div>
 
         <div className="border-t border-base-border mb-4" />
 
@@ -321,7 +305,7 @@ function PlanCard({
   );
 }
 
-// ─── 단건 상품 카드 (서브 크기) ──────────────────────
+// ─── 단건 항목 카드 (보존 — 현재 화면 비노출) ─────────
 function SingleItemCard({
   name,
   price,
@@ -385,92 +369,111 @@ function ComparisonTable() {
 // ─── 메인 페이지 ──────────────────────────────────────
 export default function PricingPage() {
   const router      = useRouter();
-  const [annual, setAnnual] = useState(false);
 
   const handleFreeStart = () => {
     router.push("/");
   };
 
   return (
-    <CsPageLayout title="요금제 안내">
+    <CsPageLayout title="무료 베타 안내">
       <div className="flex flex-col gap-5">
 
-        {/* ── 헤드라인 ── */}
-        <div className="text-center py-3 px-1">
-          <h1 className="text-lg font-bold text-base-text mb-2 leading-snug">
-            아이의 관심이 진로 대화로 이어지도록
+        {/* ── 헤드라인 (무료 베타 안내) ── */}
+        <div className="py-3 px-1">
+          <h1 className="text-lg font-bold text-base-text mb-3 leading-snug text-center">
+            꿈따라는 현재 무료 베타로 운영 중입니다.
           </h1>
-          <p className="text-xs text-base-muted leading-relaxed mb-2">
-            아이의 관심은 무료로 가볍게 살펴볼 수 있습니다.
+          <p className="text-sm text-base-text leading-relaxed mb-2 text-center">
+            아이의 관심사 탐색, 직업 탐색, 로드맵과 미션 기능을<br />
+            비용 없이 이용할 수 있습니다.
           </p>
-          <p className="text-xs text-base-muted leading-relaxed">
-            꿈따라는 부모와 아이가 함께 직업을 살펴보고,<br />
-            작은 미션을 실천하며, 변화를 기록하는 진로 탐색 서비스입니다.
+          <p className="text-xs text-base-muted leading-relaxed mb-4 text-center">
+            지금은 더 많은 아이와 학부모가 부담 없이 사용해보고,<br />
+            실제 피드백을 바탕으로 서비스를 다듬는 기간입니다.
           </p>
-          <p
-            className="text-xs font-semibold mt-3 px-3 py-1.5 rounded-full inline-block"
-            style={{ backgroundColor: ACCENT_BG, color: ACCENT }}
-          >
-            베타 기간 동안 무료로 먼저 경험해볼 수 있어요
-          </p>
-        </div>
 
-        {/* ── 월간/연간 토글 ── */}
-        <div className="flex items-center justify-center gap-3">
+          {/* 안심 문구 */}
+          <div className="rounded-card-lg p-3.5 mb-4" style={{ backgroundColor: ACCENT_BG }}>
+            <p className="text-xs leading-relaxed" style={{ color: "#7C2D12" }}>
+              베타 기간에는 화면에 표시된 진로 탐색 기능을 무료로 이용할 수 있습니다.
+              정식 유료 기능이 도입될 경우, 사전에 명확히 안내하겠습니다.
+            </p>
+          </div>
+
+          {/* 메인 CTA */}
           <button
-            onClick={() => setAnnual(false)}
-            className="text-xs font-semibold px-4 py-1.5 rounded-full transition-colors"
-            style={
-              !annual
-                ? { backgroundColor: ACCENT, color: "#fff" }
-                : { backgroundColor: "#F3F4F6", color: "#6B7280" }
-            }
+            onClick={handleFreeStart}
+            className="w-full py-3.5 rounded-button text-sm font-bold text-white active:opacity-80 transition-opacity"
+            style={{ backgroundColor: ACCENT }}
           >
-            월간
-          </button>
-          <button
-            onClick={() => setAnnual(true)}
-            className="text-xs font-semibold px-4 py-1.5 rounded-full transition-colors"
-            style={
-              annual
-                ? { backgroundColor: ACCENT, color: "#fff" }
-                : { backgroundColor: "#F3F4F6", color: "#6B7280" }
-            }
-          >
-            연간 <span className="ml-1" style={{ color: annual ? "#FFD6CC" : "#9CA3AF" }}>약 2개월 무료</span>
+            무료로 진로 탐색 시작하기
           </button>
         </div>
 
-        {/* ── 3개 티어 카드 ── */}
-        {PLANS.map((plan) => (
+        {/* ── 성장단계 서비스 소개 (가격과 무관) ── */}
+        <div className="bg-white rounded-card-lg shadow-card p-5">
+          <h2 className="text-base font-bold text-base-text mb-1">
+            꿈따라는 이렇게 함께 자라요
+          </h2>
+          <p className="text-xs text-base-muted leading-relaxed mb-4">
+            아이의 나이와 탐색 단계에 맞춰 관심을 발견하고, 직업으로 연결하고,
+            진로 방향을 구체화합니다.
+          </p>
+          <div className="flex flex-col gap-3">
+            {GROWTH_STAGES.map((stage) => (
+              <div
+                key={stage.name}
+                className="flex items-start gap-3 rounded-card p-3.5"
+                style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}
+              >
+                <span className="text-2xl leading-none shrink-0">{stage.emoji}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-sm font-bold text-base-text">{stage.name}</span>
+                    <span className="text-xs font-medium" style={{ color: ACCENT }}>
+                      {stage.step}
+                    </span>
+                  </div>
+                  <p className="text-xs text-base-muted leading-relaxed mt-1 whitespace-pre-line">
+                    {stage.body}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* ── [무료 베타 전환] 플랜 비교(3카드) 숨김 — 코드·데이터 보존 ── */}
+        {false && PLANS.map((plan) => (
           <PlanCard
             key={plan.id}
             plan={plan}
-            annual={annual}
             onStart={handleFreeStart}
           />
         ))}
 
-        {/* ── 단건 상품 섹션 ── */}
+        {/* ── [무료 베타 전환] 단건 항목 + 비교 섹션 숨김 — 코드·데이터 보존 ── */}
+        {false && (
+        <>
         <div
           className="rounded-card-lg p-4"
           style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}
         >
           {/* eyebrow */}
           <p className="text-[11px] font-semibold uppercase tracking-widest text-base-muted mb-1">
-            구독 전 입문 상품
+            단건 리포트 미리보기
           </p>
           {/* 섹션 제목 */}
           <h2 className="text-sm font-bold text-base-text mb-1 leading-snug">
-            구독 전, 필요한 리포트만 먼저 경험해보세요
+            필요한 리포트만 먼저 살펴보세요
           </h2>
           <p className="text-xs text-base-muted leading-relaxed mb-4">
-            꿈따라는 구독 전에도 일부 리포트를 단건으로 이용할 수 있습니다.
+            베타 기간에는 일부 리포트를 단건으로 미리 살펴볼 수 있습니다.
             아이의 관심 기록을 PDF로 정리하거나, 명따라 성향 리포트로 진로 대화의
             첫 질문을 만들어보세요.<br />
-            꿈따라에 가입만 하면 무료 회원도 단건 리포트를 구매할 수 있습니다.<br />
+            꿈따라에 가입하면 무료 회원도 단건 리포트를 받아볼 수 있습니다.<br />
             <span className="font-medium text-base-text">
-              단건은 한 번의 스냅샷, 구독은 매달의 변화 기록입니다.
+              단건은 한 번의 스냅샷, 꾸준한 기록은 매달의 변화입니다.
             </span>
           </p>
 
@@ -478,38 +481,40 @@ export default function PricingPage() {
           <div className="grid grid-cols-2 gap-3">
             <SingleItemCard
               name="꿈따라 진로 리포트 PDF"
-              price="₩3,900"
+              price="베타 무료"
               copy="아이의 관심 직업과 미션 기록을 PDF로 정리합니다."
-              sub="구독 없이 무료 회원도 구매 가능합니다."
+              sub="베타 기간 동안 무료로 제공됩니다."
               cta="PDF 리포트 준비 중"
             />
             <SingleItemCard
               name="명따라 진로 성향 리포트"
-              price="₩6,900"
+              price="베타 무료"
               copy="생년월일시를 바탕으로 아이의 성향을 재미·참고용으로 살펴봅니다."
-              sub="구독 없이 무료 회원도 구매 가능합니다. 단, 명따라는 재미·참고용 콘텐츠입니다."
+              sub="베타 기간 동안 무료로 제공됩니다. 단, 명따라는 재미·참고용 콘텐츠입니다."
               cta="명따라 단건 준비 중"
             />
           </div>
         </div>
 
-        {/* ── 왜 유료인가 ── */}
+        {/* ── 무엇이 다른가 (서비스 차별점) ── */}
         <div className="bg-white rounded-card-lg shadow-card p-5">
           <h2 className="text-sm font-bold text-base-text mb-1">
-            꿈따라 유료 구독, 무엇이 다른가요?
+            꿈따라는 무엇이 다른가요?
           </h2>
           <p className="text-xs text-base-muted mb-4 leading-relaxed">
-            무료 진로 검사·직업정보 서비스와 꿈따라의 차이입니다.
+            일반 진로 검사·직업정보 서비스와 꿈따라의 차이입니다.
           </p>
           <ComparisonTable />
           <div className="mt-4 p-3 rounded-card" style={{ backgroundColor: ACCENT_BG }}>
             <p className="text-xs leading-relaxed" style={{ color: "#7C2D12" }}>
-              꿈따라의 유료 가치는 "정보"가 아니라 "이어가는 구조"에 있습니다.<br />
+              꿈따라의 핵심 가치는 "정보"가 아니라 "이어가는 구조"에 있습니다.<br />
               명따라는 진로를 결정하는 도구가 아니라, 부모와 아이가 대화를 시작할 때
               도움이 되는 또 다른 관점입니다.
             </p>
           </div>
         </div>
+        </>
+        )}
 
         {/* ── AI 베타 안내 박스 ── */}
         <div
@@ -531,12 +536,26 @@ export default function PricingPage() {
             💬 자주 묻는 질문
           </h2>
           <p className="text-xs text-base-muted mb-4">
-            요금제 관련 궁금증을 해결해 드려요
+            무료 베타 이용에 대한 궁금증을 해결해 드려요
           </p>
           {FAQ_ITEMS.map((item) => (
             <FaqItem key={item.q} item={item} />
           ))}
         </div>
+
+        {/* ── 학원·기관 도입 안내 (B2B /academy) ── */}
+        <button
+          onClick={() => router.push("/academy")}
+          className="rounded-card-lg p-4 text-left active:opacity-80 transition-opacity"
+          style={{ backgroundColor: "#F9FAFB", border: "1px solid #E5E7EB" }}
+        >
+          <p className="text-sm font-bold text-base-text">
+            학원·기관 도입을 찾으신다면
+          </p>
+          <p className="text-xs mt-0.5 font-semibold" style={{ color: ACCENT }}>
+            학원용 안내 보기 →
+          </p>
+        </button>
 
         {/* ── 환불정책 링크 ── */}
         <button

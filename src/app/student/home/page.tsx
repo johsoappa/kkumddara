@@ -485,6 +485,10 @@ export default function StudentHomePage() {
               <br />
               <span style={{ color: "#E84B2E" }}>꿈따라</span> 나아가요
             </h1>
+            {/* 핵심 간판 메시지 (뒷 절) */}
+            <p className="mt-1.5 text-sm text-base-muted">
+              좋아하는 것에서 직업을 찾아요
+            </p>
             {child && (
               <button
                 onClick={() => router.push("/student/edit")}

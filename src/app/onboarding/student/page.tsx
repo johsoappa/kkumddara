@@ -108,6 +108,11 @@ export default function OnboardingStudentPage() {
 
         {/* 헤더 */}
         <div className="px-6 pt-10 pb-2">
+          {/* 핵심 간판 메시지 */}
+          <p className="text-sm font-bold text-base-text leading-snug mb-3">
+            아직 꿈이 없어도 괜찮아요.<br />
+            <span style={{ color: "#E84B2E" }}>좋아하는 것에서 직업을 찾아요.</span>
+          </p>
           <p className="text-xs font-semibold" style={{ color: "#E84B2E" }}>
             학생 온보딩
           </p>
