@@ -34,6 +34,7 @@ import { OCCUPATIONS } from "@/data/occupations";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
 import Goyo24InfoSection from "@/components/explore/Goyo24InfoSection";
 import OccupationTraitSection from "@/components/explore/OccupationTraitSection";
+import OccupationDepthSection from "@/components/explore/OccupationDepthSection";
 import SportsInterestCareerSection from "@/components/explore/SportsInterestCareerSection";
 import { QUIZ_DATA } from "@/data/quizData";
 import type { Occupation } from "@/types/occupation";
@@ -365,6 +366,9 @@ export default function OccupationDetailPage() {
               </section>
             )}
 
+            {/* ②-1 이 직업을 조금 더 깊이 알아볼까요? (정적 seed 보유 직업만 표시) */}
+            <OccupationDepthSection occupationId={id} />
+
             {/* ③ 관심 분야: interest_fields 코드 → 한국어 태그 */}
             {master.interest_fields.length > 0 && (
               <section className="card">
@@ -557,6 +561,9 @@ export default function OccupationDetailPage() {
               {occupation.description}
             </p>
           </section>
+
+          {/* ①-1 이 직업을 조금 더 깊이 알아볼까요? (정적 seed 보유 직업만 표시) */}
+          <OccupationDepthSection occupationId={occupation.id} />
 
           {/* ② 필요 역량 */}
           <section className="card">
