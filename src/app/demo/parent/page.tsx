@@ -143,7 +143,14 @@ export default function DemoParentPage() {
             {/* ── 인사말 ────────────────────────────── */}
             <div>
               <p className="text-xs text-base-muted">학부모 홈 (체험)</p>
-              <h1 className="mt-0.5 text-xl font-bold text-base-text leading-snug">
+              {/* 역할 라벨 — 학부모 화면 포지셔닝 */}
+              <p className="mt-1 text-[15px] font-bold text-base-text leading-snug">
+                우리 아이의 관심과 가능성을 이해하는 공간
+              </p>
+              <p className="mt-0.5 text-sm text-base-muted leading-relaxed">
+                아이의 선택과 반응을 바탕으로 진로 대화를 시작해보세요.
+              </p>
+              <h1 className="mt-2 text-xl font-bold text-base-text leading-snug">
                 오늘도 함께
                 <span style={{ color: "#E84B2E" }}> 꿈을 설계</span>해요
               </h1>

@@ -369,9 +369,13 @@ export default function SproutHome() {
                 <br />
                 함께 확인해보세요
               </p>
+              {/* CTA 이유 문구 — 버튼 동작/링크는 그대로 유지 */}
+              <p className="mt-2 text-xs font-medium text-base-text leading-relaxed">
+                아이가 어떤 직업에 반응했는지 정리해드려요.
+              </p>
               <button
                 onClick={() => router.push("/sprout/report")}
-                className="mt-3 w-full py-2.5 rounded-button text-sm font-bold text-white active:opacity-80 transition-opacity"
+                className="mt-2 w-full py-2.5 rounded-button text-sm font-bold text-white active:opacity-80 transition-opacity"
                 style={{ backgroundColor: GREEN }}
               >
                 부모 리포트 보기 →

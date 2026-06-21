@@ -129,7 +129,14 @@ export default function DemoStudentPage() {
               <p className="text-xs text-base-muted">
                 {DEMO_NAME} · {gradeLabel}
               </p>
-              <h1 className="mt-0.5 text-xl font-bold text-base-text leading-snug">
+              {/* 역할 라벨 — 학생 화면 포지셔닝 */}
+              <p className="mt-1 text-sm font-bold" style={{ color: "#E84B2E" }}>
+                내가 좋아하는 것에서 직업을 찾아보는 공간
+              </p>
+              <p className="mt-0.5 text-xs text-base-muted leading-relaxed">
+                관심 있는 활동을 고르고, 나와 어울리는 직업을 하나씩 살펴봐요.
+              </p>
+              <h1 className="mt-2 text-xl font-bold text-base-text leading-snug">
                 오늘도 한 걸음씩,
                 <br />
                 <span style={{ color: "#E84B2E" }}>꿈따라</span> 나아가요
