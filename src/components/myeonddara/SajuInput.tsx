@@ -285,9 +285,9 @@ export default function SajuInput({ onSubmit, isLoading = false }: SajuInputProp
         "
       >
         {isLoading ? (
-          <span>분석 중...</span>
+          <span>이야기 준비 중...</span>
         ) : (
-          <span>명따라 분석 시작하기 ✨</span>
+          <span>명따라 이야기 보기 ✨</span>
         )}
       </button>
     </div>

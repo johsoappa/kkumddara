@@ -19,7 +19,7 @@ import type { ManseryeokResult } from "./manseryeok";
 const ILGAN_GUIDE: Record<string, { emoji: string; text: string }> = {
   "甲": {
     emoji: "🌳",
-    text:  "갑목(甲木)은 큰 나무처럼 위로 뻗어가는 기질이 있어요. 리더십과 추진력이 타고난 강점이에요.",
+    text:  "갑목(甲木)은 큰 나무처럼 위로 뻗어가는 기질이 있어요. 리더십과 추진력이 잘 드러나는 강점이에요.",
   },
   "乙": {
     emoji: "🌿",
@@ -27,7 +27,7 @@ const ILGAN_GUIDE: Record<string, { emoji: string; text: string }> = {
   },
   "丙": {
     emoji: "☀️",
-    text:  "병화(丙火)는 태양처럼 밝고 활발한 기질이 있어요. 표현력과 사교성이 타고난 강점이에요.",
+    text:  "병화(丙火)는 태양처럼 밝고 활발한 기질이 있어요. 표현력과 사교성이 잘 드러나는 강점이에요.",
   },
   "丁": {
     emoji: "🕯️",
@@ -35,7 +35,7 @@ const ILGAN_GUIDE: Record<string, { emoji: string; text: string }> = {
   },
   "戊": {
     emoji: "🏔️",
-    text:  "무토(戊土)는 큰 산처럼 든든하고 포용력 있는 기질이 있어요. 안정감과 신뢰감이 타고난 강점이에요.",
+    text:  "무토(戊土)는 큰 산처럼 든든하고 포용력 있는 기질이 있어요. 안정감과 신뢰감이 잘 드러나는 강점이에요.",
   },
   "己": {
     emoji: "🌾",
@@ -43,7 +43,7 @@ const ILGAN_GUIDE: Record<string, { emoji: string; text: string }> = {
   },
   "庚": {
     emoji: "⚔️",
-    text:  "경금(庚金)은 강한 쇠처럼 결단력 있고 원칙적인 기질이 있어요. 목표를 향한 추진력이 타고난 강점이에요.",
+    text:  "경금(庚金)은 강한 쇠처럼 결단력 있고 원칙적인 기질이 있어요. 목표를 향한 추진력이 잘 드러나는 강점이에요.",
   },
   "辛": {
     emoji: "💎",
@@ -51,11 +51,11 @@ const ILGAN_GUIDE: Record<string, { emoji: string; text: string }> = {
   },
   "壬": {
     emoji: "🌊",
-    text:  "임수(壬水)는 큰 강처럼 지혜롭고 유연한 기질이 있어요. 탐구심과 깊은 사고력이 타고난 강점이에요.",
+    text:  "임수(壬水)는 큰 강처럼 지혜롭고 유연한 기질이 있어요. 탐구심과 깊은 사고력이 잘 드러나는 강점이에요.",
   },
   "癸": {
     emoji: "🌧️",
-    text:  "계수(癸水)는 이슬처럼 섬세하고 직관적인 기질이 있어요. 감수성과 공감 능력이 타고난 강점이에요.",
+    text:  "계수(癸水)는 이슬처럼 섬세하고 직관적인 기질이 있어요. 감수성과 공감 능력이 잘 드러나는 강점이에요.",
   },
 };
 

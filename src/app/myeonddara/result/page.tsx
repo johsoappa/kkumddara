@@ -106,7 +106,7 @@ export default function MyeonddaraResultPage() {
           aria-label="뒤로가기">
           <ArrowLeft size={20} className="text-base-text" />
         </button>
-        <h1 className="text-sm font-bold text-base-text">명따라 사주 분석</h1>
+        <h1 className="text-sm font-bold text-base-text">명따라 결과</h1>
         <div className="w-9" />
       </div>
     </div>
@@ -174,8 +174,16 @@ export default function MyeonddaraResultPage() {
 
         <div className="px-4 pt-4 flex flex-col gap-4">
 
-          {/* ── 베타 안내 배너 ───────────────────────── */}
-          <div className="rounded-card px-4 py-2.5 text-xs leading-relaxed text-center"
+          {/* ── 성향 참고 고지 (진로·적성 확정 방지) ── */}
+          <div className="rounded-card px-4 py-3 text-xs leading-relaxed"
+            style={{ backgroundColor: "#EEF2FF", color: "#3A4A7A" }}>
+            ※ 명따라는 성향을 참고하는 콘텐츠입니다.<br />
+            진로·적성을 확정하지 않으며,<br />
+            부모와 아이의 대화 소재로 활용해주세요.
+          </div>
+
+          {/* ── 베타 안내 배너 (만세력 계산 오차) — 시각 위계 낮춤 ── */}
+          <div className="rounded-card px-4 py-2 text-[11px] leading-relaxed text-center"
             style={{ backgroundColor: "#FFF9C4", color: "#7A5900" }}>
             📌 만세력 기반 계산 결과입니다. 절기 오차(±1일)가 있을 수 있어요.
           </div>
@@ -684,7 +692,7 @@ export default function MyeonddaraResultPage() {
 
           {/* ── 면책 ─────────────────────────────────── */}
           <p className="text-[11px] text-base-muted text-center leading-relaxed px-4 pb-2">
-            명따라는 만세력 기반 참고용 진로 분석 서비스입니다. (베타)<br />
+            명따라는 동양 철학 기반 성향을 참고해 부모와 아이의 진로 대화를 돕는 베타 콘텐츠입니다.<br />
             아이의 가능성은 무한합니다. 💛
           </p>
 

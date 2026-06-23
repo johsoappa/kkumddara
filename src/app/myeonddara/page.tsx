@@ -449,9 +449,9 @@ export default function MyeonddaraPage() {
       <span className="text-5xl leading-none block mb-3">✨</span>
       <h2 className="text-2xl font-bold text-white mb-2">명따라</h2>
       <p className="text-sm text-white/80 leading-relaxed mb-3">
-        아이를 이해하는 참고 리포트로<br />
-        부모 대화의 실마리를 찾아보세요.<br />
-        <span className="text-white/60 text-xs">진로를 정해주는 기능이 아니라,<br />대화를 시작하는 베타 기능입니다.</span>
+        명따라는 진로를 정해주는 분석이 아니라,<br />
+        부모와 아이가 진로 대화를 시작하는 이야깃거리입니다.<br />
+        <span className="text-white/60 text-xs">아이의 성향을 가볍게 참고하며,<br />좋아하는 것과 앞으로 해보고 싶은 일을 함께 이야기해보세요.</span>
       </p>
       <p className="text-xs text-white/60 mb-4">
         {isFreeUser
@@ -487,7 +487,7 @@ export default function MyeonddaraPage() {
             </span>
           </div>
           <p className="text-white text-xl font-bold text-center mb-3">
-            {analyzingName}의 사주를 분석하고 있어요...
+            {analyzingName}의 명따라 이야기를 준비하고 있어요...
           </p>
           <p className="text-white/70 text-sm text-center leading-relaxed">
             만세력을 계산하고 기질을 탐색 중입니다<br />
@@ -546,7 +546,7 @@ export default function MyeonddaraPage() {
                 </div>
                 <p className="text-sm font-semibold text-base-text">명따라는 학부모 전용 기능이에요</p>
                 <p className="text-xs text-base-muted leading-relaxed">
-                  학부모 계정으로 로그인하면<br />자녀의 기질과 적성을 분석할 수 있어요.
+                  학부모 계정으로 로그인하면<br />자녀의 성향을 참고해 진로 대화를 시작할 수 있어요.
                 </p>
                 <button onClick={() => router.back()}
                   className="mt-1 px-5 py-2.5 rounded-button text-sm font-bold"
@@ -654,7 +654,7 @@ export default function MyeonddaraPage() {
             )}
 
             <p className="text-xs text-base-muted text-center leading-relaxed px-4">
-              명따라는 동양 철학 기반의 참고용 진로 분석 서비스입니다.<br />
+              명따라는 동양 철학 기반 성향을 참고해 부모와 아이의 진로 대화를 돕는 베타 콘텐츠입니다.<br />
               아이의 가능성은 무한합니다. 💛
             </p>
           </div>
