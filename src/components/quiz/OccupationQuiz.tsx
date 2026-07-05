@@ -11,8 +11,9 @@
 //   DB 확장 포인트: 파일 하단 주석 참조
 // ====================================================
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import MissionSuccessModal from "@/components/mission/MissionSuccessModal";
+import { track } from "@/lib/analytics";
 import type { OccupationQuizData } from "@/data/quizData";
 
 // ── Props ──────────────────────────────────────────────────────
@@ -62,8 +63,19 @@ export default function OccupationQuiz({ quizData }: OccupationQuizProps) {
     setAnswered(true);
   };
 
+  // 결과 화면 도달당 1회만 계측 (더블클릭 등 중복 발화 방지, 재도전 시 초기화)
+  const completionTrackedRef = useRef(false);
+
   const handleNext = () => {
     if (isLastQ) {
+      if (!completionTrackedRef.current) {
+        completionTrackedRef.current = true;
+        track("quiz_completed", {
+          occupation_id:   quizData.occupationId,
+          correct_count:   correctCount,
+          total_questions: questions.length,
+        });
+      }
       setPhase("result");
     } else {
       setQuizState((s) => ({ ...s, currentIndex: s.currentIndex + 1 }));
@@ -72,6 +84,7 @@ export default function OccupationQuiz({ quizData }: OccupationQuizProps) {
   };
 
   const handleRetry = () => {
+    completionTrackedRef.current = false; // 재도전은 새 시도로 계측
     setPhase("quiz");
     setQuizState({
       currentIndex: 0,

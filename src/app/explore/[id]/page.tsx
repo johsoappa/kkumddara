@@ -25,11 +25,12 @@
 //   기존 5개 섹션 전부 유지 (역량·학과·준비·전망·퀴즈)
 // ====================================================
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Heart, TrendingUp, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
+import { track } from "@/lib/analytics";
 import { OCCUPATIONS } from "@/data/occupations";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
 import Goyo24InfoSection from "@/components/explore/Goyo24InfoSection";
@@ -111,6 +112,17 @@ export default function OccupationDetailPage() {
       setLiked(likedIds.includes(id));
     }
   }, [id]);
+
+  // ── 직업 상세 조회 계측 ──────────────────────────────────
+  // 로드 성공(db/static)한 경우에만 발화. not-found/로딩 실패는 미계측.
+  // ref 가드로 같은 직업 진입당 1회만 전송.
+  const viewTrackedIdRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (pageState.mode !== "db" && pageState.mode !== "static") return;
+    if (!id || viewTrackedIdRef.current === id) return;
+    viewTrackedIdRef.current = id;
+    track("occupation_viewed", { occupation_id: id });
+  }, [pageState.mode, id]);
 
   // ── DB fetch ───────────────────────────────────────────
   useEffect(() => {

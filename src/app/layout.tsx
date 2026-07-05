@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import AnalyticsProvider from "@/components/common/AnalyticsProvider";
 
 // ====================================================
 // 루트 레이아웃
@@ -54,6 +55,7 @@ export default function RootLayout({
         - antialiased: 폰트 렌더링 부드럽게
       */}
       <body className="antialiased bg-base-off">
+        <AnalyticsProvider />
         {children}
       </body>
     </html>

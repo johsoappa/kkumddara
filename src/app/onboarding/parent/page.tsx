@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { Check } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { completeParentOnboarding, flushPendingProfile } from "@/lib/auth";
+import { track, identifyUser } from "@/lib/analytics";
 import { getFirstActiveChild, canAddChild } from "@/lib/db/family";
 import type { InterestField, GradeLevel } from "@/types/family";
 import {
@@ -131,6 +132,9 @@ export default function OnboardingParentPage() {
       // 3. 회원가입 시 localStorage에 임시 저장해 둔 display_name을 DB에 flush.
       //    (한글 이름을 signup 직후 PATCH하지 않고 여기서 처리 — ISO-8859-1 오류 방지)
       await flushPendingProfile("parent", parentId);
+
+      identifyUser(parentId, "parent");
+      track("signup_completed", { role: "parent" });
 
       router.replace("/parent/home");
     } catch (err: unknown) {

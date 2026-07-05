@@ -1,6 +1,7 @@
 # 꿈따라 현재 적용 기능 전체 현황 감사
 
 > 작성일: 2026-05-26  
+> 갱신일: 2026-07-05 — P1 스포츠 5개 roadmaps.ts 완료 반영 (commit 772467c, 2026-05-27 작성분)  
 > 작성 기준: 코드베이스(`src/`) + migration(`supabase/migrations/`) + 문서(`docs/`) 기준  
 > 상태: 1차 감사 완료  
 > 목적: 로드맵 업데이트 기준 문서 / 사업계획서·기능 소개 근거 자료 / 향후 개발 우선순위 판단 기반  
@@ -17,7 +18,7 @@
 | 직업 탐색 기능 | **구현 완료** | DB 우선 + 정적 폴백 구조. 카테고리·검색·상세·퀴즈·고용24 참고 지표 모두 작동. |
 | 대표 직업 100개 확장 | **구현 완료** | migration 055·056 기준 스포츠 생태계 10개 포함 100개+α. OZ 운영 DB 실측 필요. |
 | 관심 운동 기반 진로 확장 | **구현 완료** | sportsInterestData.ts + SportsInterestCareerSection + SportsInterestSelector 모두 작동. Smoke Test PASS. |
-| 로드맵/주간 미션 | **부분 구현** | Stage 1 DB화 완료. Stage 2·3 정적 유지. weekly roadmap AI 생성 완료. P1 5개 정적 작성 미완료. |
+| 로드맵/주간 미션 | **부분 구현** | Stage 1 DB화 완료. Stage 2·3 정적 유지. weekly roadmap AI 생성 완료. P1 5개 정적 작성 완료(2026-05-27). |
 | 리포트 | **부분 구현** | 기본 주간 리포트·비교 그래프 완료. WeeklySummary·GrowthChart 실데이터 미연결. |
 | 명따라/AI | **부분 구현** | Phase 1 운영 중(API 미호출). Phase 2 환경변수 미설정 상태. 차감 유예 플래그 active. |
 | 요금제 | **문서화 완료** | UI 구조 완성. 실결제 연동 미완료(토스페이먼츠 미계약). |
@@ -52,8 +53,8 @@
 | `sportsInterestData.ts` | 구현 완료 | `src/data/sportsInterestData.ts` | 관심 운동 10개 × 연결 직업 데이터 |
 | 관심 운동 선택 화면 | 구현 완료 | `src/app/explore/interests/sports/page.tsx`, `src/components/explore/SportsInterestSelector.tsx` | `/explore/interests/sports` Smoke Test PASS |
 | 운동선수 직업군 정책 | 문서화 완료 | `docs/sports-athlete-occupation-policy.md` | A안(미추가) 확정. DB 즉시 추가 없음. |
-| weekly roadmap 검토 | 문서화 완료 | `docs/sports-ecosystem-weekly-roadmap-decision.md` | C안(P1 5개 우선) 확정. 실제 작성 미완료. |
-| P1 스포츠 5개 roadmaps.ts | **미구현** | `src/data/roadmaps.ts` | sports-data-analyst 등 5개 미등록 확인 |
+| weekly roadmap 검토 | 문서화 완료 | `docs/sports-ecosystem-weekly-roadmap-decision.md` | C안(P1 5개 우선) 확정. P1 5개 작성 완료. |
+| P1 스포츠 5개 roadmaps.ts | 구현 완료 | `src/data/roadmaps.ts` (commit 772467c) | sports-data-analyst 등 5개 등록 확인 (2026-07-05 실측) |
 | 로드맵 페이지 (`/roadmap/[id]`) | 구현 완료 | `src/app/roadmap/[occupationId]/page.tsx` | Stage 1 DB 우선·Stage 2·3 정적 유지 |
 | ProgressCircle | 구현 완료 | `src/components/roadmap/ProgressCircle.tsx` | 진행률 시각화 |
 | weekly_roadmap_missions | 구현 완료 | `src/app/api/roadmap/weekly-missions/route.ts`, `migration/049` | AI 생성 + roadmaps.ts fallback 구조 |
@@ -212,24 +213,24 @@
 
 | 항목 | 상태 | 근거 | 메모 |
 |---|---|---|---|
-| `roadmaps.ts` 정적 데이터 | 구현 완료 | `src/data/roadmaps.ts` | 68개 직업 키 등록 (3단계 구조) |
+| `roadmaps.ts` 정적 데이터 | 구현 완료 | `src/data/roadmaps.ts` | 103개 직업 키 등록 (3단계 구조, 2026-07-05 실측) |
 | Stage 1 DB화 | 구현 완료 | `src/app/roadmap/[occupationId]/page.tsx` | occupation_preparations + occupation_student_actions DB 우선 |
 | Stage 2·3 | 부분 구현 | `src/app/roadmap/[occupationId]/page.tsx` | 정적 ROADMAPS 유지. DB화 미완료. |
 | weekly_roadmap_missions | 구현 완료 | `src/app/api/roadmap/weekly-missions/route.ts`, migration 049 | AI 생성 + roadmaps.ts fallback |
 | roadmap_progress | 구현 완료 | migration 001 | child_id 있을 때 DB 저장. localStorage fallback 병행. |
 | ProgressCircle | 구현 완료 | `src/components/roadmap/ProgressCircle.tsx` | 진행률 시각화 |
 | checked_missions JSONB | 구현 완료 | roadmap_progress 테이블 | `{ [missionId]: true }` 구조 |
-| **P1 스포츠 5개 roadmaps.ts 직접 작성** | **미구현** | `src/data/roadmaps.ts` — 키 없음 확인 | sports-data-analyst·youth-sports-coach·sports-content-planner·exercise-prescription-specialist·sports-safety-manager 모두 미등록 |
+| P1 스포츠 5개 roadmaps.ts 직접 작성 | 구현 완료 | `src/data/roadmaps.ts` (commit 772467c) | 5개 모두 등록·스모크 테스트 PASS (`docs/sports-ecosystem-weekly-roadmap-decision.md` §8) |
 | P2 스포츠 5개 fallback 유지 | 문서화 완료 | `docs/sports-ecosystem-weekly-roadmap-decision.md` | C안 확정. AI fallback 유지. |
 
-**P1 직접 작성 미완료 목록:**
+**P1 직접 작성 완료 목록 (2026-05-27 완료, 2026-07-05 실측 확인):**
 | 직업명 | slug | roadmaps.ts 등록 |
 |---|---|:---:|
-| 스포츠 데이터 분석가 | `sports-data-analyst` | ❌ |
-| 유소년 스포츠 지도자 | `youth-sports-coach` | ❌ |
-| 스포츠 콘텐츠 기획자 | `sports-content-planner` | ❌ |
-| 운동처방사 | `exercise-prescription-specialist` | ❌ |
-| 스포츠 안전관리자 | `sports-safety-manager` | ❌ |
+| 스포츠 데이터 분석가 | `sports-data-analyst` | ✅ |
+| 유소년 스포츠 지도자 | `youth-sports-coach` | ✅ |
+| 스포츠 콘텐츠 기획자 | `sports-content-planner` | ✅ |
+| 운동처방사 | `exercise-prescription-specialist` | ✅ |
+| 스포츠 안전관리자 | `sports-safety-manager` | ✅ |
 
 ---
 
@@ -309,7 +310,6 @@
 | caregiver_invite E2E | 베타 비활성 | migration 023. 스키마 존재. 베타 후 재활성화 필요. |
 | roadmap Stage 2·3 DB화 | 미완료 | 정적 ROADMAPS 유지 중 |
 | m1~m4 checked_missions 변환 | 미완료 | Stage 1 DB 전환 후 기록 호환성 문제 |
-| P1 스포츠 5개 roadmaps.ts | 미구현 | C안 확정 후 실제 작성 필요 |
 | 실결제 연동 (토스페이먼츠) | 미구현 | PG사 미계약 |
 | 플랜별 기능 분기 처리 | 미구현 | subscription_plan DB만 있음 |
 | 고용24 API 실시간 연동 | 미구현 | 인증키 발급 여부 미확인 |
@@ -329,15 +329,14 @@
 
 ## 14. 로드맵 업데이트 후보
 
-### 14-1. P1 스포츠 생태계 5개 roadmaps.ts 직접 작성
+### 14-1. P1 스포츠 생태계 5개 roadmaps.ts 직접 작성 — ✅ 완료 (2026-05-27)
 
 | 항목 | 내용 |
 |---|---|
 | **작업명** | `src/data/roadmaps.ts`에 P1 5개 직업 주간 미션 직접 작성 |
-| **필요 이유** | 현재 스포츠 생태계 직업 로드맵 페이지 진입 시 AI fallback에 의존. 서비스 초기 빠른 품질 확보 필요. |
+| **결과** | commit 772467c로 5개 모두 등록. `/roadmap` 스모크 테스트 PASS. |
 | **영향 범위** | `src/data/roadmaps.ts`만 수정. DB·인증·migration 변경 없음. |
-| **위험도** | 낮음 — 정적 데이터 추가. 기존 기능 영향 없음. |
-| **추천 우선순위** | **P1** |
+| **후속 판단** | P2 5개 작성 여부는 실사용 데이터 확인 후 재결정 (OZ.대표) |
 
 ### 14-2. 명따라 결과와 관심 운동 추천 연결
 
@@ -405,7 +404,7 @@
 
 | 우선순위 | 작업 | 이유 |
 |---|---|---|
-| 1 | P1 스포츠 5개 `roadmaps.ts` 직접 작성 | 코드 변경 범위 최소. 즉시 품질 개선 가능. |
+| ~~1~~ | ~~P1 스포츠 5개 `roadmaps.ts` 직접 작성~~ | ✅ 완료 (2026-05-27, commit 772467c) |
 | 2 | 사업계획서 15P 초안 작성 | 경진대회 대응. 현재 관련 문서 없음. |
 | 3 | 경기도 공공데이터 연계 설계 문서 작성 | 경진대회 대응. 직접 연동은 없음으로 명확히 정리 필요. |
 | 4 | 명따라 Phase 2 활성화 (환경변수 설정) | `NEXT_PUBLIC_MYEONDDARA_PHASE2_ENABLED=true` + `MYEONDDARA_PHASE2_DEDUCT_USAGE=true` 동시 전환. smoke-test 필수. |

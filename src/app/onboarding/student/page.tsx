@@ -12,6 +12,7 @@ import { useRouter } from "next/navigation";
 import { Link2, CheckCircle } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { verifyInviteCode, completeStudentOnboarding, flushPendingProfile } from "@/lib/auth";
+import { track, identifyUser } from "@/lib/analytics";
 import { GRADE_LABEL, GRADE_LEVEL_LABEL } from "@/types/family";
 import type { Grade, GradeLevel } from "@/types/family";
 
@@ -88,6 +89,10 @@ export default function OnboardingStudentPage() {
     // 회원가입 시 localStorage에 임시 저장해 둔 nickname을 DB에 flush.
     // (한글 닉네임을 signup 직후 PATCH하지 않고 여기서 처리 — ISO-8859-1 오류 방지)
     await flushPendingProfile("student", studentId);
+
+    identifyUser(studentId, "student");
+    track("signup_completed", { role: "student" });
+    track("child_connected");
 
     router.replace("/student/home");
   };
