@@ -35,7 +35,9 @@ export type AnalyticsEvent =
   | "signup_completed"   // 온보딩 최종 완료 (role: parent | student)
   | "child_connected"    // 학생이 초대 코드로 자녀 프로필 연결 완료
   | "occupation_viewed"  // 직업 상세 페이지 조회
-  | "quiz_completed";    // 직업 퀴즈 결과 화면 도달
+  | "quiz_completed"     // 직업 퀴즈 결과 화면 도달
+  // XR v0.0 검증용 — 검증 종료 후 존치/제거 재결정 (크라 검토 2026-07)
+  | "xr_chef_choice_selected"; // /xr/chef 선택지 클릭
 
 // 계측 실패가 가입·연결 등 서비스 흐름을 절대 막지 않도록 예외를 삼킨다.
 export function track(event: AnalyticsEvent, properties?: Record<string, string | number | boolean>): void {
