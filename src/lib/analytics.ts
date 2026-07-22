@@ -4,9 +4,11 @@
 // 사용 규칙
 // - 컴포넌트에서 posthog를 직접 import하지 않고 반드시 이 래퍼를 거친다.
 // - NEXT_PUBLIC_POSTHOG_KEY가 없으면 모든 함수가 no-op → 로컬/키 미설정 환경에서 안전.
-// - 이벤트는 아래 5개 핵심 지표만 유지한다. 추가 시 OZ.대표 승인 필요.
+// - 이벤트는 아래 목록만 유지한다. 추가 시 OZ.대표 승인 필요.
 //   ① signup_completed  ② child_connected  ③ occupation_viewed
 //   ④ quiz_completed    ⑤ 재방문(자동 $pageview 기반 리텐션 — 별도 코드 없음)
+//   ⑥ XR 요리사 나침반모드 v0.1 (대표 승인 — v0.1 작업지시서):
+//      xr_chef_choice_selected / xr_chef_result_shown / xr_chef_cta_clicked
 // ====================================================
 
 import posthog from "posthog-js";
@@ -36,8 +38,10 @@ export type AnalyticsEvent =
   | "child_connected"    // 학생이 초대 코드로 자녀 프로필 연결 완료
   | "occupation_viewed"  // 직업 상세 페이지 조회
   | "quiz_completed"     // 직업 퀴즈 결과 화면 도달
-  // XR v0.0 검증용 — 검증 종료 후 존치/제거 재결정 (크라 검토 2026-07)
-  | "xr_chef_choice_selected"; // /xr/chef 선택지 클릭
+  // XR 요리사 나침반모드 v0.1 정식 사용 (/xr/chef)
+  | "xr_chef_choice_selected" // 선택 지점 클릭 (choice_point/choice_id/axis_tag/scenario_version)
+  | "xr_chef_result_shown"    // 결과 화면 도달 (result_axis/scenario_version)
+  | "xr_chef_cta_clicked";    // "다음 미션 시작하기" 클릭 — v0.1은 이동 없음, 이벤트만
 
 // 계측 실패가 가입·연결 등 서비스 흐름을 절대 막지 않도록 예외를 삼킨다.
 export function track(event: AnalyticsEvent, properties?: Record<string, string | number | boolean>): void {
