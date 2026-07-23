@@ -1,21 +1,22 @@
 "use client";
 
 // ====================================================
-// XR 요리사 나침반모드 Client 래퍼 — v0.1
+// XR 요리사 Client 래퍼 — v0.2 (나침반모드 + 새싹모드)
 //
 // 역할:
 //   - next/dynamic(ssr:false)으로 R3F 씬(ChefScene)을 브라우저에서만 로드
-//   - 나침반모드 5개 선택 지점 진행 상태 관리 (useReducer — 신규 라이브러리 없음)
-//   - 집계(C 동점 규칙)는 scenario.ts의 순수 함수에 위임
+//   - 모드별 선택 지점 진행 상태 관리 (useReducer — 신규 라이브러리 없음)
+//     · compass(나침반, 기본): 5지점 → 축 집계(C 동점 규칙) → 피드백 결과
+//     · sprout(새싹): 3지점 → 성취 중심 완료 화면 (축 결과·피드백·고지 미노출,
+//       aggregateResult 미호출 — 결과 화면은 모드로 명시 분기해 구조적으로 차단)
+//   - 단계에 맞는 카메라 stage/접시 표시를 ChefScene에 props로 전달
+//     (씬 조건부 언마운트 금지 — Canvas 1회 마운트 유지)
 //
 // 이벤트 규칙 (중복 방지):
 //   - 전송은 반드시 클릭 핸들러에서만 한다 (useEffect 전송 금지)
 //   - choice 클릭은 ref 잠금 + reaction 단계로의 화면 전환으로 이중 차단
-//   - result 이벤트는 마지막(지점5) choice 클릭 핸들러에서 함께 전송
-//
-// 씬 유지 규칙:
-//   - ChefScene은 조건부 언마운트 금지 — Canvas는 1회 마운트 후 고정,
-//     지점·선택지·결과는 씬 바깥 텍스트 UI로만 전환한다
+//   - result 이벤트는 마지막 choice 클릭 핸들러에서 함께 전송
+//     (새싹은 result_axis: "none" — analytics 공용 property 타입 유지 결정)
 // ====================================================
 
 import { useReducer, useRef, useState } from "react";
@@ -23,18 +24,21 @@ import dynamic from "next/dynamic";
 import { track } from "@/lib/analytics";
 import {
   AXIS_FEEDBACK,
-  CHOICE_POINTS,
   CTA_CLICKED_NOTICE,
   CTA_LABEL,
   INTRO,
+  MODE_POINTS,
   PARENT_GUIDE,
   RESULT_NEXT_ACTION,
   RESULT_NOTICE,
-  SCENARIO_VERSION,
+  SCENARIO_VERSIONS,
+  SPROUT_COMPLETE,
   aggregateResult,
   type AxisId,
+  type CameraStage,
   type Choice,
   type ChoiceRecord,
+  type Mode,
 } from "./scenario";
 
 const ChefScene = dynamic(() => import("./ChefScene"), {
@@ -52,23 +56,26 @@ type Phase = "intro" | "choosing" | "reaction" | "result";
 
 interface State {
   phase: Phase;
-  /** 현재 지점 번호 1~5 (choosing/reaction에서 유효) */
+  /** 현재 지점 번호 (choosing/reaction에서 유효) */
   currentPoint: number;
-  /** 선택 기록 — 지점 순서(1→5) 보존 (C 규칙 역순 탐색의 전제) */
+  /** 선택 기록 — 지점 순서 보존 (C 규칙 역순 탐색의 전제) */
   history: ChoiceRecord[];
-  /** 지점5 선택 시 확정되는 결과 축 (그 전에는 null) */
+  /** 마지막 지점 선택 완료 여부 — CONTINUE 시 결과/완료 화면으로 전환 */
+  finished: boolean;
+  /** 나침반모드 결과 축 (새싹모드는 항상 null — 집계하지 않음) */
   resultAxis: AxisId | null;
 }
 
 type Action =
   | { type: "START" }
-  | { type: "CHOOSE"; record: ChoiceRecord; resultAxis: AxisId | null }
+  | { type: "CHOOSE"; record: ChoiceRecord; isLast: boolean; resultAxis: AxisId | null }
   | { type: "CONTINUE" };
 
 const initialState: State = {
   phase: "intro",
   currentPoint: 1,
   history: [],
+  finished: false,
   resultAxis: null,
 };
 
@@ -81,11 +88,11 @@ function reducer(state: State, action: Action): State {
         ...state,
         phase: "reaction",
         history: [...state.history, action.record],
+        finished: action.isLast,
         resultAxis: action.resultAxis,
       };
     case "CONTINUE":
-      // 결과 축이 확정됐으면 결과 화면, 아니면 다음 지점으로
-      if (state.resultAxis !== null) {
+      if (state.finished) {
         return { ...state, phase: "result" };
       }
       return { ...state, phase: "choosing", currentPoint: state.currentPoint + 1 };
@@ -94,15 +101,25 @@ function reducer(state: State, action: Action): State {
   }
 }
 
-const LAST_POINT = CHOICE_POINTS.length; // 5
-
-export default function XrChefClient() {
+export default function XrChefClient({ mode }: { mode: Mode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [ctaClicked, setCtaClicked] = useState(false);
   // 리렌더 전 연타로 인한 이벤트 중복 전송 방지 잠금
   const choiceLockRef = useRef(false);
 
-  const currentPointData = CHOICE_POINTS[state.currentPoint - 1];
+  const points = MODE_POINTS[mode];
+  const scenarioVersion = SCENARIO_VERSIONS[mode];
+  const lastPoint = points.length;
+  const currentPointData = points[state.currentPoint - 1];
+
+  // 카메라 단계: intro/result는 주방 전체(overview), 진행 중엔 지점별 태그
+  const cameraStage: CameraStage =
+    state.phase === "intro" || state.phase === "result"
+      ? "overview"
+      : currentPointData?.cameraStage ?? "overview";
+
+  // 접시: 지점2 선택 후 지점3부터 등장 (결과 화면에서도 유지 — currentPoint 보존)
+  const showPlate = state.phase !== "intro" && state.currentPoint >= 3;
 
   const handleChoice = (choice: Choice) => {
     if (choiceLockRef.current || state.phase !== "choosing") return;
@@ -116,23 +133,29 @@ export default function XrChefClient() {
 
     track("xr_chef_choice_selected", {
       route: "/xr/chef",
+      mode,
       choice_point: state.currentPoint,
       choice_id: choice.id,
       axis_tag: choice.axis,
-      scenario_version: SCENARIO_VERSION,
+      scenario_version: scenarioVersion,
     });
 
-    // 마지막 지점이면 같은 클릭 핸들러에서 결과 집계 + result 이벤트까지 전송
+    // 마지막 지점이면 같은 클릭 핸들러에서 result 이벤트까지 전송.
+    // 집계는 나침반모드만 수행 — 새싹은 결과 미노출이므로 "none"으로 완주만 기록.
+    const isLast = state.currentPoint === lastPoint;
     let resultAxis: AxisId | null = null;
-    if (state.currentPoint === LAST_POINT) {
-      resultAxis = aggregateResult([...state.history, record]);
+    if (isLast) {
+      if (mode === "compass") {
+        resultAxis = aggregateResult([...state.history, record]);
+      }
       track("xr_chef_result_shown", {
-        result_axis: resultAxis,
-        scenario_version: SCENARIO_VERSION,
+        mode,
+        result_axis: resultAxis ?? "none",
+        scenario_version: scenarioVersion,
       });
     }
 
-    dispatch({ type: "CHOOSE", record, resultAxis });
+    dispatch({ type: "CHOOSE", record, isLast, resultAxis });
   };
 
   const handleContinue = () => {
@@ -145,25 +168,28 @@ export default function XrChefClient() {
     setCtaClicked(true);
     track("xr_chef_cta_clicked", {
       route: "/xr/chef",
-      scenario_version: SCENARIO_VERSION,
+      mode,
+      scenario_version: scenarioVersion,
     });
   };
 
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-xl flex-col gap-4 px-4 py-6">
       <header>
-        <h1 className="text-lg font-bold text-gray-900">요리사 체험 — 나침반모드</h1>
+        <h1 className="text-lg font-bold text-gray-900">
+          {mode === "sprout" ? "요리사 체험 — 새싹모드" : "요리사 체험 — 나침반모드"}
+        </h1>
         {state.phase !== "result" && (
           <p className="mt-1 text-sm text-gray-500">
             {state.phase === "intro"
               ? "작은 레스토랑 주방에서 하루를 시작해요."
-              : `선택 ${state.currentPoint} / ${LAST_POINT}`}
+              : `선택 ${state.currentPoint} / ${lastPoint}`}
           </p>
         )}
       </header>
 
-      {/* 씬은 조건부 언마운트 금지 — Canvas 1회 마운트 유지 */}
-      <ChefScene />
+      {/* 씬은 조건부 언마운트 금지 — Canvas 1회 마운트 유지, props로만 연출 변경 */}
+      <ChefScene stage={cameraStage} showPlate={showPlate} />
 
       {state.phase === "intro" && (
         <section className="flex flex-col gap-3">
@@ -188,7 +214,9 @@ export default function XrChefClient() {
           <h2 className="text-base font-semibold text-gray-900">
             {currentPointData.title}
           </h2>
-          <p className="text-base text-gray-800">{currentPointData.situation}</p>
+          {currentPointData.situation && (
+            <p className="text-base text-gray-800">{currentPointData.situation}</p>
+          )}
           <div className="flex flex-col gap-2">
             {currentPointData.choices.map((choice) => (
               <button
@@ -215,12 +243,18 @@ export default function XrChefClient() {
             onClick={handleContinue}
             className="min-h-[52px] w-full rounded-xl bg-orange-500 px-4 text-base font-semibold text-white transition-colors active:bg-orange-600"
           >
-            {state.resultAxis !== null ? "결과 보기" : "계속하기"}
+            {state.finished
+              ? mode === "sprout"
+                ? "완료 화면 보기"
+                : "결과 보기"
+              : "계속하기"}
           </button>
         </section>
       )}
 
-      {state.phase === "result" && state.resultAxis !== null && (
+      {/* 결과 화면은 모드로 명시 분기 — 새싹에는 축 결과·피드백·고지가 구조적으로 없음 */}
+
+      {state.phase === "result" && mode === "compass" && state.resultAxis !== null && (
         <section className="flex flex-col gap-4">
           <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
             <p className="text-sm font-semibold text-orange-700">오늘의 선택 스타일</p>
@@ -273,6 +307,35 @@ export default function XrChefClient() {
               </div>
             </div>
           </details>
+        </section>
+      )}
+
+      {state.phase === "result" && mode === "sprout" && (
+        <section className="flex flex-col gap-4">
+          <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
+            <h2 className="text-lg font-bold text-gray-900">{SPROUT_COMPLETE.title}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-gray-700">
+              {SPROUT_COMPLETE.congrats}
+            </p>
+            <p className="mt-2 text-sm leading-relaxed text-gray-700">
+              {SPROUT_COMPLETE.summary}
+            </p>
+          </div>
+
+          <div className="flex flex-col gap-2">
+            <p className="text-base text-gray-800">{SPROUT_COMPLETE.nextAction}</p>
+            <button
+              type="button"
+              onClick={handleCta}
+              disabled={ctaClicked}
+              className="min-h-[52px] w-full rounded-xl bg-orange-500 px-4 text-base font-semibold text-white transition-colors active:bg-orange-600 disabled:bg-gray-300 disabled:text-gray-500"
+            >
+              {CTA_LABEL}
+            </button>
+            {ctaClicked && (
+              <p className="text-center text-sm text-gray-600">{CTA_CLICKED_NOTICE}</p>
+            )}
+          </div>
         </section>
       )}
     </main>

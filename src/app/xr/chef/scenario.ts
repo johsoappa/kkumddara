@@ -1,26 +1,38 @@
 // ====================================================
-// XR 요리사 나침반모드 시나리오 데이터 — v1.1 확정본
+// XR 요리사 시나리오 데이터 — 나침반 v1.1 + 새싹 v1.0 확정본
 //
 // - 이 파일은 순수 데이터 + 순수 함수만 담는다 (React/브라우저 의존 없음)
-// - 문구는 시나리오 v1.1 확정본을 그대로 사용한다 (임의 수정 금지)
-// - 집계 로직(C 동점 규칙)은 aggregateResult()에 구현
+// - 문구는 시나리오 확정본을 그대로 사용한다 (임의 수정 금지)
+// - 집계 로직(C 동점 규칙)은 aggregateResult()에 구현 — 나침반 전용,
+//   새싹모드는 결과를 노출하지 않으므로 호출하지 않는다
+// - 카메라 "좌표"는 씬 geometry에 종속되므로 여기 두지 않는다 (ChefScene 관리).
+//   여기서는 씬 비의존적인 의미 단계(CameraStage) 태그만 부여한다.
 // ====================================================
 
-export const SCENARIO_VERSION = "v1.1";
+export type Mode = "compass" | "sprout";
+
+export const SCENARIO_VERSIONS: Record<Mode, string> = {
+  compass: "v1.1",
+  sprout: "v1.0",
+};
+
+/** 지점별 카메라 연출 단계 (좌표 매핑은 ChefScene의 상수 테이블 담당) */
+export type CameraStage = "overview" | "approach" | "search" | "survey" | "plating";
 
 export type AxisId = "axis1" | "axis2" | "axis3" | "axis4" | "axis5";
 
 export interface Choice {
-  id: string; // choice_id (예: p1_a)
+  id: string; // choice_id (예: p1_a, s1_a)
   label: string; // 버튼 문구
-  axis: AxisId; // 판단 축 태그 (고정)
+  axis: AxisId; // 판단 축 태그 (고정 — 새싹모드에서는 이벤트 기록용, 화면 노출 금지)
 }
 
 export interface ChoicePoint {
-  point: number; // 지점 번호 1~5
+  point: number; // 지점 번호
   title: string;
-  situation: string;
+  situation?: string; // 새싹 v1.0에는 상황 문구가 없어 선택적
   reaction: string; // 선택 후 공통 반응
+  cameraStage: CameraStage;
   choices: Choice[];
 }
 
@@ -40,7 +52,7 @@ export const INTRO = {
   firstOrder: "첫 주문이 도착했어요. 샌드위치와 샐러드 한 접시예요.",
 } as const;
 
-// ---------- 선택 지점 5개 ----------
+// ---------- 나침반모드 선택 지점 5개 (v1.1) ----------
 
 export const CHOICE_POINTS: ChoicePoint[] = [
   {
@@ -48,6 +60,7 @@ export const CHOICE_POINTS: ChoicePoint[] = [
     title: "무엇부터 볼까?",
     situation: "주문표와 재료, 조리대가 한꺼번에 눈에 들어와요.",
     reaction: "좋아요. 먼저 살펴본 기준으로 준비를 시작해볼게요.",
+    cameraStage: "approach",
     choices: [
       { id: "p1_a", label: "바로 준비를 시작한다", axis: "axis1" },
       { id: "p1_b", label: "다른 준비 방법을 생각한다", axis: "axis4" },
@@ -59,6 +72,7 @@ export const CHOICE_POINTS: ChoicePoint[] = [
     title: "필요한 접시가 보이지 않는다",
     situation: "음식을 담을 접시가 바로 보이지 않아요.",
     reaction: "좋아요. 지금 고른 방법으로 필요한 접시를 찾아볼게요.",
+    cameraStage: "search",
     choices: [
       { id: "p2_a", label: "선배에게 물어본다", axis: "axis2" },
       { id: "p2_b", label: "수납장을 차례로 확인한다", axis: "axis3" },
@@ -70,6 +84,7 @@ export const CHOICE_POINTS: ChoicePoint[] = [
     title: "새로운 주문 알림",
     situation: "첫 주문이 아직 끝나지 않았는데 새로운 주문 알림이 들어왔어요.",
     reaction: "좋아요. 그 판단으로 다음 순서를 이어가볼게요.",
+    cameraStage: "survey",
     choices: [
       { id: "p3_a", label: "하던 일을 먼저 마무리한다", axis: "axis5" },
       { id: "p3_b", label: "두 주문을 비교해본다", axis: "axis3" },
@@ -81,6 +96,7 @@ export const CHOICE_POINTS: ChoicePoint[] = [
     title: "접시를 어떻게 마무리할까?",
     situation: "이제 음식을 접시에 담아 마무리할 차례예요.",
     reaction: "좋아요. 선택한 방식으로 접시를 마무리해볼게요.",
+    cameraStage: "plating",
     choices: [
       { id: "p4_a", label: "바로 담기 시작한다", axis: "axis1" },
       { id: "p4_b", label: "새로운 배치를 시도한다", axis: "axis4" },
@@ -92,6 +108,7 @@ export const CHOICE_POINTS: ChoicePoint[] = [
     title: "주문 내용이 바뀌었다",
     situation: "주문표에 재료 하나를 빼달라는 요청이 새로 표시됐어요.",
     reaction: "좋아요. 바뀐 주문을 반영해서 마무리해볼게요.",
+    cameraStage: "plating", // 지점4 시점 유지 (지시서 4-1)
     choices: [
       { id: "p5_a", label: "주문표를 다시 확인한다", axis: "axis1" },
       { id: "p5_b", label: "준비 순서를 다시 정리한다", axis: "axis3" },
@@ -100,7 +117,59 @@ export const CHOICE_POINTS: ChoicePoint[] = [
   },
 ];
 
-// ---------- 피드백 템플릿 5종 (최다 축 결과) ----------
+// ---------- 새싹모드 선택 지점 3개 (v1.0 — 초3~4 축소판) ----------
+// 축 태그는 이벤트 기록용으로만 사용한다. 화면 노출 금지.
+
+export const SPROUT_POINTS: ChoicePoint[] = [
+  {
+    point: 1,
+    title: "무엇부터 볼까?",
+    reaction: "좋아요. 이제 주문을 준비해볼까요?",
+    cameraStage: "approach",
+    choices: [
+      { id: "s1_a", label: "주문표를 먼저 본다", axis: "axis1" },
+      { id: "s1_b", label: "주방을 먼저 살펴본다", axis: "axis5" },
+    ],
+  },
+  {
+    point: 2,
+    title: "접시를 찾아보자",
+    reaction: "좋아요. 필요한 접시를 찾았어요.",
+    cameraStage: "search",
+    choices: [
+      { id: "s2_a", label: "선배에게 물어본다", axis: "axis2" },
+      { id: "s2_b", label: "하나씩 찾아본다", axis: "axis3" },
+    ],
+  },
+  {
+    point: 3,
+    title: "접시를 완성하자",
+    reaction: "좋아요. 첫 주문이 완성됐어요.",
+    cameraStage: "plating",
+    choices: [
+      { id: "s3_a", label: "익숙하게 담아본다", axis: "axis4" },
+      { id: "s3_b", label: "새롭게 담아본다", axis: "axis4" },
+    ],
+  },
+];
+
+/** 모드별 선택 지점 배열 — 진행 로직은 이 매핑만 참조한다 */
+export const MODE_POINTS: Record<Mode, ChoicePoint[]> = {
+  compass: CHOICE_POINTS,
+  sprout: SPROUT_POINTS,
+};
+
+// ---------- 새싹모드 종료 화면 (성취 중심 — 판단 축 결과 미노출) ----------
+
+export const SPROUT_COMPLETE = {
+  title: "첫 주문 완료!",
+  congrats: "축하해요. 오늘 주방 체험을 끝냈어요!",
+  summary:
+    "주문을 확인하고 필요한 것을 직접 선택해봤어요. 내가 고른 방법으로 첫 주문도 완성했어요.",
+  nextAction: "이제 요리사의 일을 더 알아보는 다음 미션으로 가볼까요?",
+} as const;
+
+// ---------- 피드백 템플릿 5종 (최다 축 결과 — 나침반 전용) ----------
 
 export const AXIS_FEEDBACK: Record<AxisId, { title: string; body: string }> = {
   axis1: {
