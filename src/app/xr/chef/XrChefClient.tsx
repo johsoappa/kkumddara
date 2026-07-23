@@ -192,13 +192,13 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
       <ChefScene stage={cameraStage} showPlate={showPlate} />
 
       {state.phase === "intro" && (
-        <section className="flex flex-col gap-3">
-          <p className="text-base text-gray-800">{INTRO.narration}</p>
+        <section className="flex flex-col gap-4">
+          <p className="text-base leading-relaxed text-gray-800">{INTRO.narration}</p>
           <div className="rounded-xl bg-orange-50 p-4 text-sm text-gray-700">
             <p className="font-semibold text-orange-700">선배 요리사</p>
-            <p className="mt-1">{INTRO.senior}</p>
+            <p className="mt-2 leading-relaxed">{INTRO.senior}</p>
           </div>
-          <p className="text-base text-gray-800">{INTRO.firstOrder}</p>
+          <p className="text-base leading-relaxed text-gray-800">{INTRO.firstOrder}</p>
           <button
             type="button"
             onClick={() => dispatch({ type: "START" })}
@@ -210,14 +210,16 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
       )}
 
       {state.phase === "choosing" && currentPointData && (
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <h2 className="text-base font-semibold text-gray-900">
             {currentPointData.title}
           </h2>
           {currentPointData.situation && (
-            <p className="text-base text-gray-800">{currentPointData.situation}</p>
+            <p className="text-base leading-relaxed text-gray-800">
+              {currentPointData.situation}
+            </p>
           )}
-          <div className="flex flex-col gap-2">
+          <div className="flex flex-col gap-3">
             {currentPointData.choices.map((choice) => (
               <button
                 key={choice.id}
@@ -233,10 +235,10 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
       )}
 
       {state.phase === "reaction" && currentPointData && (
-        <section className="flex flex-col gap-3">
+        <section className="flex flex-col gap-4">
           <div className="rounded-xl bg-orange-50 p-4 text-sm text-gray-700">
             <p className="font-semibold text-orange-700">선배 요리사</p>
-            <p className="mt-1">{currentPointData.reaction}</p>
+            <p className="mt-2 leading-relaxed">{currentPointData.reaction}</p>
           </div>
           <button
             type="button"
@@ -255,7 +257,7 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
       {/* 결과 화면은 모드로 명시 분기 — 새싹에는 축 결과·피드백·고지가 구조적으로 없음 */}
 
       {state.phase === "result" && mode === "compass" && state.resultAxis !== null && (
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-5">
           <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
             <p className="text-sm font-semibold text-orange-700">오늘의 선택 스타일</p>
             <h2 className="mt-1 text-lg font-bold text-gray-900">
@@ -266,10 +268,10 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
             </p>
           </div>
 
-          <p className="text-sm text-gray-500">{RESULT_NOTICE}</p>
+          <p className="text-sm leading-relaxed text-gray-500">{RESULT_NOTICE}</p>
 
-          <div className="flex flex-col gap-2">
-            <p className="text-base text-gray-800">{RESULT_NEXT_ACTION}</p>
+          <div className="flex flex-col gap-3">
+            <p className="text-base leading-relaxed text-gray-800">{RESULT_NEXT_ACTION}</p>
             <button
               type="button"
               onClick={handleCta}
@@ -287,11 +289,11 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
             <summary className="cursor-pointer text-sm font-semibold text-gray-800">
               부모님께 안내드려요
             </summary>
-            <div className="mt-3 flex flex-col gap-3 text-sm text-gray-700">
-              <p>{PARENT_GUIDE.intro}</p>
+            <div className="mt-3 flex flex-col gap-4 text-sm text-gray-700">
+              <p className="leading-relaxed">{PARENT_GUIDE.intro}</p>
               <div>
                 <p className="font-semibold">{PARENT_GUIDE.axesNote}</p>
-                <ul className="mt-1 list-disc pl-5">
+                <ul className="mt-2 list-disc space-y-1 pl-5 leading-relaxed">
                   {PARENT_GUIDE.axes.map((axis) => (
                     <li key={axis}>{axis}</li>
                   ))}
@@ -299,7 +301,7 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
               </div>
               <div>
                 <p className="font-semibold">{PARENT_GUIDE.questionsNote}</p>
-                <ul className="mt-1 list-disc pl-5">
+                <ul className="mt-2 list-disc space-y-1 pl-5 leading-relaxed">
                   {PARENT_GUIDE.questions.map((question) => (
                     <li key={question}>{question}</li>
                   ))}
@@ -311,7 +313,7 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
       )}
 
       {state.phase === "result" && mode === "sprout" && (
-        <section className="flex flex-col gap-4">
+        <section className="flex flex-col gap-5">
           <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
             <h2 className="text-lg font-bold text-gray-900">{SPROUT_COMPLETE.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-gray-700">
@@ -322,8 +324,10 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
             </p>
           </div>
 
-          <div className="flex flex-col gap-2">
-            <p className="text-base text-gray-800">{SPROUT_COMPLETE.nextAction}</p>
+          <div className="flex flex-col gap-3">
+            <p className="text-base leading-relaxed text-gray-800">
+              {SPROUT_COMPLETE.nextAction}
+            </p>
             <button
               type="button"
               onClick={handleCta}
