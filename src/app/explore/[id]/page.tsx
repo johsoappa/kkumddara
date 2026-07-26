@@ -31,15 +31,27 @@ import { ArrowLeft, Heart, TrendingUp, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { track } from "@/lib/analytics";
+import { FEATURE_FLAGS, DREAM_MAP_OCCUPATION_IDS } from "@/lib/featureFlags";
 import { OCCUPATIONS } from "@/data/occupations";
+import { getOccupationDepth } from "@/data/occupationDepthSeed";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
 import Goyo24InfoSection from "@/components/explore/Goyo24InfoSection";
 import OccupationTraitSection from "@/components/explore/OccupationTraitSection";
 import OccupationDepthSection from "@/components/explore/OccupationDepthSection";
 import SportsInterestCareerSection from "@/components/explore/SportsInterestCareerSection";
+import DreamMapHub, { type DreamMapTab } from "@/components/explore/DreamMapHub";
+import DreamMapExtraInfo from "@/components/explore/DreamMapExtraInfo";
 import { QUIZ_DATA } from "@/data/quizData";
 import type { Occupation } from "@/types/occupation";
 import type { OccupationGoyo24Profile } from "@/types/goyo24";
+
+// ====================================================
+// [꿈 지도 프로토타입] docs/occupation-content-axis-standard.md 참고
+// - 나침반 mode 판별 로직이 코드에 없어 flag+slug 화이트리스트로만 게이팅한다.
+// - 화이트리스트 밖 직업/flag OFF에서는 이 페이지의 기존 렌더링을 그대로 유지한다.
+// ====================================================
+const DREAM_MAP_NOTICE =
+  "이 페이지의 직업 설명은 진로 탐색을 돕기 위한 교육적 참고 자료입니다. 특정 직업에 대한 적성이나 진로 결과를 진단·보장하지 않으며, 일부 내용은 AI의 도움을 받아 정리되었습니다.";
 
 // ── 상수 ────────────────────────────────────────────────
 const LIKED_KEY    = "kkumddara_liked";
@@ -103,6 +115,11 @@ export default function OccupationDetailPage() {
 
   // 퀴즈는 항상 정적 데이터 (DB 모드/정적 모드 공통)
   const quizData = QUIZ_DATA.find((q) => q.occupationId === id);
+
+  // 꿈 지도 프로토타입 게이팅: flag ON + slug 화이트리스트만 (mode 조건 없음 — 위 주석 참고)
+  const isDreamMapActive =
+    FEATURE_FLAGS.DREAM_MAP_ENABLED && DREAM_MAP_OCCUPATION_IDS.includes(id);
+  const dreamMapDepth = isDreamMapActive ? getOccupationDepth(id) : null;
 
   // ── localStorage 찜 상태 복원 ──────────────────────────
   useEffect(() => {
@@ -308,9 +325,178 @@ export default function OccupationDetailPage() {
   if (pageState.mode === "db") {
     const { master, summaries, missionHint, stepActions, goyo24Profile, relatedOccupations } = pageState;
 
+    // 꿈 지도 4탭 — 기존 문장 재배치(신규 카피 없음). depth seed 없으면 허브 미노출.
+    const dreamMapTabs: [DreamMapTab, DreamMapTab, DreamMapTab, DreamMapTab] | null = dreamMapDepth
+      ? [
+          {
+            id: "do",
+            label: "하는 일",
+            panel: (
+              <>
+                {summaries.one_liner && (
+                  <p className="text-sm font-semibold text-brand-red mb-2 leading-snug">
+                    {summaries.one_liner}
+                  </p>
+                )}
+                {summaries.easy_description && (
+                  <p className="text-sm text-base-muted leading-relaxed">
+                    {summaries.easy_description}
+                  </p>
+                )}
+              </>
+            ),
+          },
+          {
+            id: "power",
+            label: "필요한 힘",
+            panel: (
+              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
+                {dreamMapDepth.goodFit}
+              </p>
+            ),
+          },
+          {
+            id: "day",
+            label: "하루 모습",
+            panel: (
+              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
+                {dreamMapDepth.dayInLife}
+              </p>
+            ),
+          },
+          {
+            id: "try",
+            label: "해보기",
+            panel: (
+              <div className="flex flex-col gap-3">
+                {dreamMapDepth.missions.map((m) => (
+                  <div key={m.label} className="rounded-lg bg-base-card px-3 py-3">
+                    <p className="text-xs font-bold text-brand-red mb-1">{m.label}</p>
+                    <p className="text-sm text-base-text leading-relaxed whitespace-pre-line">
+                      {m.text}
+                    </p>
+                  </div>
+                ))}
+                {missionHint && (
+                  <div className="bg-brand-light rounded-lg px-3 py-3">
+                    <p className="text-xs font-bold text-brand-red mb-1">💡 시작하기 전에</p>
+                    <p className="text-sm text-base-text leading-relaxed">{missionHint}</p>
+                  </div>
+                )}
+                {stepActions.length > 0 && (
+                  <div className="flex flex-col gap-3">
+                    {stepActions.map((action, idx) => (
+                      <button
+                        key={idx}
+                        onClick={() => togglePrep(idx)}
+                        className="flex items-center gap-3 text-left w-full"
+                      >
+                        <span
+                          className={cn(
+                            "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
+                            checkedPreps.has(idx)
+                              ? "bg-brand-red border-brand-red"
+                              : "border-base-border"
+                          )}
+                        >
+                          {checkedPreps.has(idx) && (
+                            <span className="text-white text-[10px] font-bold leading-none">✓</span>
+                          )}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-sm transition-colors",
+                            checkedPreps.has(idx)
+                              ? "text-base-muted line-through"
+                              : "text-base-text"
+                          )}
+                        >
+                          {action}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ),
+          },
+        ]
+      : null;
+
+    const additionalSections = (
+      <>
+        {/* ② 왜 이 직업인가요? */}
+        {summaries.why_this_job && (
+          <section className="card">
+            <h3 className="text-sm font-bold text-base-text mb-2">왜 이 직업인가요?</h3>
+            <p className="text-sm text-base-muted leading-relaxed">{summaries.why_this_job}</p>
+          </section>
+        )}
+
+        {/* ③ 관심 분야 */}
+        {master.interest_fields.length > 0 && (
+          <section className="card">
+            <h3 className="text-sm font-bold text-base-text mb-3">관심 분야</h3>
+            <div className="flex flex-wrap gap-2">
+              {master.interest_fields.map((field) => (
+                <span
+                  key={field}
+                  className="px-3 py-1.5 bg-brand-light text-brand-red text-xs font-semibold rounded-full"
+                >
+                  {INTEREST_LABELS[field] ?? field}
+                </span>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ⑤ 고용24 직업 참고 정보 */}
+        <Goyo24InfoSection profile={goyo24Profile} />
+
+        {/* ⑤-1 이 일을 할 때 자주 쓰는 힘 */}
+        <OccupationTraitSection occupationId={id} />
+
+        {/* ⑥ 관심 운동 연결 직업 섹션 */}
+        <SportsInterestCareerSection occupationSlug={master.slug} />
+
+        {/* ⑦ 관련 직업 더보기 */}
+        {relatedOccupations.length > 0 && (
+          <section className="card">
+            <h3 className="text-sm font-bold text-base-text mb-1">관련 직업 더보기</h3>
+            <p className="text-xs text-base-muted mb-3">
+              같은 직업군 안에서도 하는 일과 준비 방법이 조금씩 달라요.
+            </p>
+            <div className="flex flex-col gap-2">
+              {relatedOccupations.map((rel) => (
+                <button
+                  key={rel.slug}
+                  onClick={() => router.push(`/explore/${rel.id}`)}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-base-off hover:bg-brand-light transition-colors text-left w-full"
+                >
+                  <span className="text-2xl leading-none">{rel.emoji}</span>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-base-text">{rel.name_ko}</p>
+                    <p className="text-xs text-base-muted">{rel.category}</p>
+                  </div>
+                  <span className="text-base-muted text-sm flex-shrink-0">›</span>
+                </button>
+              ))}
+            </div>
+          </section>
+        )}
+
+        {/* ⑧ 퀴즈 */}
+        {quizData && (
+          <section>
+            <OccupationQuiz quizData={quizData} />
+          </section>
+        )}
+      </>
+    );
+
     return (
       <div className="min-h-screen bg-base-off flex justify-center">
-        <div className="w-full max-w-mobile bg-base-off pb-28">
+        <div className={cn("w-full max-w-mobile bg-base-off", isDreamMapActive ? "pb-8" : "pb-28")}>
 
           {/* ---- 상단 헤더 ---- */}
           <div className="sticky top-0 z-50 bg-white border-b border-base-border">
@@ -351,168 +537,125 @@ export default function OccupationDetailPage() {
           {/* ---- 카드 섹션 목록 ---- */}
           <div className="px-4 py-4 flex flex-col gap-3">
 
-            {/* ① 직업 소개: one_liner(강조) + easy_description */}
-            {(summaries.one_liner || summaries.easy_description) && (
-              <section className="card">
-                <h3 className="text-sm font-bold text-base-text mb-2">직업 소개</h3>
-                {summaries.one_liner && (
-                  <p className="text-sm font-semibold text-brand-red mb-2 leading-snug">
-                    {summaries.one_liner}
-                  </p>
-                )}
-                {summaries.easy_description && (
-                  <p className="text-sm text-base-muted leading-relaxed">
-                    {summaries.easy_description}
-                  </p>
-                )}
-              </section>
-            )}
-
-            {/* ② 왜 이 직업인가요? */}
-            {summaries.why_this_job && (
-              <section className="card">
-                <h3 className="text-sm font-bold text-base-text mb-2">왜 이 직업인가요?</h3>
-                <p className="text-sm text-base-muted leading-relaxed">
-                  {summaries.why_this_job}
-                </p>
-              </section>
-            )}
-
-            {/* ②-1 이 직업을 조금 더 깊이 알아볼까요? (정적 seed 보유 직업만 표시) */}
-            <OccupationDepthSection occupationId={id} />
-
-            {/* ③ 관심 분야: interest_fields 코드 → 한국어 태그 */}
-            {master.interest_fields.length > 0 && (
-              <section className="card">
-                <h3 className="text-sm font-bold text-base-text mb-3">관심 분야</h3>
-                <div className="flex flex-wrap gap-2">
-                  {master.interest_fields.map((field) => (
-                    <span
-                      key={field}
-                      className="px-3 py-1.5 bg-brand-light text-brand-red text-xs font-semibold rounded-full"
-                    >
-                      {INTEREST_LABELS[field] ?? field}
-                    </span>
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {/* ④ 지금 할 수 있는 준비 */}
-            {(missionHint || stepActions.length > 0) && (
-              <section className="card">
-                <h3 className="text-sm font-bold text-base-text mb-3">
-                  지금 할 수 있는 준비
-                </h3>
-
-                {/* mission_hint: 강조 박스 */}
-                {missionHint && (
-                  <div className="bg-brand-light rounded-lg px-3 py-3 mb-3">
-                    <p className="text-xs font-bold text-brand-red mb-1">
-                      💡 시작하기 전에
-                    </p>
-                    <p className="text-sm text-base-text leading-relaxed">
-                      {missionHint}
-                    </p>
-                  </div>
+            {isDreamMapActive && dreamMapTabs ? (
+              <>
+                {/* 꿈 지도 허브 — ①/②-1/④ 문장을 탭으로 재배치 (삭제 아님) */}
+                <DreamMapHub
+                  occupationId={id}
+                  occupationName={master.name_ko}
+                  heroSummary={summaries.one_liner || summaries.easy_description || ""}
+                  tabs={dreamMapTabs}
+                  ctaLabel={`${master.name_ko} 미션 시작하기`}
+                  onCtaClick={() => {
+                    localStorage.setItem("kkumddara_chosen_roadmap", id);
+                    router.push(`/roadmap/${id}`);
+                  }}
+                />
+                <DreamMapExtraInfo occupationId={id}>{additionalSections}</DreamMapExtraInfo>
+                {/* 비진단·법적·AI 생성 콘텐츠 고지 — 항상 펼침, 접힘/삭제 금지 */}
+                <p className="text-xs text-base-muted leading-relaxed px-1">{DREAM_MAP_NOTICE}</p>
+              </>
+            ) : (
+              <>
+                {/* ① 직업 소개: one_liner(강조) + easy_description */}
+                {(summaries.one_liner || summaries.easy_description) && (
+                  <section className="card">
+                    <h3 className="text-sm font-bold text-base-text mb-2">직업 소개</h3>
+                    {summaries.one_liner && (
+                      <p className="text-sm font-semibold text-brand-red mb-2 leading-snug">
+                        {summaries.one_liner}
+                      </p>
+                    )}
+                    {summaries.easy_description && (
+                      <p className="text-sm text-base-muted leading-relaxed">
+                        {summaries.easy_description}
+                      </p>
+                    )}
+                  </section>
                 )}
 
-                {/* step_actions: 체크리스트 */}
-                {stepActions.length > 0 && (
-                  <div className="flex flex-col gap-3">
-                    {stepActions.map((action, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => togglePrep(idx)}
-                        className="flex items-center gap-3 text-left w-full"
-                      >
-                        <span
-                          className={cn(
-                            "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
-                            checkedPreps.has(idx)
-                              ? "bg-brand-red border-brand-red"
-                              : "border-base-border"
-                          )}
-                        >
-                          {checkedPreps.has(idx) && (
-                            <span className="text-white text-[10px] font-bold leading-none">
-                              ✓
-                            </span>
-                          )}
-                        </span>
-                        <span
-                          className={cn(
-                            "text-sm transition-colors",
-                            checkedPreps.has(idx)
-                              ? "text-base-muted line-through"
-                              : "text-base-text"
-                          )}
-                        >
-                          {action}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </section>
-            )}
+                {/* ②-1 이 직업을 조금 더 깊이 알아볼까요? (정적 seed 보유 직업만 표시) */}
+                <OccupationDepthSection occupationId={id} />
 
-            {/* ⑤ 고용24 직업 참고 정보 (데이터 있을 때만 표시) */}
-            <Goyo24InfoSection profile={goyo24Profile} />
+                {/* ④ 지금 할 수 있는 준비 */}
+                {(missionHint || stepActions.length > 0) && (
+                  <section className="card">
+                    <h3 className="text-sm font-bold text-base-text mb-3">
+                      지금 할 수 있는 준비
+                    </h3>
 
-            {/* ⑤-1 이 일을 할 때 자주 쓰는 힘 (정적 seed 보유 직업만 표시) */}
-            <OccupationTraitSection occupationId={id} />
-
-            {/* ⑥ 관심 운동 연결 직업 섹션 — 스포츠 관심 운동과 연결된 직업일 때만 표시 */}
-            <SportsInterestCareerSection occupationSlug={master.slug} />
-
-            {/* ⑦ 관련 직업 더보기 [037] — 세부 직업 있을 때만 표시 */}
-            {relatedOccupations.length > 0 && (
-              <section className="card">
-                <h3 className="text-sm font-bold text-base-text mb-1">관련 직업 더보기</h3>
-                <p className="text-xs text-base-muted mb-3">
-                  같은 직업군 안에서도 하는 일과 준비 방법이 조금씩 달라요.
-                </p>
-                <div className="flex flex-col gap-2">
-                  {relatedOccupations.map((rel) => (
-                    <button
-                      key={rel.slug}
-                      onClick={() => router.push(`/explore/${rel.id}`)}
-                      className="flex items-center gap-3 p-3 rounded-xl bg-base-off hover:bg-brand-light transition-colors text-left w-full"
-                    >
-                      <span className="text-2xl leading-none">{rel.emoji}</span>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-semibold text-base-text">{rel.name_ko}</p>
-                        <p className="text-xs text-base-muted">{rel.category}</p>
+                    {/* mission_hint: 강조 박스 */}
+                    {missionHint && (
+                      <div className="bg-brand-light rounded-lg px-3 py-3 mb-3">
+                        <p className="text-xs font-bold text-brand-red mb-1">
+                          💡 시작하기 전에
+                        </p>
+                        <p className="text-sm text-base-text leading-relaxed">
+                          {missionHint}
+                        </p>
                       </div>
-                      <span className="text-base-muted text-sm flex-shrink-0">›</span>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            )}
+                    )}
 
-            {/* ⑧ 퀴즈 (정적 QUIZ_DATA 유지) */}
-            {quizData && (
-              <section>
-                <OccupationQuiz quizData={quizData} />
-              </section>
+                    {/* step_actions: 체크리스트 */}
+                    {stepActions.length > 0 && (
+                      <div className="flex flex-col gap-3">
+                        {stepActions.map((action, idx) => (
+                          <button
+                            key={idx}
+                            onClick={() => togglePrep(idx)}
+                            className="flex items-center gap-3 text-left w-full"
+                          >
+                            <span
+                              className={cn(
+                                "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
+                                checkedPreps.has(idx)
+                                  ? "bg-brand-red border-brand-red"
+                                  : "border-base-border"
+                              )}
+                            >
+                              {checkedPreps.has(idx) && (
+                                <span className="text-white text-[10px] font-bold leading-none">
+                                  ✓
+                                </span>
+                              )}
+                            </span>
+                            <span
+                              className={cn(
+                                "text-sm transition-colors",
+                                checkedPreps.has(idx)
+                                  ? "text-base-muted line-through"
+                                  : "text-base-text"
+                              )}
+                            >
+                              {action}
+                            </span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                )}
+
+                {additionalSections}
+              </>
             )}
 
           </div>
 
-          {/* ---- 하단 고정 버튼 ---- */}
-          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-mobile px-4 py-4 bg-white border-t border-base-border safe-bottom z-50">
-            <button
-              onClick={() => {
-                localStorage.setItem("kkumddara_chosen_roadmap", id);
-                router.push(`/roadmap/${id}`);
-              }}
-              className="btn-primary"
-            >
-              이 직업으로 로드맵 만들기
-            </button>
-          </div>
+          {/* ---- 하단 고정 버튼 (꿈 지도 활성 시 허브 내부 CTA와 중복 배치 방지 위해 숨김) ---- */}
+          {!isDreamMapActive && (
+            <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-mobile px-4 py-4 bg-white border-t border-base-border safe-bottom z-50">
+              <button
+                onClick={() => {
+                  localStorage.setItem("kkumddara_chosen_roadmap", id);
+                  router.push(`/roadmap/${id}`);
+                }}
+                className="btn-primary"
+              >
+                이 직업으로 로드맵 만들기
+              </button>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -523,9 +666,192 @@ export default function OccupationDetailPage() {
   // ====================================================
   const { occupation } = pageState; // mode === "static"
 
+  // 꿈 지도 4탭 — 기존 문장 재배치(신규 카피 없음). depth seed 없으면 허브 미노출.
+  const dreamMapTabs: [DreamMapTab, DreamMapTab, DreamMapTab, DreamMapTab] | null = dreamMapDepth
+    ? [
+        {
+          id: "do",
+          label: "하는 일",
+          panel: (
+            <p className="text-sm text-base-muted leading-relaxed">{occupation.description}</p>
+          ),
+        },
+        {
+          id: "power",
+          label: "필요한 힘",
+          panel: (
+            <>
+              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line mb-3">
+                {dreamMapDepth.goodFit}
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {occupation.skills.map((skill) => (
+                  <span
+                    key={skill}
+                    className="px-3 py-1.5 bg-brand-light text-brand-red text-xs font-semibold rounded-full"
+                  >
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </>
+          ),
+        },
+        {
+          id: "day",
+          label: "하루 모습",
+          panel: (
+            <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
+              {dreamMapDepth.dayInLife}
+            </p>
+          ),
+        },
+        {
+          id: "try",
+          label: "해보기",
+          panel: (
+            <div className="flex flex-col gap-3">
+              {dreamMapDepth.missions.map((m) => (
+                <div key={m.label} className="rounded-lg bg-base-card px-3 py-3">
+                  <p className="text-xs font-bold text-brand-red mb-1">{m.label}</p>
+                  <p className="text-sm text-base-text leading-relaxed whitespace-pre-line">
+                    {m.text}
+                  </p>
+                </div>
+              ))}
+              {occupation.preparations.map((prep, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => togglePrep(idx)}
+                  className="flex items-center gap-3 text-left w-full"
+                >
+                  <span
+                    className={cn(
+                      "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
+                      checkedPreps.has(idx) ? "bg-brand-red border-brand-red" : "border-base-border"
+                    )}
+                  >
+                    {checkedPreps.has(idx) && (
+                      <span className="text-white text-[10px] font-bold leading-none">✓</span>
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-sm transition-colors",
+                      checkedPreps.has(idx) ? "text-base-muted line-through" : "text-base-text"
+                    )}
+                  >
+                    {prep}
+                  </span>
+                </button>
+              ))}
+            </div>
+          ),
+        },
+      ]
+    : null;
+
+  const additionalSections = (
+    <>
+      {/* ③ 관련 학과 및 추천 대학 */}
+      <section className="card">
+        <h3 className="text-sm font-bold text-base-text mb-3">관련 학과 및 추천 대학</h3>
+        <div className="flex flex-col gap-4">
+          {occupation.relatedMajors.map((major) => (
+            <div key={major.name}>
+              <div className="flex items-center gap-2 mb-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-brand-red flex-shrink-0" />
+                <span className="text-sm font-semibold text-base-text">{major.name}</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5 pl-3.5">
+                {major.universities.map((univ) => (
+                  <span
+                    key={univ}
+                    className="text-xs bg-base-card text-base-muted px-2.5 py-1 rounded-full"
+                  >
+                    {univ}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 자주 쓰는 힘 */}
+      <OccupationTraitSection occupationId={occupation.id} />
+
+      {/* 관심 운동 연결 직업 섹션 */}
+      <SportsInterestCareerSection occupationSlug={occupation.id} />
+
+      {/* 직업 전망 */}
+      <section className="card">
+        <h3 className="text-sm font-bold text-base-text mb-4">직업 전망</h3>
+        <div className="mb-4">
+          <div className="flex justify-between items-center mb-1.5">
+            <span className="text-xs text-base-muted">예상 연봉 범위</span>
+            <span className="text-xs font-semibold text-base-text">
+              {occupation.salaryMin.toLocaleString()}
+              <span className="text-base-muted font-normal">~</span>
+              {occupation.salaryMax.toLocaleString()}만원
+            </span>
+          </div>
+          <div className="relative h-2.5 bg-base-border rounded-full overflow-hidden">
+            <div
+              className="absolute inset-y-0 left-0 bg-transparent"
+              style={{ width: `${(occupation.salaryMin / SALARY_MAX_REF) * 100}%` }}
+            />
+            <div
+              className="absolute inset-y-0 rounded-full"
+              style={{
+                left: `${(occupation.salaryMin / SALARY_MAX_REF) * 100}%`,
+                width: `${((occupation.salaryMax - occupation.salaryMin) / SALARY_MAX_REF) * 100}%`,
+                background: "linear-gradient(90deg, #E84B2E, #FF7043)",
+              }}
+            />
+          </div>
+          <div className="flex justify-between mt-1">
+            <span className="text-[10px] text-base-muted">0</span>
+            <span className="text-[10px] text-base-muted">1억원</span>
+          </div>
+        </div>
+        <div className="flex items-center justify-between py-3 border-t border-base-border">
+          <div className="flex items-center gap-2">
+            <TrendingUp size={15} className="text-brand-red" />
+            <span className="text-sm text-base-text">연간 성장률</span>
+          </div>
+          <span className="text-sm font-bold text-brand-red">+{occupation.growthRate}%</span>
+        </div>
+        <div className="flex items-center justify-between py-3 border-t border-base-border">
+          <span className="text-sm text-base-text">미래 유망도</span>
+          <div className="flex gap-0.5">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Star
+                key={i}
+                size={16}
+                className={
+                  i < occupation.futureRating
+                    ? "fill-brand-orange text-brand-orange"
+                    : "text-base-border"
+                }
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 직업 연계 퀴즈 */}
+      {quizData && (
+        <section>
+          <OccupationQuiz quizData={quizData} />
+        </section>
+      )}
+    </>
+  );
+
   return (
     <div className="min-h-screen bg-base-off flex justify-center">
-      <div className="w-full max-w-mobile bg-base-off pb-28">
+      <div className={cn("w-full max-w-mobile bg-base-off", isDreamMapActive ? "pb-8" : "pb-28")}>
 
         {/* ---- 상단 헤더 ---- */}
         <div className="sticky top-0 z-50 bg-white border-b border-base-border">
@@ -566,197 +892,113 @@ export default function OccupationDetailPage() {
         {/* ---- 카드 섹션 목록 ---- */}
         <div className="px-4 py-4 flex flex-col gap-3">
 
-          {/* ① 직업 소개 */}
-          <section className="card">
-            <h3 className="text-sm font-bold text-base-text mb-2">직업 소개</h3>
-            <p className="text-sm text-base-muted leading-relaxed">
-              {occupation.description}
-            </p>
-          </section>
+          {isDreamMapActive && dreamMapTabs ? (
+            <>
+              {/* 꿈 지도 허브 — ①/①-1/② /④ 문장을 탭으로 재배치 (삭제 아님) */}
+              <DreamMapHub
+                occupationId={occupation.id}
+                occupationName={occupation.name}
+                heroSummary={occupation.description}
+                tabs={dreamMapTabs}
+                ctaLabel={`${occupation.name} 미션 시작하기`}
+                onCtaClick={() => {
+                  localStorage.setItem("kkumddara_chosen_roadmap", id);
+                  router.push(`/roadmap/${id}`);
+                }}
+              />
+              <DreamMapExtraInfo occupationId={occupation.id}>{additionalSections}</DreamMapExtraInfo>
+              {/* 비진단·법적·AI 생성 콘텐츠 고지 — 항상 펼침, 접힘/삭제 금지 */}
+              <p className="text-xs text-base-muted leading-relaxed px-1">{DREAM_MAP_NOTICE}</p>
+            </>
+          ) : (
+            <>
+              {/* ① 직업 소개 */}
+              <section className="card">
+                <h3 className="text-sm font-bold text-base-text mb-2">직업 소개</h3>
+                <p className="text-sm text-base-muted leading-relaxed">
+                  {occupation.description}
+                </p>
+              </section>
 
-          {/* ①-1 이 직업을 조금 더 깊이 알아볼까요? (정적 seed 보유 직업만 표시) */}
-          <OccupationDepthSection occupationId={occupation.id} />
+              {/* ①-1 이 직업을 조금 더 깊이 알아볼까요? (정적 seed 보유 직업만 표시) */}
+              <OccupationDepthSection occupationId={occupation.id} />
 
-          {/* ② 필요 역량 */}
-          <section className="card">
-            <h3 className="text-sm font-bold text-base-text mb-3">필요 역량</h3>
-            <div className="flex flex-wrap gap-2">
-              {occupation.skills.map((skill) => (
-                <span
-                  key={skill}
-                  className="px-3 py-1.5 bg-brand-light text-brand-red text-xs font-semibold rounded-full"
-                >
-                  {skill}
-                </span>
-              ))}
-            </div>
-          </section>
-
-          {/* ③ 관련 학과 및 추천 대학 */}
-          <section className="card">
-            <h3 className="text-sm font-bold text-base-text mb-3">
-              관련 학과 및 추천 대학
-            </h3>
-            <div className="flex flex-col gap-4">
-              {occupation.relatedMajors.map((major) => (
-                <div key={major.name}>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="w-1.5 h-1.5 rounded-full bg-brand-red flex-shrink-0" />
-                    <span className="text-sm font-semibold text-base-text">
-                      {major.name}
+              {/* ② 필요 역량 */}
+              <section className="card">
+                <h3 className="text-sm font-bold text-base-text mb-3">필요 역량</h3>
+                <div className="flex flex-wrap gap-2">
+                  {occupation.skills.map((skill) => (
+                    <span
+                      key={skill}
+                      className="px-3 py-1.5 bg-brand-light text-brand-red text-xs font-semibold rounded-full"
+                    >
+                      {skill}
                     </span>
-                  </div>
-                  <div className="flex flex-wrap gap-1.5 pl-3.5">
-                    {major.universities.map((univ) => (
-                      <span
-                        key={univ}
-                        className="text-xs bg-base-card text-base-muted px-2.5 py-1 rounded-full"
-                      >
-                        {univ}
-                      </span>
-                    ))}
-                  </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-          </section>
+              </section>
 
-          {/* ④ 지금 할 수 있는 준비 */}
-          <section className="card">
-            <h3 className="text-sm font-bold text-base-text mb-3">
-              지금 할 수 있는 준비
-            </h3>
-            <div className="flex flex-col gap-3">
-              {occupation.preparations.map((prep, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => togglePrep(idx)}
-                  className="flex items-center gap-3 text-left w-full"
-                >
-                  <span
-                    className={cn(
-                      "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
-                      checkedPreps.has(idx)
-                        ? "bg-brand-red border-brand-red"
-                        : "border-base-border"
-                    )}
-                  >
-                    {checkedPreps.has(idx) && (
-                      <span className="text-white text-[10px] font-bold leading-none">
-                        ✓
+              {/* ④ 지금 할 수 있는 준비 */}
+              <section className="card">
+                <h3 className="text-sm font-bold text-base-text mb-3">
+                  지금 할 수 있는 준비
+                </h3>
+                <div className="flex flex-col gap-3">
+                  {occupation.preparations.map((prep, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => togglePrep(idx)}
+                      className="flex items-center gap-3 text-left w-full"
+                    >
+                      <span
+                        className={cn(
+                          "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
+                          checkedPreps.has(idx)
+                            ? "bg-brand-red border-brand-red"
+                            : "border-base-border"
+                        )}
+                      >
+                        {checkedPreps.has(idx) && (
+                          <span className="text-white text-[10px] font-bold leading-none">
+                            ✓
+                          </span>
+                        )}
                       </span>
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-sm transition-colors",
-                      checkedPreps.has(idx)
-                        ? "text-base-muted line-through"
-                        : "text-base-text"
-                    )}
-                  >
-                    {prep}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </section>
+                      <span
+                        className={cn(
+                          "text-sm transition-colors",
+                          checkedPreps.has(idx)
+                            ? "text-base-muted line-through"
+                            : "text-base-text"
+                        )}
+                      >
+                        {prep}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </section>
 
-          {/* ④-0 이 일을 할 때 자주 쓰는 힘 (정적 seed 보유 직업만 표시) — db/static 공통 */}
-          <OccupationTraitSection occupationId={occupation.id} />
-
-          {/* ④-A 관심 운동 연결 직업 섹션 — 스포츠 관심 운동과 연결된 직업일 때만 표시 */}
-          <SportsInterestCareerSection occupationSlug={occupation.id} />
-
-          {/* ⑤ 직업 전망 */}
-          <section className="card">
-            <h3 className="text-sm font-bold text-base-text mb-4">직업 전망</h3>
-
-            {/* 예상 연봉 바 그래프 */}
-            <div className="mb-4">
-              <div className="flex justify-between items-center mb-1.5">
-                <span className="text-xs text-base-muted">예상 연봉 범위</span>
-                <span className="text-xs font-semibold text-base-text">
-                  {occupation.salaryMin.toLocaleString()}
-                  <span className="text-base-muted font-normal">~</span>
-                  {occupation.salaryMax.toLocaleString()}만원
-                </span>
-              </div>
-              <div className="relative h-2.5 bg-base-border rounded-full overflow-hidden">
-                <div
-                  className="absolute inset-y-0 left-0 bg-transparent"
-                  style={{
-                    width: `${(occupation.salaryMin / SALARY_MAX_REF) * 100}%`,
-                  }}
-                />
-                <div
-                  className="absolute inset-y-0 rounded-full"
-                  style={{
-                    left: `${(occupation.salaryMin / SALARY_MAX_REF) * 100}%`,
-                    width: `${
-                      ((occupation.salaryMax - occupation.salaryMin) / SALARY_MAX_REF) * 100
-                    }%`,
-                    background: "linear-gradient(90deg, #E84B2E, #FF7043)",
-                  }}
-                />
-              </div>
-              <div className="flex justify-between mt-1">
-                <span className="text-[10px] text-base-muted">0</span>
-                <span className="text-[10px] text-base-muted">1억원</span>
-              </div>
-            </div>
-
-            {/* 연간 성장률 */}
-            <div className="flex items-center justify-between py-3 border-t border-base-border">
-              <div className="flex items-center gap-2">
-                <TrendingUp size={15} className="text-brand-red" />
-                <span className="text-sm text-base-text">연간 성장률</span>
-              </div>
-              <span className="text-sm font-bold text-brand-red">
-                +{occupation.growthRate}%
-              </span>
-            </div>
-
-            {/* 미래 유망도 */}
-            <div className="flex items-center justify-between py-3 border-t border-base-border">
-              <span className="text-sm text-base-text">미래 유망도</span>
-              <div className="flex gap-0.5">
-                {Array.from({ length: 5 }).map((_, i) => (
-                  <Star
-                    key={i}
-                    size={16}
-                    className={
-                      i < occupation.futureRating
-                        ? "fill-brand-orange text-brand-orange"
-                        : "text-base-border"
-                    }
-                  />
-                ))}
-              </div>
-            </div>
-          </section>
-
-          {/* ⑥ 직업 연계 퀴즈 */}
-          {quizData && (
-            <section>
-              <OccupationQuiz quizData={quizData} />
-            </section>
+              {additionalSections}
+            </>
           )}
 
         </div>
 
-        {/* ---- 하단 고정 버튼 ---- */}
-        <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-mobile px-4 py-4 bg-white border-t border-base-border safe-bottom z-50">
-          <button
-            onClick={() => {
-              localStorage.setItem("kkumddara_chosen_roadmap", id);
-              router.push(`/roadmap/${id}`);
-            }}
-            className="btn-primary"
-          >
-            이 직업으로 로드맵 만들기
-          </button>
-        </div>
+        {/* ---- 하단 고정 버튼 (꿈 지도 활성 시 허브 내부 CTA와 중복 배치 방지 위해 숨김) ---- */}
+        {!isDreamMapActive && (
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-mobile px-4 py-4 bg-white border-t border-base-border safe-bottom z-50">
+            <button
+              onClick={() => {
+                localStorage.setItem("kkumddara_chosen_roadmap", id);
+                router.push(`/roadmap/${id}`);
+              }}
+              className="btn-primary"
+            >
+              이 직업으로 로드맵 만들기
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

@@ -9,6 +9,9 @@
 //   ④ quiz_completed    ⑤ 재방문(자동 $pageview 기반 리텐션 — 별도 코드 없음)
 //   ⑥ XR 요리사 나침반모드 v0.1 (대표 승인 — v0.1 작업지시서):
 //      xr_chef_choice_selected / xr_chef_result_shown / xr_chef_cta_clicked
+//   ⑦ 꿈 지도(Dream Map) 프로토타입 (대표 승인 — 꿈 지도 프로토타입 작업지시서 10장):
+//      dream_map_viewed / dream_map_branch_selected / dream_map_cta_clicked
+//      / dream_map_extra_content_opened
 // ====================================================
 
 import posthog from "posthog-js";
@@ -41,7 +44,12 @@ export type AnalyticsEvent =
   // XR 요리사 나침반모드 v0.1 정식 사용 (/xr/chef)
   | "xr_chef_choice_selected" // 선택 지점 클릭 (choice_point/choice_id/axis_tag/scenario_version)
   | "xr_chef_result_shown"    // 결과 화면 도달 (result_axis/scenario_version)
-  | "xr_chef_cta_clicked";    // "다음 미션 시작하기" 클릭 — v0.1은 이동 없음, 이벤트만
+  | "xr_chef_cta_clicked"     // "다음 미션 시작하기" 클릭 — v0.1은 이동 없음, 이벤트만
+  // 꿈 지도(Dream Map) 프로토타입 — /explore/[id] 직업 상세
+  | "dream_map_viewed"              // 꿈 지도 영역 50% 이상 노출 (페이지 세션당 1회)
+  | "dream_map_branch_selected"     // 콘텐츠 탭 4개 중 선택
+  | "dream_map_cta_clicked"         // 다음 미션 CTA 클릭
+  | "dream_map_extra_content_opened"; // 추가 직업 정보 영역 펼침
 
 // 계측 실패가 가입·연결 등 서비스 흐름을 절대 막지 않도록 예외를 삼킨다.
 export function track(event: AnalyticsEvent, properties?: Record<string, string | number | boolean>): void {

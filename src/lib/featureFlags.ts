@@ -47,4 +47,22 @@ export const FEATURE_FLAGS = {
    *   - 베이직 이상 플랜 접근 제한은 유예 대상이 아님
    */
   MYEONDDARA_PHASE2_DEDUCT_USAGE: false,
+
+  /**
+   * 꿈 지도(Dream Map) UI 프로토타입 활성화 여부
+   *
+   * true  : DREAM_MAP_OCCUPATION_IDS에 포함된 직업 상세 화면에서 꿈 지도 UI 렌더
+   * false (기본값): 기존 화면 그대로 렌더 (변경 없음)
+   *
+   * ⚠️ 나침반 mode 판별 로직이 코드에 없어 mode 조건은 게이팅에서 제외했다.
+   *    flag ON + 아래 화이트리스트 slug 일치 조건만으로 게이팅한다.
+   *    (docs/occupation-content-axis-standard.md 8장 참고)
+   */
+  DREAM_MAP_ENABLED: false,
 } as const;
+
+/**
+ * 꿈 지도 UI 적용 대상 직업 화이트리스트 (legacy_occupation_id 기준)
+ * 전체 직업 일괄 적용 금지 — 검증된 직업만 추가한다.
+ */
+export const DREAM_MAP_OCCUPATION_IDS: readonly string[] = ["webtoon-artist"];
