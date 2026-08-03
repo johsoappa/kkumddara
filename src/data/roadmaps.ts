@@ -480,9 +480,9 @@ export const ROADMAPS: Record<string, RoadmapData> = {
     ],
   },
 
-  "youtuber-creator": {
-    id: "youtuber-creator-roadmap",
-    occupationId: "youtuber-creator",
+  "creator": {
+    id: "creator-roadmap",
+    occupationId: "creator",
     occupationName: "크리에이터",
     occupationEmoji: "🎥",
     grade: "중1",

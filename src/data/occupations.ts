@@ -778,7 +778,7 @@ export const OCCUPATIONS: Occupation[] = [
 
   // ── 콘텐츠·미디어 (6개) ───────────────────────────
   {
-    id: "youtuber-creator",
+    id: "creator",
     name: "크리에이터",
     emoji: "🎥",
     category: "콘텐츠·미디어",
