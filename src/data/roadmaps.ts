@@ -561,6 +561,120 @@ export const ROADMAPS: Record<string, RoadmapData> = {
     ],
   },
 
+  "zookeeper": {
+    id: "zookeeper-roadmap",
+    occupationId: "zookeeper",
+    occupationName: "사육사",
+    occupationEmoji: "🐾",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "zoo-m5", text: "동물원·수족관 봉사나 체험 프로그램 참여해보기" },
+          { id: "zoo-m6", text: "한 달 동안 관심 동물 1종을 정기적으로 관찰하며 관찰 일지 쓰기" },
+          { id: "zoo-m7", text: "동물 영양·행동학 관련 책이나 다큐멘터리로 기초 지식 쌓기" },
+          { id: "zoo-m8", text: "반려동물이나 동네 동물을 안전하게 돌보는 방법 배우고 실천해보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "zoo-m9",  text: "동물자원학과·축산학과 등 관련 학과와 필요한 자격증 알아보기" },
+          { id: "zoo-m10", text: "동물원·수족관 사육사 인터뷰하거나 직업 체험 프로그램 참가해보기" },
+          { id: "zoo-m11", text: "동물 보호·복지 관련 캠페인이나 활동에 참여해보기" },
+          { id: "zoo-m12", text: "내가 돌보고 싶은 동물 종의 서식 환경을 조사해 미니 사육 계획 만들기" },
+        ],
+      },
+    ],
+  },
+
+  "hair-designer": {
+    id: "hair-designer-roadmap",
+    occupationId: "hair-designer",
+    occupationName: "헤어디자이너",
+    occupationEmoji: "✂️",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "hrd-m5", text: "보호자와 함께 인형 머리나 마네킹으로 간단한 스타일링 연습해보기" },
+          { id: "hrd-m6", text: "헤어 트렌드 잡지·SNS 채널 팔로우하며 매달 스타일 변화 기록하기" },
+          { id: "hrd-m7", text: "미용 기초 이론(모발 구조, 커트·컬러 기본 원리) 강의로 공부하기" },
+          { id: "hrd-m8", text: "가족·친구 머리를 빗질·정돈해주고 어울리는 이유 설명해보기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "hrd-m9",  text: "미용학과·뷰티디자인학과 및 미용사 국가자격증 취득 절차 알아보기" },
+          { id: "hrd-m10", text: "미용 학원 체험 수업이나 청소년 대상 뷰티 클래스 참가해보기" },
+          { id: "hrd-m11", text: "실제 헤어디자이너를 인터뷰하거나 미용실 견학해보기" },
+          { id: "hrd-m12", text: "나만의 헤어스타일 룩북(사진+설명) 만들어보기" },
+        ],
+      },
+    ],
+  },
+
+  "singer": {
+    id: "singer-roadmap",
+    occupationId: "singer",
+    occupationName: "가수",
+    occupationEmoji: "🎤",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "sgr-m5", text: "발성·호흡 기초 연습법을 찾아 매일 10분씩 연습해보기" },
+          { id: "sgr-m6", text: "한 달 동안 매주 다른 노래 1곡씩 연습하며 녹음 기록 남기기" },
+          { id: "sgr-m7", text: "보컬 트레이닝 유튜브 강의로 기본 발성·음정 훈련하기" },
+          { id: "sgr-m8", text: "가족·친구 앞에서 노래 불러보고 피드백 받아 기록하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "sgr-m9",  text: "실용음악과·보컬 전공 및 오디션 준비 과정 알아보기" },
+          { id: "sgr-m10", text: "학교 축제나 지역 청소년 가요제 등 무대에 서볼 기회 찾아보기" },
+          { id: "sgr-m11", text: "실제 가수나 보컬 트레이너를 인터뷰하거나 공연 관람해보기" },
+          { id: "sgr-m12", text: "나만의 커버곡 영상이나 자작곡 데모 1개 완성해보기" },
+        ],
+      },
+    ],
+  },
+
   // ── IT·기술 추가 로드맵 ──────────────────────────────────────────
   "ai-engineer": {
     id: "ai-engineer-roadmap",
