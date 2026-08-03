@@ -523,6 +523,44 @@ export const ROADMAPS: Record<string, RoadmapData> = {
     ],
   },
 
+  "chef": {
+    id: "chef-roadmap",
+    occupationId: "chef",
+    occupationName: "요리사",
+    occupationEmoji: "👨‍🍳",
+    grade: "중1",
+    stages: [
+      {
+        id: "stage-current",
+        status: "current",
+        title: "탐색하기",
+        missions: [],
+      },
+      {
+        id: "stage-next",
+        status: "next",
+        title: "실력 키우기",
+        missions: [
+          { id: "chf-m5", text: "보호자가 칼·불 다루는 모습 관찰 후 조절법 기초 배우기" },
+          { id: "chf-m6", text: "한 달 동안 매주 다른 요리 1가지씩 도전하며 요리 노트 쓰기" },
+          { id: "chf-m7", text: "요리 유튜브 강의로 기본 조리법(볶기·끓이기·굽기) 공부하기" },
+          { id: "chf-m8", text: "가족·친구에게 내가 만든 요리 대접하고 반응 기록하기" },
+        ],
+      },
+      {
+        id: "stage-future",
+        status: "future",
+        title: "전문가 되기",
+        missions: [
+          { id: "chf-m9",  text: "식품조리·외식조리학과 및 조리기능사 자격증 알아보기" },
+          { id: "chf-m10", text: "청소년 요리 대회나 쿠킹 클래스 참가해보기" },
+          { id: "chf-m11", text: "요식업계 종사자 인터뷰하거나 레스토랑 견학해보기" },
+          { id: "chf-m12", text: "나만의 시그니처 메뉴 완성해 포트폴리오 만들기" },
+        ],
+      },
+    ],
+  },
+
   // ── IT·기술 추가 로드맵 ──────────────────────────────────────────
   "ai-engineer": {
     id: "ai-engineer-roadmap",
