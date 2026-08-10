@@ -57,8 +57,11 @@ export const FEATURE_FLAGS = {
    * ⚠️ 나침반 mode 판별 로직이 코드에 없어 mode 조건은 게이팅에서 제외했다.
    *    flag ON + 아래 화이트리스트 slug 일치 조건만으로 게이팅한다.
    *    (docs/occupation-content-axis-standard.md 8장 참고)
+   *
+   * QA-safe override: NEXT_PUBLIC_DREAM_MAP_ENABLED="true"일 때만 true.
+   * 미설정/false/그 외 임의 문자열은 모두 false — PROD 기본값은 변경되지 않는다.
    */
-  DREAM_MAP_ENABLED: false,
+  DREAM_MAP_ENABLED: process.env.NEXT_PUBLIC_DREAM_MAP_ENABLED === "true",
 } as const;
 
 /**
