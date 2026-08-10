@@ -36,8 +36,28 @@ function getCurrentBranch() {
       encoding: "utf-8",
     }).trim();
   } catch {
-    // git 조회 실패 시 QA branch로 오판하지 않음 — non-QA 취급(기존 동작 보존)
-    return "";
+    // git 조회 자체가 실패한 경우 — identity 판별 불가이므로 fail-closed 처리 대상
+    // (빈 문자열과 구분하기 위해 null 반환 — 빈 문자열은 detached HEAD의 정상 조회 결과)
+    return null;
+  }
+}
+
+function isHeadOnQaBranchLineage() {
+  // detached HEAD일 때 현재 커밋이 QA-prefix 브랜치의 lineage에 포함되는지 확인
+  // (QA 작업 브랜치 checkout 상태의 uncommitted 손실은 없음 — 조회만 수행)
+  try {
+    const output = execFileSync(
+      "git",
+      ["branch", "--contains", "HEAD", "--format=%(refname:short)"],
+      { cwd: __dirname + "/..", encoding: "utf-8" }
+    );
+    return output
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .some((name) => name.startsWith(QA_BRANCH_PREFIX));
+  } catch {
+    return null;
   }
 }
 
@@ -135,7 +155,29 @@ function main() {
   loadEnvConfig(path.join(__dirname, ".."), true);
 
   const branch = getCurrentBranch();
-  const isQaBranch = branch.startsWith(QA_BRANCH_PREFIX);
+
+  if (branch === null) {
+    fail("DEV_RUNTIME_GUARD_FAIL_BRANCH_LOOKUP_ERROR");
+    return;
+  }
+
+  let isQaBranch;
+  if (branch === "") {
+    // detached HEAD — 빈 branch를 자동으로 non-QA 취급하지 않고 lineage로 판별
+    const onQaLineage = isHeadOnQaBranchLineage();
+    if (onQaLineage === null) {
+      fail("DEV_RUNTIME_GUARD_FAIL_DETACHED_HEAD_LINEAGE_UNKNOWN");
+      return;
+    }
+    isQaBranch = onQaLineage;
+    if (isQaBranch) {
+      console.error(
+        "[dev-runtime-guard] detached HEAD on QA branch lineage — enforcing QA Runtime Identity Guard"
+      );
+    }
+  } else {
+    isQaBranch = branch.startsWith(QA_BRANCH_PREFIX);
+  }
 
   if (isQaBranch) {
     runQaIdentityGuard();
