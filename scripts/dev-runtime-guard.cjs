@@ -66,6 +66,9 @@ function runQaIdentityGuard() {
   const qaRef = process.env.QA_SUPABASE_PROJECT_REF;
   const prodRef = process.env.PROD_SUPABASE_PROJECT_REF;
   const runtimeUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  // 실제 브라우저 Supabase client(src/lib/supabase.ts createBrowserClient)가
+  // 요구하는 것과 동일한 public key — 값 자체는 절대 로그에 남기지 않는다
+  const browserKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   if (qaEnvConfirmed !== "true") {
     fail("DEV_RUNTIME_GUARD_FAIL_QA_ENV_NOT_CONFIRMED");
@@ -77,6 +80,10 @@ function runQaIdentityGuard() {
 
   if (!runtimeUrl) {
     fail("DEV_RUNTIME_GUARD_FAIL_RUNTIME_URL_MISSING");
+  }
+
+  if (!browserKey || browserKey.trim() === "") {
+    fail("DEV_RUNTIME_GUARD_FAIL_BROWSER_KEY_MISSING");
   }
 
   let parsed;
