@@ -32,3 +32,4 @@ Thumbs.db
 *.pem
 .vercel
 tsconfig.tsbuildinfo
+scripts/.qa-seed-manifest.json

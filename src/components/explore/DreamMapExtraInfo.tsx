@@ -11,6 +11,7 @@
 import { useState, type ReactNode } from "react";
 import { ChevronDown } from "lucide-react";
 import { track } from "@/lib/analytics";
+import { childModeToGradeRange } from "@/lib/child-mode";
 
 interface DreamMapExtraInfoProps {
   occupationId: string;
@@ -28,8 +29,9 @@ export default function DreamMapExtraInfo({ occupationId, children }: DreamMapEx
         occupation_id: occupationId,
         content_section: "additional_info",
         source_page: "explore_detail",
-        mode: "unknown",
-        grade_range: "unknown",
+        // G1.3: 이 컴포넌트는 isDreamMapActive(나침반모드 확정) 시에만 렌더되므로 mode는 항상 compass
+        mode: "compass",
+        grade_range: childModeToGradeRange("compass"),
       });
     }
   };

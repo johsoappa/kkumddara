@@ -32,6 +32,9 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/lib/supabase";
 import { track } from "@/lib/analytics";
 import { FEATURE_FLAGS, DREAM_MAP_OCCUPATION_IDS } from "@/lib/featureFlags";
+import { gradeLevelToMode, childModeToGradeRange, type ChildMode } from "@/lib/child-mode";
+import { getActiveChildId, getFirstActiveChild } from "@/lib/db/family";
+import type { GradeLevel } from "@/types/family";
 import { OCCUPATIONS } from "@/data/occupations";
 import { getOccupationDepth } from "@/data/occupationDepthSeed";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
@@ -47,8 +50,9 @@ import type { OccupationGoyo24Profile } from "@/types/goyo24";
 
 // ====================================================
 // [꿈 지도 프로토타입] docs/occupation-content-axis-standard.md 참고
-// - 나침반 mode 판별 로직이 코드에 없어 flag+slug 화이트리스트로만 게이팅한다.
-// - 화이트리스트 밖 직업/flag OFF에서는 이 페이지의 기존 렌더링을 그대로 유지한다.
+// - G1.3: flag + slug 화이트리스트 + 나침반모드(viewerMode==="compass") 3중 게이팅.
+//   화면 표시 분기일 뿐 인증·권한 보안 경계로 사용하지 않는다.
+// - 화이트리스트 밖 직업/flag OFF/나침반 아님/판별 실패는 전부 기존 렌더링 그대로 유지한다.
 // ====================================================
 const DREAM_MAP_NOTICE =
   "이 페이지의 직업 설명은 진로 탐색을 돕기 위한 교육적 참고 자료입니다. 특정 직업에 대한 적성이나 진로 결과를 진단·보장하지 않으며, 일부 내용은 AI의 도움을 받아 정리되었습니다.";
@@ -116,9 +120,109 @@ export default function OccupationDetailPage() {
   // 퀴즈는 항상 정적 데이터 (DB 모드/정적 모드 공통)
   const quizData = QUIZ_DATA.find((q) => q.occupationId === id);
 
-  // 꿈 지도 프로토타입 게이팅: flag ON + slug 화이트리스트만 (mode 조건 없음 — 위 주석 참고)
-  const isDreamMapActive =
+  // ── 꿈 지도 나침반모드 게이팅 (G1.3) ────────────────────
+  // flag ON + slug 화이트리스트 대상 직업일 때만 뷰어 모드를 조회한다.
+  // (flag OFF/비대상 직업은 추가 조회 없이 즉시 기존 화면)
+  const isTargetOccupation =
     FEATURE_FLAGS.DREAM_MAP_ENABLED && DREAM_MAP_OCCUPATION_IDS.includes(id);
+
+  const [viewerModeState, setViewerModeState] = useState<{
+    status: "idle" | "loading" | "resolved";
+    mode:   ChildMode | null;
+  }>({ status: "idle", mode: null });
+
+  useEffect(() => {
+    if (!isTargetOccupation) return;
+    let cancelled = false;
+
+    async function resolveViewerMode() {
+      setViewerModeState({ status: "loading", mode: null });
+
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) {
+          if (!cancelled) setViewerModeState({ status: "resolved", mode: null });
+          return;
+        }
+
+        const role = user.user_metadata?.role as "parent" | "student" | undefined;
+
+        // ── 학생: student.child_id → child.grade_level ──────
+        if (role === "student") {
+          const { data: student } = await supabase
+            .from("student")
+            .select("child_id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (!student?.child_id) {
+            if (!cancelled) setViewerModeState({ status: "resolved", mode: null });
+            return;
+          }
+
+          const { data: child } = await supabase
+            .from("child")
+            .select("grade_level")
+            .eq("id", student.child_id)
+            .maybeSingle();
+
+          const mode = gradeLevelToMode(child?.grade_level as GradeLevel | null | undefined);
+          if (!cancelled) setViewerModeState({ status: "resolved", mode });
+          return;
+        }
+
+        // ── 부모: getActiveChildId() 우선 → 없으면 getFirstActiveChild() ──
+        if (role === "parent") {
+          const { data: parent } = await supabase
+            .from("parent")
+            .select("id")
+            .eq("user_id", user.id)
+            .maybeSingle();
+
+          if (!parent?.id) {
+            if (!cancelled) setViewerModeState({ status: "resolved", mode: null });
+            return;
+          }
+
+          // localStorage 값은 신뢰하지 않고, 반드시 parent_id 조건까지 통과한
+          // 조회 결과만 사용한다(RLS + 명시적 소유권 조건 이중 검증).
+          const activeChildId = getActiveChildId();
+          let gradeLevel: string | null | undefined;
+
+          if (activeChildId) {
+            const { data: activeChild } = await supabase
+              .from("child")
+              .select("grade_level")
+              .eq("id", activeChildId)
+              .eq("parent_id", parent.id)
+              .maybeSingle();
+            gradeLevel = activeChild?.grade_level;
+          }
+
+          if (gradeLevel === undefined) {
+            const firstChild = await getFirstActiveChild(parent.id);
+            gradeLevel = firstChild?.grade_level ?? null;
+          }
+
+          const mode = gradeLevelToMode(gradeLevel as GradeLevel | null | undefined);
+          if (!cancelled) setViewerModeState({ status: "resolved", mode });
+          return;
+        }
+
+        // ── 역할 미상 ────────────────────────────────────────
+        if (!cancelled) setViewerModeState({ status: "resolved", mode: null });
+      } catch {
+        // 인증/조회 오류 → 안전 폴백(기존 화면)
+        if (!cancelled) setViewerModeState({ status: "resolved", mode: null });
+      }
+    }
+
+    resolveViewerMode();
+    return () => { cancelled = true; };
+  }, [id, isTargetOccupation]);
+
+  // 꿈 지도 프로토타입 게이팅: flag ON + slug 화이트리스트 + 나침반모드
+  const isDreamMapActive = isTargetOccupation && viewerModeState.mode === "compass";
   const dreamMapDepth = isDreamMapActive ? getOccupationDepth(id) : null;
 
   // ── localStorage 찜 상태 복원 ──────────────────────────
@@ -291,7 +395,13 @@ export default function OccupationDetailPage() {
   };
 
   // ── 로딩 ─────────────────────────────────────────────
-  if (pageState.mode === "loading") {
+  // 대상 직업(flag ON + 화이트리스트)일 때는 뷰어 모드 판별이 끝날 때까지도
+  // 함께 대기한다 — 기존 화면 → 드림맵으로 바뀌는 깜빡임을 만들지 않기 위함.
+  // 비대상 직업/flag OFF는 viewerModeState가 항상 idle에 머물러 이 조건에 걸리지 않는다.
+  if (
+    pageState.mode === "loading" ||
+    (isTargetOccupation && viewerModeState.status !== "resolved")
+  ) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-off">
         <p className="text-sm text-base-muted animate-pulse">불러오는 중…</p>

@@ -21,6 +21,7 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { track } from "@/lib/analytics";
+import { childModeToGradeRange } from "@/lib/child-mode";
 
 export interface DreamMapTab {
   id: string;
@@ -90,9 +91,9 @@ export default function DreamMapHub({
       branch_id: tab.id,
       branch_label: tab.label,
       source_page: "explore_detail",
-      // mode 판별 로직 미구현(축 표준 문서 8장 참고) — 값 확정 전까지 unknown 고정
-      mode: "unknown",
-      grade_range: "unknown",
+      // G1.3: 이 컴포넌트는 isDreamMapActive(나침반모드 확정) 시에만 렌더되므로 mode는 항상 compass
+      mode: "compass",
+      grade_range: childModeToGradeRange("compass"),
     });
   };
 
@@ -112,8 +113,8 @@ export default function DreamMapHub({
       occupation_name: occupationName,
       destination: `/roadmap/${occupationId}`,
       source_page: "explore_detail",
-      mode: "unknown",
-      grade_range: "unknown",
+      mode: "compass",
+      grade_range: childModeToGradeRange("compass"),
     });
     onCtaClick();
   };
