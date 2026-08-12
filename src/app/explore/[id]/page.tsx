@@ -40,7 +40,7 @@ import { getOccupationDepth } from "@/data/occupationDepthSeed";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
 import Goyo24InfoSection from "@/components/explore/Goyo24InfoSection";
 import OccupationTraitSection from "@/components/explore/OccupationTraitSection";
-import OccupationDepthSection from "@/components/explore/OccupationDepthSection";
+import OccupationDepthTabs, { type DepthTab } from "@/components/explore/OccupationDepthTabs";
 import SportsInterestCareerSection from "@/components/explore/SportsInterestCareerSection";
 import DreamMapHub, { type DreamMapTab } from "@/components/explore/DreamMapHub";
 import DreamMapExtraInfo from "@/components/explore/DreamMapExtraInfo";
@@ -105,6 +105,10 @@ type PageState =
       relatedOccupations: RelatedOccupation[];    // [037] 세부 직업 목록 (없으면 빈 배열)
     }
   | { mode: "static"; occupation: Occupation }
+  // [G1.7-A2-PRE1] 3차 폴백 — DB/OCCUPATIONS 둘 다 없지만 OCCUPATION_DEPTH_SEED에는
+  // 있는 직업(예: chef). 가짜 급여/전망/학과/역량 정보를 만들지 않고 심화 4개 항목
+  // (하루 모습/필요한 힘/해보기/부모 질문)과 다음 미션 CTA만으로 최소 상세 화면 구성.
+  | { mode: "depth-only"; occupationName: string }
   | { mode: "not-found" };
 
 // ── 컴포넌트 ─────────────────────────────────────────────
@@ -222,8 +226,11 @@ export default function OccupationDetailPage() {
   }, [id, isTargetOccupation]);
 
   // 꿈 지도 프로토타입 게이팅: flag ON + slug 화이트리스트 + 나침반모드
+  // (Dream Map "기능" 자체 — 히어로 카드/CTA 문구/mode="compass" analytics 포함)
   const isDreamMapActive = isTargetOccupation && viewerModeState.mode === "compass";
-  const dreamMapDepth = isDreamMapActive ? getOccupationDepth(id) : null;
+  // [G1.7-A2-PRE2] 심화 4탭 콘텐츠 존재 여부는 Dream Map 게이트와 완전히 분리한다.
+  // 씨앗/새싹/나침반, flag ON/OFF와 무관하게 심화 시드가 있으면 항상 true.
+  const dreamMapDepth = getOccupationDepth(id);
 
   // ── localStorage 찜 상태 복원 ──────────────────────────
   useEffect(() => {
@@ -265,13 +272,18 @@ export default function OccupationDetailPage() {
 
         if (masterErr) throw masterErr;
 
-        // DB 미등록 직업 → 정적 폴백
+        // DB 미등록 직업 → 정적 폴백 → (그마저 없으면) 심화 시드 3차 폴백
         if (!master) {
           const staticOcc = OCCUPATIONS.find((o) => o.id === id);
+          if (staticOcc) {
+            if (!cancelled) setPageState({ mode: "static", occupation: staticOcc });
+            return;
+          }
+          const depthOnly = getOccupationDepth(id);
           if (!cancelled) {
             setPageState(
-              staticOcc
-                ? { mode: "static", occupation: staticOcc }
+              depthOnly
+                ? { mode: "depth-only", occupationName: depthOnly.occupationName }
                 : { mode: "not-found" }
             );
           }
@@ -358,12 +370,17 @@ export default function OccupationDetailPage() {
         }
       } catch (err) {
         console.error("[explore/[id]] detail fetch 실패:", err);
-        // fetch 실패 시에도 정적 폴백 시도
+        // fetch 실패 시에도 정적 폴백 → 심화 시드 3차 폴백 순서로 시도
         const staticOcc = OCCUPATIONS.find((o) => o.id === id);
+        if (staticOcc) {
+          if (!cancelled) setPageState({ mode: "static", occupation: staticOcc });
+          return;
+        }
+        const depthOnly = getOccupationDepth(id);
         if (!cancelled) {
           setPageState(
-            staticOcc
-              ? { mode: "static", occupation: staticOcc }
+            depthOnly
+              ? { mode: "depth-only", occupationName: depthOnly.occupationName }
               : { mode: "not-found" }
           );
         }
@@ -405,6 +422,128 @@ export default function OccupationDetailPage() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-base-off">
         <p className="text-sm text-base-muted animate-pulse">불러오는 중…</p>
+      </div>
+    );
+  }
+
+  // ====================================================
+  // ── 심화 시드 전용(3차 폴백) 렌더 ────────────────────
+  // DB·OCCUPATIONS 둘 다 없음 — OCCUPATION_DEPTH_SEED만으로 최소 상세 화면 구성.
+  // Dream Map(꿈 지도 허브/화이트리스트/나침반 게이팅)과는 완전히 무관한 별도 경로.
+  // ====================================================
+  if (pageState.mode === "depth-only") {
+    const { occupationName } = pageState;
+
+    // [G1.7-A3] "하는 일"은 OCCUPATION_DEPTH_SEED.whatTheyDo(전 직업 전수 작성)를 그대로 노출한다.
+    // 더 이상 "곧 소개할 예정" 안내 문구를 쓰지 않는다.
+    const depthOnlyTabs: [DepthTab, DepthTab, DepthTab, DepthTab] | null = dreamMapDepth
+      ? [
+          {
+            id: "do",
+            label: "하는 일",
+            panel: (
+              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
+                {dreamMapDepth.whatTheyDo}
+              </p>
+            ),
+          },
+          {
+            id: "power",
+            label: "필요한 힘",
+            panel: (
+              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
+                {dreamMapDepth.goodFit}
+              </p>
+            ),
+          },
+          {
+            id: "day",
+            label: "하루 모습",
+            panel: (
+              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
+                {dreamMapDepth.dayInLife}
+              </p>
+            ),
+          },
+          {
+            id: "try",
+            label: "해보기",
+            panel: (
+              <div className="flex flex-col gap-3">
+                {dreamMapDepth.missions.map((m) => (
+                  <div key={m.label} className="rounded-lg bg-base-card px-3 py-3">
+                    <p className="text-xs font-bold text-brand-red mb-1">{m.label}</p>
+                    <p className="text-sm text-base-text leading-relaxed whitespace-pre-line">
+                      {m.text}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ),
+          },
+        ]
+      : null;
+
+    return (
+      <div className="min-h-screen bg-base-off flex justify-center">
+        <div className="w-full max-w-mobile bg-base-off pb-28">
+          {/* ---- 상단 헤더 ---- */}
+          <div className="sticky top-0 z-50 bg-white border-b border-base-border">
+            <div className="flex items-center justify-between px-4 h-14">
+              <button
+                onClick={() => router.back()}
+                className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-base-off transition-colors"
+                aria-label="뒤로가기"
+              >
+                <ArrowLeft size={20} className="text-base-text" />
+              </button>
+              <h1 className="text-sm font-bold text-base-text">직업 상세</h1>
+              <div className="w-9 h-9" aria-hidden="true" />
+            </div>
+          </div>
+
+          {/* ---- 히어로 (가짜 이모지/직업군 없이 이름만) ---- */}
+          <div className="bg-white px-5 py-8 flex flex-col items-center text-center border-b border-base-border">
+            <h2 className="text-2xl font-bold text-base-text">{occupationName}</h2>
+          </div>
+
+          {/* ---- 심화 4탭(하는 일/필요한 힘/하루 모습/해보기) + 부모 질문 + 퀴즈(있으면) ---- */}
+          <div className="px-4 py-4 flex flex-col gap-3">
+            {depthOnlyTabs && (
+              <OccupationDepthTabs
+                occupationId={id}
+                occupationName={occupationName}
+                tabs={depthOnlyTabs}
+                nextMission={dreamMapDepth?.nextMission ?? ""}
+                parentQuestions={dreamMapDepth?.parentQuestions ?? []}
+              />
+            )}
+
+            {quizData && (
+              <section className="mt-2">
+                <OccupationQuiz quizData={quizData} />
+              </section>
+            )}
+
+            {/* 비진단·법적 고지 — 상시 노출, 축약 없음 */}
+            <p className="text-xs text-base-muted leading-relaxed text-center px-2 pt-2">
+              {DREAM_MAP_NOTICE}
+            </p>
+          </div>
+
+          {/* ---- 하단 고정 CTA(다음 미션) ---- */}
+          <div className="fixed bottom-0 left-1/2 -translate-x-1/2 w-full max-w-mobile px-4 py-4 bg-white border-t border-base-border safe-bottom z-50">
+            <button
+              onClick={() => {
+                localStorage.setItem("kkumddara_chosen_roadmap", id);
+                router.push(`/roadmap/${id}`);
+              }}
+              className="btn-primary"
+            >
+              이 직업으로 로드맵 만들기
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -684,8 +823,16 @@ export default function OccupationDetailPage() {
                   </section>
                 )}
 
-                {/* ②-1 이 직업을 조금 더 깊이 알아볼까요? (정적 seed 보유 직업만 표시) */}
-                <OccupationDepthSection occupationId={id} />
+                {/* ②-1 심화 4탭 — Dream Map 게이트와 무관, 심화 시드 보유 직업만 표시 */}
+                {dreamMapDepth && dreamMapTabs && (
+                  <OccupationDepthTabs
+                    occupationId={id}
+                    occupationName={master.name_ko}
+                    tabs={dreamMapTabs}
+                    nextMission={dreamMapDepth.nextMission}
+                    parentQuestions={dreamMapDepth.parentQuestions}
+                  />
+                )}
 
                 {/* ④ 지금 할 수 있는 준비 */}
                 {(missionHint || stepActions.length > 0) && (
@@ -1030,8 +1177,16 @@ export default function OccupationDetailPage() {
                 </p>
               </section>
 
-              {/* ①-1 이 직업을 조금 더 깊이 알아볼까요? (정적 seed 보유 직업만 표시) */}
-              <OccupationDepthSection occupationId={occupation.id} />
+              {/* ①-1 심화 4탭 — Dream Map 게이트와 무관, 심화 시드 보유 직업만 표시 */}
+              {dreamMapDepth && dreamMapTabs && (
+                <OccupationDepthTabs
+                  occupationId={occupation.id}
+                  occupationName={occupation.name}
+                  tabs={dreamMapTabs}
+                  nextMission={dreamMapDepth.nextMission}
+                  parentQuestions={dreamMapDepth.parentQuestions}
+                />
+              )}
 
               {/* ② 필요 역량 */}
               <section className="card">
