@@ -66,9 +66,10 @@ export async function middleware(request: NextRequest) {
   if (pathname === "/home") {
     if (!user) return redirectTo("/");
     // role 미설정 시 랜딩으로 (student fallback 하드코딩 금지)
+    // 조용한 fallback 금지 — /auth/callback과 동일한 role_required 안내를 재사용
     if (!role) {
       console.error("[middleware] /home — role 미설정, userId:", user.id);
-      return redirectTo("/");
+      return redirectTo("/?error=role_required");
     }
     const dest = role === "parent" ? "/parent/home" : "/student/home";
     return redirectTo(dest);

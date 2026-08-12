@@ -12,7 +12,7 @@
 // ====================================================
 
 import Image from "next/image";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Users, BookOpen, Eye, EyeOff, ArrowLeft, ChevronRight } from "lucide-react";
 import { signUpParent, signUpStudent, signIn } from "@/lib/auth";
@@ -81,6 +81,14 @@ function LandingContent() {
   const [email, setEmail]           = useState("");
   const [password, setPassword]     = useState("");
   const [displayName, setDisplayName] = useState("");
+
+  // ── 에러 배너 표시 보정 ───────────────────────────────
+  // router.replace("/home") → middleware redirect(/?error=xxx)는 동일 라우트로
+  // 돌아오는 client-side soft navigation이라 step state가 "auth"에 머무를 수 있다.
+  // 에러 파라미터가 있으면 배너가 보이는 role 단계로 강제 복귀시킨다.
+  useEffect(() => {
+    if (authErrorInfo) setStep("role");
+  }, [authErrorCode]);
 
   // ── Step 1: 역할 선택 후 Step 2 이동 ────────────────
   const handleRoleSelect = (role: Role) => {
