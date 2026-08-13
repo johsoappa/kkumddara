@@ -99,8 +99,9 @@ export default function OccupationDepthTabs({
         })}
       </div>
 
-      {/* 상세 패널 — 한 번에 한 항목만 표시 */}
+      {/* 상세 패널 — 한 번에 한 항목만 표시. key로 탭 전환 시 더보기 상태를 리셋한다 */}
       <section
+        key={activeTab.id}
         role="tabpanel"
         id={`occupation-depth-panel-${occupationId}`}
         aria-labelledby={`occupation-depth-tab-${occupationId}-${activeTab.id}`}

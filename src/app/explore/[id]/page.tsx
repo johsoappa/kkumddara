@@ -44,6 +44,7 @@ import OccupationDepthTabs, { type DepthTab } from "@/components/explore/Occupat
 import SportsInterestCareerSection from "@/components/explore/SportsInterestCareerSection";
 import DreamMapHub, { type DreamMapTab } from "@/components/explore/DreamMapHub";
 import DreamMapExtraInfo from "@/components/explore/DreamMapExtraInfo";
+import ExpandableText from "@/components/explore/ExpandableText";
 import { QUIZ_DATA } from "@/data/quizData";
 import type { Occupation } from "@/types/occupation";
 import type { OccupationGoyo24Profile } from "@/types/goyo24";
@@ -56,6 +57,11 @@ import type { OccupationGoyo24Profile } from "@/types/goyo24";
 // ====================================================
 const DREAM_MAP_NOTICE =
   "이 페이지의 직업 설명은 진로 탐색을 돕기 위한 교육적 참고 자료입니다. 특정 직업에 대한 적성이나 진로 결과를 진단·보장하지 않으며, 일부 내용은 AI의 도움을 받아 정리되었습니다.";
+
+// [G1.8-A1] 탭 데이터가 없을 때 다른 탭/직업 소개 복제 없이 보여줄 정직한 안내 문구
+function tabNotice(label: string) {
+  return `이 직업의 ${label} 상세 내용은 준비 중이에요.`;
+}
 
 // ── 상수 ────────────────────────────────────────────────
 const LIKED_KEY    = "kkumddara_liked";
@@ -441,45 +447,46 @@ export default function OccupationDetailPage() {
           {
             id: "do",
             label: "하는 일",
-            panel: (
-              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
-                {dreamMapDepth.whatTheyDo}
-              </p>
+            panel: dreamMapDepth.whatTheyDo.trim() ? (
+              <ExpandableText text={dreamMapDepth.whatTheyDo} maxLines={3} textClassName="text-sm text-base-muted leading-relaxed" />
+            ) : (
+              <p className="text-sm text-base-muted leading-relaxed">{tabNotice("하는 일")}</p>
             ),
           },
           {
             id: "power",
             label: "필요한 힘",
-            panel: (
-              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
-                {dreamMapDepth.goodFit}
-              </p>
+            panel: dreamMapDepth.goodFit.trim() ? (
+              <ExpandableText text={dreamMapDepth.goodFit} maxLines={3} textClassName="text-sm text-base-muted leading-relaxed" />
+            ) : (
+              <p className="text-sm text-base-muted leading-relaxed">{tabNotice("필요한 힘")}</p>
             ),
           },
           {
             id: "day",
             label: "하루 모습",
-            panel: (
-              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
-                {dreamMapDepth.dayInLife}
-              </p>
+            panel: dreamMapDepth.dayInLife.trim() ? (
+              <ExpandableText text={dreamMapDepth.dayInLife} maxLines={3} textClassName="text-sm text-base-muted leading-relaxed" />
+            ) : (
+              <p className="text-sm text-base-muted leading-relaxed">{tabNotice("하루 모습")}</p>
             ),
           },
           {
             id: "try",
             label: "해보기",
-            panel: (
-              <div className="flex flex-col gap-3">
-                {dreamMapDepth.missions.map((m) => (
-                  <div key={m.label} className="rounded-lg bg-base-card px-3 py-3">
-                    <p className="text-xs font-bold text-brand-red mb-1">{m.label}</p>
-                    <p className="text-sm text-base-text leading-relaxed whitespace-pre-line">
-                      {m.text}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            ),
+            panel:
+              dreamMapDepth.missions.length === 0 ? (
+                <p className="text-sm text-base-muted leading-relaxed">{tabNotice("해보기")}</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {dreamMapDepth.missions.map((m) => (
+                    <div key={m.label} className="rounded-lg bg-base-card px-3 py-3">
+                      <p className="text-xs font-bold text-brand-red mb-1">{m.label}</p>
+                      <ExpandableText text={m.text} maxLines={3} textClassName="text-sm text-base-text leading-relaxed" />
+                    </div>
+                  ))}
+                </div>
+              ),
           },
         ]
       : null;
@@ -575,99 +582,93 @@ export default function OccupationDetailPage() {
     const { master, summaries, missionHint, stepActions, goyo24Profile, relatedOccupations } = pageState;
 
     // 꿈 지도 4탭 — 기존 문장 재배치(신규 카피 없음). depth seed 없으면 허브 미노출.
+    // [G1.8-A1] "하는 일" 탭은 상단 직업 소개(summaries)를 복제하지 않고
+    // dreamMapDepth.whatTheyDo(탭 전용 필드)를 사용한다.
     const dreamMapTabs: [DreamMapTab, DreamMapTab, DreamMapTab, DreamMapTab] | null = dreamMapDepth
       ? [
           {
             id: "do",
             label: "하는 일",
-            panel: (
-              <>
-                {summaries.one_liner && (
-                  <p className="text-sm font-semibold text-brand-red mb-2 leading-snug">
-                    {summaries.one_liner}
-                  </p>
-                )}
-                {summaries.easy_description && (
-                  <p className="text-sm text-base-muted leading-relaxed">
-                    {summaries.easy_description}
-                  </p>
-                )}
-              </>
+            panel: dreamMapDepth.whatTheyDo.trim() ? (
+              <ExpandableText text={dreamMapDepth.whatTheyDo} maxLines={3} textClassName="text-sm text-base-muted leading-relaxed" />
+            ) : (
+              <p className="text-sm text-base-muted leading-relaxed">{tabNotice("하는 일")}</p>
             ),
           },
           {
             id: "power",
             label: "필요한 힘",
-            panel: (
-              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
-                {dreamMapDepth.goodFit}
-              </p>
+            panel: dreamMapDepth.goodFit.trim() ? (
+              <ExpandableText text={dreamMapDepth.goodFit} maxLines={3} textClassName="text-sm text-base-muted leading-relaxed" />
+            ) : (
+              <p className="text-sm text-base-muted leading-relaxed">{tabNotice("필요한 힘")}</p>
             ),
           },
           {
             id: "day",
             label: "하루 모습",
-            panel: (
-              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
-                {dreamMapDepth.dayInLife}
-              </p>
+            panel: dreamMapDepth.dayInLife.trim() ? (
+              <ExpandableText text={dreamMapDepth.dayInLife} maxLines={3} textClassName="text-sm text-base-muted leading-relaxed" />
+            ) : (
+              <p className="text-sm text-base-muted leading-relaxed">{tabNotice("하루 모습")}</p>
             ),
           },
           {
             id: "try",
             label: "해보기",
-            panel: (
-              <div className="flex flex-col gap-3">
-                {dreamMapDepth.missions.map((m) => (
-                  <div key={m.label} className="rounded-lg bg-base-card px-3 py-3">
-                    <p className="text-xs font-bold text-brand-red mb-1">{m.label}</p>
-                    <p className="text-sm text-base-text leading-relaxed whitespace-pre-line">
-                      {m.text}
-                    </p>
-                  </div>
-                ))}
-                {missionHint && (
-                  <div className="bg-brand-light rounded-lg px-3 py-3">
-                    <p className="text-xs font-bold text-brand-red mb-1">💡 시작하기 전에</p>
-                    <p className="text-sm text-base-text leading-relaxed">{missionHint}</p>
-                  </div>
-                )}
-                {stepActions.length > 0 && (
-                  <div className="flex flex-col gap-3">
-                    {stepActions.map((action, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => togglePrep(idx)}
-                        className="flex items-center gap-3 text-left w-full"
-                      >
-                        <span
-                          className={cn(
-                            "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
-                            checkedPreps.has(idx)
-                              ? "bg-brand-red border-brand-red"
-                              : "border-base-border"
-                          )}
+            panel:
+              dreamMapDepth.missions.length === 0 && !missionHint && stepActions.length === 0 ? (
+                <p className="text-sm text-base-muted leading-relaxed">{tabNotice("해보기")}</p>
+              ) : (
+                <div className="flex flex-col gap-3">
+                  {dreamMapDepth.missions.map((m) => (
+                    <div key={m.label} className="rounded-lg bg-base-card px-3 py-3">
+                      <p className="text-xs font-bold text-brand-red mb-1">{m.label}</p>
+                      <ExpandableText text={m.text} maxLines={3} textClassName="text-sm text-base-text leading-relaxed" />
+                    </div>
+                  ))}
+                  {missionHint && (
+                    <div className="bg-brand-light rounded-lg px-3 py-3">
+                      <p className="text-xs font-bold text-brand-red mb-1">💡 시작하기 전에</p>
+                      <p className="text-sm text-base-text leading-relaxed">{missionHint}</p>
+                    </div>
+                  )}
+                  {stepActions.length > 0 && (
+                    <div className="flex flex-col gap-3">
+                      {stepActions.map((action, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => togglePrep(idx)}
+                          className="flex items-center gap-3 text-left w-full"
                         >
-                          {checkedPreps.has(idx) && (
-                            <span className="text-white text-[10px] font-bold leading-none">✓</span>
-                          )}
-                        </span>
-                        <span
-                          className={cn(
-                            "text-sm transition-colors",
-                            checkedPreps.has(idx)
-                              ? "text-base-muted line-through"
-                              : "text-base-text"
-                          )}
-                        >
-                          {action}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ),
+                          <span
+                            className={cn(
+                              "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
+                              checkedPreps.has(idx)
+                                ? "bg-brand-red border-brand-red"
+                                : "border-base-border"
+                            )}
+                          >
+                            {checkedPreps.has(idx) && (
+                              <span className="text-white text-[10px] font-bold leading-none">✓</span>
+                            )}
+                          </span>
+                          <span
+                            className={cn(
+                              "text-sm transition-colors",
+                              checkedPreps.has(idx)
+                                ? "text-base-muted line-through"
+                                : "text-base-text"
+                            )}
+                          >
+                            {action}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ),
           },
         ]
       : null;
@@ -806,7 +807,7 @@ export default function OccupationDetailPage() {
               </>
             ) : (
               <>
-                {/* ① 직업 소개: one_liner(강조) + easy_description */}
+                {/* ① 직업 소개: one_liner(강조, 상시 노출) + easy_description(2줄 요약 + 더보기) */}
                 {(summaries.one_liner || summaries.easy_description) && (
                   <section className="card">
                     <h3 className="text-sm font-bold text-base-text mb-2">직업 소개</h3>
@@ -816,9 +817,7 @@ export default function OccupationDetailPage() {
                       </p>
                     )}
                     {summaries.easy_description && (
-                      <p className="text-sm text-base-muted leading-relaxed">
-                        {summaries.easy_description}
-                      </p>
+                      <ExpandableText text={summaries.easy_description} maxLines={2} textClassName="text-sm text-base-muted leading-relaxed" />
                     )}
                   </section>
                 )}
@@ -924,13 +923,17 @@ export default function OccupationDetailPage() {
   const { occupation } = pageState; // mode === "static"
 
   // 꿈 지도 4탭 — 기존 문장 재배치(신규 카피 없음). depth seed 없으면 허브 미노출.
+  // [G1.8-A1] "하는 일" 탭은 상단 직업 소개(occupation.description)를 복제하지 않고
+  // dreamMapDepth.whatTheyDo(탭 전용 필드)를 사용한다.
   const dreamMapTabs: [DreamMapTab, DreamMapTab, DreamMapTab, DreamMapTab] | null = dreamMapDepth
     ? [
         {
           id: "do",
           label: "하는 일",
-          panel: (
-            <p className="text-sm text-base-muted leading-relaxed">{occupation.description}</p>
+          panel: dreamMapDepth.whatTheyDo.trim() ? (
+            <ExpandableText text={dreamMapDepth.whatTheyDo} maxLines={3} textClassName="text-sm text-base-muted leading-relaxed" />
+          ) : (
+            <p className="text-sm text-base-muted leading-relaxed">{tabNotice("하는 일")}</p>
           ),
         },
         {
@@ -938,9 +941,11 @@ export default function OccupationDetailPage() {
           label: "필요한 힘",
           panel: (
             <>
-              <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line mb-3">
-                {dreamMapDepth.goodFit}
-              </p>
+              {dreamMapDepth.goodFit.trim() ? (
+                <ExpandableText text={dreamMapDepth.goodFit} maxLines={3} textClassName="text-sm text-base-muted leading-relaxed mb-3" className="mb-3" />
+              ) : (
+                <p className="text-sm text-base-muted leading-relaxed mb-3">{tabNotice("필요한 힘")}</p>
+              )}
               <div className="flex flex-wrap gap-2">
                 {occupation.skills.map((skill) => (
                   <span
@@ -957,53 +962,54 @@ export default function OccupationDetailPage() {
         {
           id: "day",
           label: "하루 모습",
-          panel: (
-            <p className="text-sm text-base-muted leading-relaxed whitespace-pre-line">
-              {dreamMapDepth.dayInLife}
-            </p>
+          panel: dreamMapDepth.dayInLife.trim() ? (
+            <ExpandableText text={dreamMapDepth.dayInLife} maxLines={3} textClassName="text-sm text-base-muted leading-relaxed" />
+          ) : (
+            <p className="text-sm text-base-muted leading-relaxed">{tabNotice("하루 모습")}</p>
           ),
         },
         {
           id: "try",
           label: "해보기",
-          panel: (
-            <div className="flex flex-col gap-3">
-              {dreamMapDepth.missions.map((m) => (
-                <div key={m.label} className="rounded-lg bg-base-card px-3 py-3">
-                  <p className="text-xs font-bold text-brand-red mb-1">{m.label}</p>
-                  <p className="text-sm text-base-text leading-relaxed whitespace-pre-line">
-                    {m.text}
-                  </p>
-                </div>
-              ))}
-              {occupation.preparations.map((prep, idx) => (
-                <button
-                  key={idx}
-                  onClick={() => togglePrep(idx)}
-                  className="flex items-center gap-3 text-left w-full"
-                >
-                  <span
-                    className={cn(
-                      "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
-                      checkedPreps.has(idx) ? "bg-brand-red border-brand-red" : "border-base-border"
-                    )}
+          panel:
+            dreamMapDepth.missions.length === 0 && occupation.preparations.length === 0 ? (
+              <p className="text-sm text-base-muted leading-relaxed">{tabNotice("해보기")}</p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {dreamMapDepth.missions.map((m) => (
+                  <div key={m.label} className="rounded-lg bg-base-card px-3 py-3">
+                    <p className="text-xs font-bold text-brand-red mb-1">{m.label}</p>
+                    <ExpandableText text={m.text} maxLines={3} textClassName="text-sm text-base-text leading-relaxed" />
+                  </div>
+                ))}
+                {occupation.preparations.map((prep, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => togglePrep(idx)}
+                    className="flex items-center gap-3 text-left w-full"
                   >
-                    {checkedPreps.has(idx) && (
-                      <span className="text-white text-[10px] font-bold leading-none">✓</span>
-                    )}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-sm transition-colors",
-                      checkedPreps.has(idx) ? "text-base-muted line-through" : "text-base-text"
-                    )}
-                  >
-                    {prep}
-                  </span>
-                </button>
-              ))}
-            </div>
-          ),
+                    <span
+                      className={cn(
+                        "w-5 h-5 rounded border-2 flex-shrink-0 flex items-center justify-center transition-all",
+                        checkedPreps.has(idx) ? "bg-brand-red border-brand-red" : "border-base-border"
+                      )}
+                    >
+                      {checkedPreps.has(idx) && (
+                        <span className="text-white text-[10px] font-bold leading-none">✓</span>
+                      )}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-sm transition-colors",
+                        checkedPreps.has(idx) ? "text-base-muted line-through" : "text-base-text"
+                      )}
+                    >
+                      {prep}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            ),
         },
       ]
     : null;
@@ -1169,12 +1175,10 @@ export default function OccupationDetailPage() {
             </>
           ) : (
             <>
-              {/* ① 직업 소개 */}
+              {/* ① 직업 소개: 2줄 요약 + 더보기 */}
               <section className="card">
                 <h3 className="text-sm font-bold text-base-text mb-2">직업 소개</h3>
-                <p className="text-sm text-base-muted leading-relaxed">
-                  {occupation.description}
-                </p>
+                <ExpandableText text={occupation.description} maxLines={2} textClassName="text-sm text-base-muted leading-relaxed" />
               </section>
 
               {/* ①-1 심화 4탭 — Dream Map 게이트와 무관, 심화 시드 보유 직업만 표시 */}
