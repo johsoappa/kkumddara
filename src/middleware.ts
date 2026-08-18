@@ -9,6 +9,10 @@
 //   /student/*   → role=student 필요, 없으면 /로
 //   /onboarding/parent  → role=parent 필요
 //   /onboarding/student → role=student 필요
+//   /admin/*     → 세션 쿠키 갱신만 수행 (redirect·role 판정 없음).
+//                  실제 허용/차단은 서버 컴포넌트·Route Handler의
+//                  requireOperator()/requireAdmin()이 담당한다.
+//                  (src/lib/admin-auth.ts, docs/admin-access-control-design.md §6·§7)
 // ====================================================
 
 import { createServerClient } from "@supabase/ssr";
@@ -118,6 +122,16 @@ export async function middleware(request: NextRequest) {
     return response;
   }
 
+  // ── /admin/* ──────────────────────────────────────
+  // 1차 방어는 세션 쿠키 갱신뿐이다(위 getUser() 호출로 이미 처리됨).
+  // admin_users 조회, role 판정, service role 사용, user_metadata/
+  // app_metadata 참조는 여기서 하지 않는다 — 전부 requireOperator()/
+  // requireAdmin()의 책임이다. redirect도 하지 않는다(관리자 화면
+  // 존재 자체를 노출하지 않기 위해 무권한 접근은 항상 404로만 응답).
+  if (pathname.startsWith("/admin")) {
+    return response;
+  }
+
   return response;
 }
 
@@ -129,5 +143,6 @@ export const config = {
     "/onboarding/:path*",
     "/parent/:path*",
     "/student/:path*",
+    "/admin/:path*",
   ],
 };
