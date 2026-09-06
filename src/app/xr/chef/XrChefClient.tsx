@@ -24,6 +24,8 @@ import dynamic from "next/dynamic";
 import { track } from "@/lib/analytics";
 import {
   AXIS_FEEDBACK,
+  B2C_COMPLETE,
+  B2C_MISSION,
   CTA_CLICKED_NOTICE,
   CTA_LABEL,
   INTRO,
@@ -40,6 +42,7 @@ import {
   type ChoiceRecord,
   type Mode,
 } from "./scenario";
+import { OrderInteraction, PlaceInteraction, SelectChoices } from "./interactions";
 
 const ChefScene = dynamic(() => import("./ChefScene"), {
   ssr: false,
@@ -112,11 +115,14 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
   const lastPoint = points.length;
   const currentPointData = points[state.currentPoint - 1];
 
-  // 카메라 단계: intro/result는 주방 전체(overview), 진행 중엔 지점별 태그
+  // 카메라 단계: intro는 주방 전체(overview), result는 완료 연출(celebrate),
+  // 진행 중엔 지점별 태그 — 시작/완료 연출을 서로 다르게 구분한다.
   const cameraStage: CameraStage =
-    state.phase === "intro" || state.phase === "result"
+    state.phase === "intro"
       ? "overview"
-      : currentPointData?.cameraStage ?? "overview";
+      : state.phase === "result"
+        ? "celebrate"
+        : currentPointData?.cameraStage ?? "overview";
 
   // 접시: 지점2 선택 후 지점3부터 등장 (결과 화면에서도 유지 — currentPoint 보존)
   const showPlate = state.phase !== "intro" && state.currentPoint >= 3;
@@ -193,6 +199,10 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
 
       {state.phase === "intro" && (
         <section className="flex flex-col gap-4">
+          <div className="rounded-xl bg-teal-50 p-4">
+            <p className="text-sm font-semibold text-teal-700">{B2C_MISSION.title}</p>
+            <p className="mt-1 text-sm text-teal-600">{B2C_MISSION.subtitle}</p>
+          </div>
           <p className="text-base leading-relaxed text-gray-800">{INTRO.narration}</p>
           <div className="rounded-xl bg-orange-50 p-4 text-sm text-gray-700">
             <p className="font-semibold text-orange-700">선배 요리사</p>
@@ -219,18 +229,15 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
               {currentPointData.situation}
             </p>
           )}
-          <div className="flex flex-col gap-3">
-            {currentPointData.choices.map((choice) => (
-              <button
-                key={choice.id}
-                type="button"
-                onClick={() => handleChoice(choice)}
-                className="min-h-[52px] w-full rounded-xl bg-orange-500 px-4 text-base font-semibold text-white transition-colors active:bg-orange-600"
-              >
-                {choice.label}
-              </button>
-            ))}
-          </div>
+          {currentPointData.interactionKind === "select" && (
+            <SelectChoices choices={currentPointData.choices} onSelect={handleChoice} />
+          )}
+          {currentPointData.interactionKind === "place" && (
+            <PlaceInteraction choices={currentPointData.choices} onPlace={handleChoice} />
+          )}
+          {currentPointData.interactionKind === "order" && (
+            <OrderInteraction choices={currentPointData.choices} onConfirm={handleChoice} />
+          )}
         </section>
       )}
 
@@ -258,6 +265,11 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
 
       {state.phase === "result" && mode === "compass" && state.resultAxis !== null && (
         <section className="flex flex-col gap-5">
+          <div className="rounded-xl bg-teal-50 p-4">
+            <h2 className="text-lg font-bold text-teal-800">{B2C_COMPLETE.title}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-teal-700">{B2C_COMPLETE.body}</p>
+          </div>
+
           <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
             <p className="text-sm font-semibold text-orange-700">오늘의 선택 스타일</p>
             <h2 className="mt-1 text-lg font-bold text-gray-900">
@@ -314,6 +326,11 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
 
       {state.phase === "result" && mode === "sprout" && (
         <section className="flex flex-col gap-5">
+          <div className="rounded-xl bg-teal-50 p-4">
+            <h2 className="text-lg font-bold text-teal-800">{B2C_COMPLETE.title}</h2>
+            <p className="mt-2 text-sm leading-relaxed text-teal-700">{B2C_COMPLETE.body}</p>
+          </div>
+
           <div className="rounded-xl border border-orange-200 bg-orange-50 p-4">
             <h2 className="text-lg font-bold text-gray-900">{SPROUT_COMPLETE.title}</h2>
             <p className="mt-2 text-sm leading-relaxed text-gray-700">

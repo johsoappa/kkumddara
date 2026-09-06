@@ -13,11 +13,18 @@
 //     useThree()로 camera를 얻어 useLayoutEffect에서 직접 좌표를 바꾼다
 //   - showPlate props로 조리대 위 접시 1개 표시 (mesh 단위 조건부 —
 //     Canvas 재마운트 아님)
+//
+// G2.1 추가: WebGL 미지원/Canvas 오류 시 공용 XrSceneGuard가 이 Canvas
+//   영역만 정적 텍스트 패널로 대체한다 (선택/결과 로직은 XrChefClient에
+//   있으므로 영향 없음).
 // ====================================================
 
-import { useLayoutEffect } from "react";
-import { Canvas, useThree } from "@react-three/fiber";
+import { useLayoutEffect, useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import type { Mesh, MeshStandardMaterial } from "three";
 import type { CameraStage } from "./scenario";
+import XrSceneGuard from "../XrSceneGuard";
+import XrScenePlaceholder from "../XrScenePlaceholder";
 
 export interface ChefSceneProps {
   stage: CameraStage;
@@ -30,7 +37,7 @@ const CAMERA_STAGES: Record<
   CameraStage,
   { position: [number, number, number]; lookAt: [number, number, number] }
 > = {
-  // 주방 전체 기본 시점 (intro/result) — v0.1 초기 시점과 동일한 위치
+  // 주방 전체 기본 시점 (intro) — v0.1 초기 시점과 동일한 위치
   overview: { position: [0, 1.8, 3.2], lookAt: [0, 1.1, -1.2] },
   // 지점1: 조리대 쪽으로 약간 접근 — 작업 시작 느낌
   approach: { position: [0, 1.6, 2.3], lookAt: [0, 1.0, -1.2] },
@@ -42,6 +49,8 @@ const CAMERA_STAGES: Record<
   survey: { position: [0, 2.1, 3.6], lookAt: [0, 1.0, -1.2] },
   // 지점4·5: 조리대 위 접시 쪽으로 근접 — 마무리 작업 느낌
   plating: { position: [0.4, 1.6, 0.6], lookAt: [0.1, 1.05, -1.1] },
+  // G2.1 추가 — 결과 화면 전용, 완성된 접시와 전달대 쪽을 비추는 축하 연출
+  celebrate: { position: [0.6, 1.5, 1.4], lookAt: [0.3, 1.05, -0.6] },
 };
 
 // 카메라 스냅 이동 담당 — Canvas 내부에서만 사용 (재마운트 없이 좌표만 변경)
@@ -55,12 +64,154 @@ function CameraRig({ stage }: { stage: CameraStage }) {
   return null;
 }
 
-// 접시 — 지점3 이후 조리대 위에 등장하는 소품 (v0.2 유일한 추가 소품)
+// 접시 — 지점3 이후 조리대 위에 등장하는 소품.
+// G2.1 추가: 완성 반짝임 — 얇은 링 하나에 emissive 펄스만 주는 저비용 효과
 function Plate() {
+  const highlightRef = useRef<Mesh>(null);
+  useFrame(({ clock }) => {
+    const material = highlightRef.current?.material as MeshStandardMaterial | undefined;
+    if (material) {
+      material.opacity = 0.25 + Math.abs(Math.sin(clock.elapsedTime * 2)) * 0.5;
+    }
+  });
   return (
-    <mesh position={[0.1, 1.09, -1.0]}>
-      <cylinderGeometry args={[0.3, 0.25, 0.05, 20]} />
-      <meshStandardMaterial color="#f5f2ea" />
+    <group>
+      <mesh position={[0.1, 1.09, -1.0]}>
+        <cylinderGeometry args={[0.3, 0.25, 0.05, 20]} />
+        <meshStandardMaterial color="#f5f2ea" />
+      </mesh>
+      <mesh ref={highlightRef} position={[0.1, 1.12, -1.0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.28, 0.34, 24]} />
+        <meshStandardMaterial
+          color="#ffe9a8"
+          transparent
+          opacity={0.4}
+          emissive="#ffd166"
+          emissiveIntensity={0.6}
+        />
+      </mesh>
+    </group>
+  );
+}
+
+// G2.1 추가 — 주문표: 주방장 옆 게시판 + 새 주문 알림 표시등(깜빡임)
+function OrderBoard() {
+  const lightRef = useRef<Mesh>(null);
+  useFrame(({ clock }) => {
+    const material = lightRef.current?.material as MeshStandardMaterial | undefined;
+    if (material) {
+      material.emissiveIntensity = 0.6 + Math.abs(Math.sin(clock.elapsedTime * 3)) * 0.8;
+    }
+  });
+  return (
+    <group position={[-1.9, 1.6, -1.6]} rotation={[0, 0.5, 0]}>
+      <mesh>
+        <boxGeometry args={[0.9, 0.7, 0.05]} />
+        <meshStandardMaterial color="#3f4a52" />
+      </mesh>
+      <mesh position={[0, 0.05, 0.03]}>
+        <planeGeometry args={[0.7, 0.45]} />
+        <meshStandardMaterial color="#fbf8f2" />
+      </mesh>
+      <mesh ref={lightRef} position={[0.32, 0.28, 0.04]}>
+        <sphereGeometry args={[0.06, 12, 12]} />
+        <meshStandardMaterial color="#ff6b57" emissive="#ff6b57" emissiveIntensity={0.8} />
+      </mesh>
+      <mesh position={[0, -0.55, 0]}>
+        <cylinderGeometry args={[0.04, 0.04, 0.6, 8]} />
+        <meshStandardMaterial color="#5a4b3a" />
+      </mesh>
+    </group>
+  );
+}
+
+// G2.1 추가 — 동료 요리사: 기본 도형 조합(원통 몸+구 머리+모자)의 저폴리 캐릭터.
+// 외부 3D 에셋 사용 금지 원칙에 따라 geometry 조합만으로 구성한다.
+function Colleague() {
+  return (
+    <group position={[-1.5, 0, -1.6]} rotation={[0, 0.6, 0]}>
+      <mesh position={[0, 0.75, 0]}>
+        <cylinderGeometry args={[0.26, 0.3, 0.9, 12]} />
+        <meshStandardMaterial color="#f4f1ea" />
+      </mesh>
+      <mesh position={[0, 0.6, 0.2]}>
+        <boxGeometry args={[0.4, 0.55, 0.04]} />
+        <meshStandardMaterial color="#c1462f" />
+      </mesh>
+      <mesh position={[0, 1.35, 0]}>
+        <sphereGeometry args={[0.22, 16, 16]} />
+        <meshStandardMaterial color="#e8b98c" />
+      </mesh>
+      <mesh position={[0, 1.62, 0]}>
+        <cylinderGeometry args={[0.2, 0.16, 0.22, 16]} />
+        <meshStandardMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[0, 1.76, 0]}>
+        <sphereGeometry args={[0.2, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#ffffff" />
+      </mesh>
+    </group>
+  );
+}
+
+// G2.1 추가 — 재료 보관대: 선반 + 색색의 보관함 (3.1 팔레트: 크림/토마토레드/버터옐로/청록)
+function StorageRack() {
+  const boxColors = ["#d94f3c", "#e7b23c", "#3f9c96", "#f2e4c4"];
+  return (
+    <group position={[1.9, 0, -2]}>
+      <mesh position={[0, 0.85, 0]}>
+        <boxGeometry args={[0.9, 0.06, 0.5]} />
+        <meshStandardMaterial color="#8a6f4d" />
+      </mesh>
+      <mesh position={[-0.38, 0.42, 0]}>
+        <boxGeometry args={[0.08, 0.85, 0.08]} />
+        <meshStandardMaterial color="#6b5539" />
+      </mesh>
+      <mesh position={[0.38, 0.42, 0]}>
+        <boxGeometry args={[0.08, 0.85, 0.08]} />
+        <meshStandardMaterial color="#6b5539" />
+      </mesh>
+      {boxColors.map((color, index) => (
+        <mesh key={color} position={[-0.32 + index * 0.22, 0.98, 0]}>
+          <boxGeometry args={[0.18, 0.2, 0.18]} />
+          <meshStandardMaterial color={color} />
+        </mesh>
+      ))}
+    </group>
+  );
+}
+
+// G2.1 추가 — 접시 전달대: 완성된 접시를 손님 쪽으로 내보내는 별도 카운터
+function DeliveryCounter() {
+  return (
+    <group position={[0.9, 0, 0.9]} rotation={[0, -0.3, 0]}>
+      <mesh position={[0, 0.45, 0]}>
+        <boxGeometry args={[1.1, 0.9, 0.5]} />
+        <meshStandardMaterial color="#e8c76a" />
+      </mesh>
+      <mesh position={[0, 0.92, 0]}>
+        <boxGeometry args={[1.15, 0.06, 0.55]} />
+        <meshStandardMaterial color="#fbf3df" />
+      </mesh>
+    </group>
+  );
+}
+
+// G2.1 추가 — 냄비 위 수증기: 외부 파티클 라이브러리 없이 useFrame으로 상승+페이드만 반복
+function Steam() {
+  const meshRef = useRef<Mesh>(null);
+  useFrame(({ clock }) => {
+    const mesh = meshRef.current;
+    if (!mesh) return;
+    const t = (clock.elapsedTime % 2) / 2;
+    mesh.position.y = 1.55 + t * 0.5;
+    const material = mesh.material as MeshStandardMaterial;
+    material.opacity = 0.5 * (1 - t);
+  });
+  return (
+    <mesh ref={meshRef} position={[-0.9, 1.55, -1.2]}>
+      <sphereGeometry args={[0.14, 10, 10]} />
+      <meshStandardMaterial color="#ffffff" transparent opacity={0.4} />
     </mesh>
   );
 }
@@ -118,24 +269,37 @@ function Kitchen() {
         <boxGeometry args={[1.4, 0.5, 0.8]} />
         <meshStandardMaterial color="#9aa0a6" />
       </mesh>
+
+      {/* G2.1 — 씬 필수 요소: 주문표/동료/보관대/전달대/수증기 */}
+      <OrderBoard />
+      <Colleague />
+      <StorageRack />
+      <DeliveryCounter />
+      <Steam />
     </group>
   );
 }
 
 export default function ChefScene({ stage, showPlate }: ChefSceneProps) {
   return (
-    <div className="h-[60vh] w-full overflow-hidden rounded-xl bg-[#efe9dd]">
-      <Canvas
-        camera={{ position: [0, 1.8, 3.2], fov: 55 }}
-        dpr={[1, 2]}
-        gl={{ antialias: true, powerPreference: "low-power" }}
-      >
-        <CameraRig stage={stage} />
-        <ambientLight intensity={0.9} />
-        <directionalLight position={[3, 5, 4]} intensity={1.1} />
-        <Kitchen />
-        {showPlate && <Plate />}
-      </Canvas>
-    </div>
+    <XrSceneGuard
+      fallback={
+        <XrScenePlaceholder message="지금 화면에서는 그림 대신 글로 주방 체험을 이어가요." />
+      }
+    >
+      <div className="h-[60vh] w-full overflow-hidden rounded-xl bg-[#efe9dd]">
+        <Canvas
+          camera={{ position: [0, 1.8, 3.2], fov: 55 }}
+          dpr={[1, 2]}
+          gl={{ antialias: true, powerPreference: "low-power" }}
+        >
+          <CameraRig stage={stage} />
+          <ambientLight intensity={0.9} />
+          <directionalLight position={[3, 5, 4]} intensity={1.1} />
+          <Kitchen />
+          {showPlate && <Plate />}
+        </Canvas>
+      </div>
+    </XrSceneGuard>
   );
 }
