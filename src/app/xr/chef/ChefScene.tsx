@@ -29,13 +29,25 @@
 //     이 파일에서 선택 잠금/analytics를 절대 복제하지 않는다.
 //   - onSceneError: Canvas 런타임 오류 시 상위에 알려 HTML fallback으로
 //     즉시 전환할 수 있게 하는 선택적 콜백 (XrSceneGuard로 그대로 전달).
+//
+// G2.1-R1-F1 추가 — 모바일 카메라 프레이밍/라벨 잘림 보정:
+//   position/lookAt(자세)은 그대로 두고(재배치는 벽·오브젝트 관통 위험),
+//   매 프레임 실제 aspect ratio 기준으로 "이 stage에서 반드시 보여야 하는
+//   좌표들"(interactions3d.ts의 framingPointsForStage/fitVerticalFov)이
+//   모두 프레임에 들어오도록 camera.fov만 감쇠 보간으로 보정한다.
 // ====================================================
 
 import { useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import type { Mesh, MeshStandardMaterial } from "three";
+import type { Mesh, MeshStandardMaterial, PerspectiveCamera } from "three";
 import type { Choice, CameraStage, InteractionKind } from "./scenario";
-import { easeAlpha, easeVec3, type Vec3 } from "./interactions3d";
+import {
+  easeAlpha,
+  easeVec3,
+  fitCameraFraming,
+  framingPointsForStage,
+  type Vec3,
+} from "./interactions3d";
 import SceneInteractions from "./SceneInteractions";
 import XrSceneGuard from "../XrSceneGuard";
 import XrScenePlaceholder from "../XrScenePlaceholder";
@@ -53,6 +65,8 @@ export interface ChefSceneProps {
 }
 
 const CAMERA_EASE_HALF_LIFE = 0.35;
+/** framingPointsForStage가 null(=씬 상호작용 없음, HTML 모드 등)일 때 쓰는 기존 기본 FOV */
+const DEFAULT_FOV = 55;
 
 // 단계별 카메라 좌표 테이블 (position + lookAt 쌍)
 // 조리대(중심 [0, 1, -1.2])가 항상 프레임에 들어오도록 이동 폭은 보수적으로 유지
@@ -81,19 +95,48 @@ const CAMERA_STAGES: Record<
 // 목표에 지수 감쇠로 접근한다(half-life 기반 — 프레임레이트 독립적).
 // 초기 카메라 위치(Canvas camera prop)가 이미 overview와 같아 첫 진입 시
 // 눈에 띄는 글라이드는 없다.
-function CameraRig({ stage }: { stage: CameraStage }) {
-  const camera = useThree((state) => state.camera);
+function CameraRig({
+  stage,
+  sceneInteractionId,
+}: {
+  stage: CameraStage;
+  sceneInteractionId: string | null;
+}) {
+  const camera = useThree((state) => state.camera) as PerspectiveCamera;
+  const size = useThree((state) => state.size);
+  // basePosRef/lookAtRef: stage 테이블의 "원래" 좌표를 향해 감쇠 이동하는 기준값.
+  // 실제 렌더링되는 camera.position은 이 기준값에서 distanceScaleRef만큼 lookAt
+  // 반대 방향으로 민 값이다 — camera.position 자체를 기준으로 다시 이징하면
+  // (밀어낸 값에서 또 밀어내는) 피드백 루프가 생기므로 반드시 분리해 둔다.
+  const basePosRef = useRef<Vec3>(CAMERA_STAGES.overview.position);
   const lookAtRef = useRef<Vec3>(CAMERA_STAGES.overview.lookAt);
+  const distanceScaleRef = useRef(1);
 
   useFrame((_, delta) => {
     const { position, lookAt } = CAMERA_STAGES[stage];
     const alpha = easeAlpha(delta, CAMERA_EASE_HALF_LIFE);
-    camera.position.set(
-      camera.position.x + (position[0] - camera.position.x) * alpha,
-      camera.position.y + (position[1] - camera.position.y) * alpha,
-      camera.position.z + (position[2] - camera.position.z) * alpha,
-    );
+
+    basePosRef.current = easeVec3(basePosRef.current, position, alpha);
     lookAtRef.current = easeVec3(lookAtRef.current, lookAt, alpha);
+
+    // G2.1-R1-F1: aspect ratio 기준으로 이 stage의 필수 노출 좌표가 전부 프레임에
+    // 들어오도록 FOV/거리를 함께 보정한다(위치·자세 보간과 같은 alpha로 부드럽게 전환).
+    const aspect = size.height > 0 ? size.width / size.height : 1;
+    const points = framingPointsForStage(stage, sceneInteractionId);
+    const framing = points
+      ? fitCameraFraming({ cameraPos: basePosRef.current, lookAt: lookAtRef.current, points, aspect })
+      : { fovDeg: DEFAULT_FOV, distanceScale: 1 };
+
+    camera.fov += (framing.fovDeg - camera.fov) * alpha;
+    camera.updateProjectionMatrix();
+    distanceScaleRef.current += (framing.distanceScale - distanceScaleRef.current) * alpha;
+
+    const scale = distanceScaleRef.current;
+    camera.position.set(
+      lookAtRef.current[0] + (basePosRef.current[0] - lookAtRef.current[0]) * scale,
+      lookAtRef.current[1] + (basePosRef.current[1] - lookAtRef.current[1]) * scale,
+      lookAtRef.current[2] + (basePosRef.current[2] - lookAtRef.current[2]) * scale,
+    );
     camera.lookAt(lookAtRef.current[0], lookAtRef.current[1], lookAtRef.current[2]);
   });
 
@@ -341,7 +384,7 @@ export default function ChefScene({
           dpr={[1, 2]}
           gl={{ antialias: true, powerPreference: "low-power" }}
         >
-          <CameraRig stage={stage} />
+          <CameraRig stage={stage} sceneInteractionId={sceneInteractionId ?? null} />
           <ambientLight intensity={0.9} />
           <directionalLight position={[3, 5, 4]} intensity={1.1} />
           <Kitchen />

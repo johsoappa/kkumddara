@@ -14,7 +14,7 @@
 //   그대로 씬까지 전달한다.
 // ====================================================
 
-import type { InteractionKind, Mode } from "./scenario";
+import type { CameraStage, InteractionKind, Mode } from "./scenario";
 
 export type Vec3 = [number, number, number];
 
@@ -92,12 +92,16 @@ export const SCENE_ANCHORS: Record<string, SceneAnchor> = {
     ],
   },
   // 나침반 지점5 — 전달대/안내 관련 타겟 3개 (지점4와 다른 위치, 넓게 배치)
+  // G2.1-R1-F1 보정: 이전 좌표(z가 +0.5~1.15)는 plating 카메라(lookAt z=-1.1,
+  // 카메라 z=0.6 — 즉 -z 방향을 바라봄)의 시야 반대쪽(카메라 뒤/옆)에 있어
+  // 렌더링 자체가 되지 않는 버그였다. p4와 같은 -z 시야 안에서, 위치·높이만
+  // 다르게 잡아 "지점4와 다른 위치"라는 요구를 지킨다.
   compass_p5: {
     kind: "select",
     targets: [
-      [0.3, 1.0, 0.65],
-      [1.3, 1.0, 0.5],
-      [0.75, 1.45, 1.15],
+      [0.35, 1.05, -0.9],
+      [-0.35, 1.0, -0.75],
+      [0.05, 1.42, -1.3],
     ],
   },
   // 새싹 지점1 — compass_p1의 2타겟 버전
@@ -134,6 +138,263 @@ export const SCENE_HINTS: Record<InteractionKind, string> = {
   place: "재료를 눌러서 표시된 자리로 끌어다 놓아보세요.",
   order: "타일을 끌어서 순서를 바꾸고, 확인을 눌러보세요.",
 };
+
+// ====================================================
+// G2.1-R1-F1 — 카메라 프레이밍(FOV) 자동 계산
+//
+// 라벨/선택 대상이 Canvas 경계 밖으로 잘리는 문제를, stage별 카메라
+// position/lookAt은 그대로 둔 채(재배치는 벽·오브젝트 관통 위험이 있어
+// 보수적으로 피한다) 매 프레임 "이 stage에서 반드시 보여야 하는 실제
+// 월드 좌표들"을 기준으로 수직 FOV를 계산해 보정하는 방식으로 해결한다.
+//
+// SceneInteractions.tsx가 라벨을 배치할 때 쓰는 오프셋/스프라이트 크기와
+// 반드시 같은 상수를 공유해야 "라벨까지 포함해 안 잘리는" 계산이 성립한다.
+// ====================================================
+
+/** select 타겟 라벨: 메시 중심 기준 위쪽 오프셋 + 스프라이트 크기 */
+export const LABEL_SCALE_LARGE: [number, number] = [0.85, 0.42];
+export const LABEL_OFFSET_LARGE = 0.34;
+export const LABEL_HALF_WIDTH_LARGE = LABEL_SCALE_LARGE[0] / 2;
+export const LABEL_HALF_HEIGHT_LARGE = LABEL_SCALE_LARGE[1] / 2;
+/** place 토큰 / order 타일·확인 프롭 라벨(좁은 간격용 축소 스프라이트) */
+export const LABEL_SCALE_SMALL: [number, number] = [0.58, 0.3];
+export const LABEL_OFFSET_SMALL = 0.29;
+export const LABEL_HALF_WIDTH_SMALL = LABEL_SCALE_SMALL[0] / 2;
+export const LABEL_HALF_HEIGHT_SMALL = LABEL_SCALE_SMALL[1] / 2;
+
+function vSub(a: Vec3, b: Vec3): Vec3 {
+  return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
+}
+function vDot(a: Vec3, b: Vec3): number {
+  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+}
+function vCross(a: Vec3, b: Vec3): Vec3 {
+  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+}
+function vLen(a: Vec3): number {
+  return Math.sqrt(vDot(a, a));
+}
+function vNormalize(a: Vec3): Vec3 {
+  const len = vLen(a);
+  if (len < 1e-6) return [0, 0, -1];
+  return [a[0] / len, a[1] / len, a[2] / len];
+}
+
+/**
+ * 라벨(billboard sprite)의 네 모서리를 월드 좌표로 근사한다. 라벨은 항상 카메라를
+ * 향하므로 정확한 모서리는 카메라의 실제 right/up 축에 좌우되지만, 이 씬의 모든
+ * 카메라는 피치·요가 완만해(옆에서 보거나 위아래로 크게 꺾이지 않음) world
+ * X(가로)/Y(세로) 축으로 근사해도 안전하다 — fitVerticalFov가 이 점들을 다시
+ * 실제 카메라 축으로 투영해 최종 각도를 계산하므로, 여기서는 라벨의 "너비·높이가
+ * 어디까지 뻗는지"만 world 좌표로 표현하면 된다.
+ */
+function labelCorners(mesh: Vec3, offset: number, halfWidth: number, halfHeight: number): Vec3[] {
+  const centerY = mesh[1] + offset;
+  return [
+    [mesh[0] - halfWidth, centerY - halfHeight, mesh[2]],
+    [mesh[0] + halfWidth, centerY - halfHeight, mesh[2]],
+    [mesh[0] - halfWidth, centerY + halfHeight, mesh[2]],
+    [mesh[0] + halfWidth, centerY + halfHeight, mesh[2]],
+  ];
+}
+
+/** 앵커 하나(메시 위치 + 라벨 네 모서리)를 "반드시 프레임에 들어와야 하는 점" 목록으로 펼친다. */
+export function framingPointsForAnchor(anchor: SceneAnchor): Vec3[] {
+  if (anchor.kind === "select") {
+    return anchor.targets.flatMap((t) => [
+      t,
+      ...labelCorners(t, LABEL_OFFSET_LARGE, LABEL_HALF_WIDTH_LARGE, LABEL_HALF_HEIGHT_LARGE),
+    ]);
+  }
+  if (anchor.kind === "place") {
+    const tokenPoints = anchor.tokens.flatMap((t) => [
+      t,
+      ...labelCorners(t, LABEL_OFFSET_SMALL, LABEL_HALF_WIDTH_SMALL, LABEL_HALF_HEIGHT_SMALL),
+    ]);
+    return [...tokenPoints, anchor.dropZone];
+  }
+  const slotPoints = anchor.slots.flatMap((s) => [
+    s,
+    ...labelCorners(s, LABEL_OFFSET_SMALL, LABEL_HALF_WIDTH_SMALL, LABEL_HALF_HEIGHT_SMALL),
+  ]);
+  const confirmPoints: Vec3[] = [
+    anchor.confirm,
+    ...labelCorners(anchor.confirm, LABEL_OFFSET_SMALL, LABEL_HALF_WIDTH_SMALL, LABEL_HALF_HEIGHT_SMALL),
+  ];
+  return [...slotPoints, ...confirmPoints];
+}
+
+/** intro/overview에서 반드시 보여야 하는 주방 랜드마크(후드·조리대 양끝·전달대·주문표·보관대) */
+export const OVERVIEW_LANDMARKS: Vec3[] = [
+  [-2.05, 1.02, -1.2],
+  [2.05, 1.02, -1.2],
+  [0.7, 2.45, -1.2],
+  [-0.7, 2.45, -1.2],
+  [1.4, 0.92, 1.1],
+  [-2.35, 1.95, -1.6],
+  [2.3, 1.4, -2.2],
+];
+
+/** 결과 화면(celebrate)에서 반드시 보여야 하는 완성 접시·전달대·동료 */
+export const CELEBRATE_LANDMARKS: Vec3[] = [
+  [0.1, 1.2, -1.0],
+  [1.4, 0.92, 1.1],
+  [-1.5, 1.85, -1.6],
+];
+
+/**
+ * 주어진 stage/현재 씬 상호작용 지점에서 "반드시 프레임에 들어와야 하는" 점 목록을 고른다.
+ * null을 반환하면(=인터랙션 없는 HTML 모드 등) 기본 FOV를 그대로 사용한다.
+ */
+export function framingPointsForStage(
+  stage: CameraStage,
+  sceneInteractionId: string | null,
+): Vec3[] | null {
+  if (stage === "overview") return OVERVIEW_LANDMARKS;
+  if (stage === "celebrate") return CELEBRATE_LANDMARKS;
+  if (!sceneInteractionId) return null;
+  const anchor = SCENE_ANCHORS[sceneInteractionId];
+  return anchor ? framingPointsForAnchor(anchor) : null;
+}
+
+export interface FitVerticalFovInput {
+  cameraPos: Vec3;
+  lookAt: Vec3;
+  points: Vec3[];
+  aspect: number;
+  /** 점들이 화면 가장자리에서 얼마나 안쪽(0~1)에 들어오게 할지 — 클수록 여백이 줄어든다 */
+  marginRatio?: number;
+  minFovDeg?: number;
+  maxFovDeg?: number;
+}
+
+/**
+ * 카메라 position/lookAt(자세)는 그대로 두고, 주어진 월드 좌표들이 현재 aspect ratio에서
+ * 모두 프레임 안(margin 포함)에 들어오도록 필요한 "수직" FOV(THREE.PerspectiveCamera.fov 단위,
+ * degree)를 계산한다. 순수 함수 — Three.js 인스턴스 없이 벡터 3-튜플만으로 계산한다.
+ */
+export function fitVerticalFov({
+  cameraPos,
+  lookAt,
+  points,
+  aspect,
+  marginRatio = 0.82,
+  minFovDeg = 40,
+  maxFovDeg = 85,
+}: FitVerticalFovInput): number {
+  const forward = vNormalize(vSub(lookAt, cameraPos));
+  const worldUp: Vec3 = [0, 1, 0];
+  let right = vNormalize(vCross(forward, worldUp));
+  if (vLen(right) < 1e-6) right = [1, 0, 0]; // forward가 world up과 거의 평행한 축퇴 상황 방어
+  const up = vNormalize(vCross(right, forward));
+
+  let maxTanHalfH = 0;
+  let maxTanHalfV = 0;
+  for (const point of points) {
+    const rel = vSub(point, cameraPos);
+    const depth = vDot(rel, forward);
+    if (depth <= 0.05) continue; // 카메라 뒤/극단적으로 가까운 점은 계산에서 제외
+    maxTanHalfH = Math.max(maxTanHalfH, Math.abs(vDot(rel, right)) / depth);
+    maxTanHalfV = Math.max(maxTanHalfV, Math.abs(vDot(rel, up)) / depth);
+  }
+
+  if (maxTanHalfH === 0 && maxTanHalfV === 0) {
+    return Math.min(maxFovDeg, Math.max(minFovDeg, 55));
+  }
+
+  const clampedMargin = Math.min(0.95, Math.max(0.4, marginRatio));
+  const tanHalfH = maxTanHalfH / clampedMargin;
+  const tanHalfV = maxTanHalfV / clampedMargin;
+
+  const halfVFovFromV = Math.atan(tanHalfV);
+  // 수평으로 필요한 반각을, 현재 aspect(width/height)에서 그에 대응하는 수직 반각으로 환산
+  const halfVFovFromH = Math.atan(tanHalfH / Math.max(0.01, aspect));
+
+  const neededHalfVFov = Math.max(halfVFovFromV, halfVFovFromH);
+  const vFovDeg = (neededHalfVFov * 2 * 180) / Math.PI;
+  return Math.min(maxFovDeg, Math.max(minFovDeg, vFovDeg));
+}
+
+export interface CameraFraming {
+  fovDeg: number;
+  /** lookAt→cameraPos 축 방향으로 카메라를 얼마나 더 밀어야 하는지의 배율(>=1, 1이면 원래 위치 유지) */
+  distanceScale: number;
+}
+
+/**
+ * fitVerticalFov만으로 필요한 FOV가 maxFovDeg를 넘어서면(카메라가 대상에 비해 너무
+ * 가까워 FOV만으로는 담을 수 없는 경우), FOV는 maxFovDeg로 고정하고 대신 카메라를
+ * lookAt 반대 방향(원래 시선축)으로 필요한 만큼 더 미는 배율을 함께 계산한다.
+ * 이렇게 하면 fov 하나만 무한정 키워 어안렌즈처럼 왜곡되는 대신, 거리 보정으로
+ * 자연스럽게 프레이밍을 맞춘다("카메라 거리 또는 FOV를 조정").
+ */
+export function fitCameraFraming({
+  cameraPos,
+  lookAt,
+  points,
+  aspect,
+  marginRatio = 0.82,
+  minFovDeg = 40,
+  maxFovDeg = 85,
+}: FitVerticalFovInput): CameraFraming {
+  if (points.length === 0) {
+    return { fovDeg: Math.min(maxFovDeg, Math.max(minFovDeg, 55)), distanceScale: 1 };
+  }
+
+  // 우선 카메라를 밀지 않는다고 가정하고 필요한 "실제" FOV를 구한다(상한 없이).
+  const rawFovDeg = fitVerticalFov({
+    cameraPos,
+    lookAt,
+    points,
+    aspect,
+    marginRatio,
+    minFovDeg,
+    maxFovDeg: 1000,
+  });
+
+  if (rawFovDeg <= maxFovDeg) {
+    return { fovDeg: Math.max(minFovDeg, rawFovDeg), distanceScale: 1 };
+  }
+
+  const forward = vNormalize(vSub(lookAt, cameraPos));
+  const worldUp: Vec3 = [0, 1, 0];
+  let right = vNormalize(vCross(forward, worldUp));
+  if (vLen(right) < 1e-6) right = [1, 0, 0];
+  const up = vNormalize(vCross(right, forward));
+
+  const distanceFromLookAt = vLen(vSub(cameraPos, lookAt));
+  if (distanceFromLookAt < 1e-6) {
+    return { fovDeg: maxFovDeg, distanceScale: 1 };
+  }
+
+  const clampedMargin = Math.min(0.95, Math.max(0.4, marginRatio));
+  const maxHalfRad = (maxFovDeg * Math.PI) / 180 / 2;
+  const allowedTanV = Math.tan(maxHalfRad) * clampedMargin;
+  const allowedTanH = allowedTanV * Math.max(0.01, aspect);
+
+  let requiredScale = 1;
+  for (const point of points) {
+    const rel = vSub(point, lookAt);
+    // depthFromLookAt: lookAt 지점을 기준으로 이 점이 카메라 쪽(+forward)으로 얼마나
+    // 더 붙어 있는지 — 카메라를 s배 밀면 이 점까지의 실제 depth는
+    // depthFromLookAt + s*distanceFromLookAt이 된다(각도 성분 H/V는 s와 무관 — right/up이
+    // forward와 직교하므로 lookAt→cameraPos 방향 이동은 H/V에 영향을 주지 않는다).
+    const depthFromLookAt = vDot(rel, forward);
+    const h = Math.abs(vDot(rel, right));
+    const v = Math.abs(vDot(rel, up));
+
+    if (allowedTanH > 1e-6) {
+      const neededDepth = h / allowedTanH;
+      requiredScale = Math.max(requiredScale, (neededDepth - depthFromLookAt) / distanceFromLookAt);
+    }
+    if (allowedTanV > 1e-6) {
+      const neededDepth = v / allowedTanV;
+      requiredScale = Math.max(requiredScale, (neededDepth - depthFromLookAt) / distanceFromLookAt);
+    }
+  }
+
+  return { fovDeg: maxFovDeg, distanceScale: Math.max(1, requiredScale) };
+}
 
 // ---------- place: 드롭 판정 ----------
 

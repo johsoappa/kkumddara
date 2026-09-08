@@ -22,6 +22,10 @@ import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import type { Mesh, MeshStandardMaterial } from "three";
 import type { Choice, InteractionKind } from "./scenario";
 import {
+  LABEL_OFFSET_LARGE,
+  LABEL_OFFSET_SMALL,
+  LABEL_SCALE_LARGE,
+  LABEL_SCALE_SMALL,
   SCENE_ANCHORS,
   hitTestDropZone,
   reorderOnDrag,
@@ -146,7 +150,7 @@ function SelectTarget({
 }) {
   const [hovered, setHovered] = useState(false);
   const matRef = useRef<MeshStandardMaterial>(null);
-  const labelSprite = useMemo(() => createLabelSprite(label), [label]);
+  const labelSprite = useMemo(() => createLabelSprite(label, LABEL_SCALE_LARGE), [label]);
 
   useFrame(({ clock }) => {
     const material = matRef.current;
@@ -178,7 +182,7 @@ function SelectTarget({
     >
       <sphereGeometry args={[0.17, 16, 16]} />
       <meshStandardMaterial ref={matRef} color="#ff9f43" emissive="#ffd166" emissiveIntensity={0.12} />
-      <primitive object={labelSprite} position={[0, 0.34, 0]} />
+      <primitive object={labelSprite} position={[0, LABEL_OFFSET_LARGE, 0]} />
     </mesh>
   );
 }
@@ -268,7 +272,7 @@ function DragToken({
   const meshRef = useRef<Mesh>(null);
   const matRef = useRef<MeshStandardMaterial>(null);
   const [hovered, setHovered] = useState(false);
-  const labelSprite = useMemo(() => createLabelSprite(label, [0.58, 0.3]), [label]);
+  const labelSprite = useMemo(() => createLabelSprite(label, LABEL_SCALE_SMALL), [label]);
   const liveXZ = useRef({ x: origin[0], z: origin[2] });
 
   useFrame(({ clock }) => {
@@ -324,7 +328,7 @@ function DragToken({
     >
       <boxGeometry args={[0.22, 0.22, 0.22]} />
       <meshStandardMaterial ref={matRef} color="#e7b23c" emissive="#ffd166" emissiveIntensity={0.1} />
-      <primitive object={labelSprite} position={[0, 0.28, 0]} />
+      <primitive object={labelSprite} position={[0, LABEL_OFFSET_SMALL, 0]} />
     </mesh>
   );
 }
@@ -396,7 +400,7 @@ function OrderTile({
   const matRef = useRef<MeshStandardMaterial>(null);
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const labelSprite = useMemo(() => createLabelSprite(label, [0.58, 0.3]), [label]);
+  const labelSprite = useMemo(() => createLabelSprite(label, LABEL_SCALE_SMALL), [label]);
   const restX = slotX[index] ?? slotX[0] ?? 0;
 
   useFrame(({ clock }) => {
@@ -448,7 +452,7 @@ function OrderTile({
     >
       <boxGeometry args={[0.4, 0.13, 0.34]} />
       <meshStandardMaterial ref={matRef} color="#3f9c96" emissive="#3f9c96" emissiveIntensity={0.1} />
-      <primitive object={labelSprite} position={[0, 0.28, 0]} />
+      <primitive object={labelSprite} position={[0, LABEL_OFFSET_SMALL, 0]} />
     </mesh>
   );
 }
@@ -456,7 +460,7 @@ function OrderTile({
 function ConfirmProp({ position, onConfirm }: { position: Vec3; onConfirm: () => void }) {
   const [hovered, setHovered] = useState(false);
   const matRef = useRef<MeshStandardMaterial>(null);
-  const labelSprite = useMemo(() => createLabelSprite("이 순서로 확정", [0.58, 0.3]), []);
+  const labelSprite = useMemo(() => createLabelSprite("이 순서로 확정", LABEL_SCALE_SMALL), []);
 
   useFrame(({ clock }) => {
     const material = matRef.current;
@@ -488,7 +492,7 @@ function ConfirmProp({ position, onConfirm }: { position: Vec3; onConfirm: () =>
     >
       <cylinderGeometry args={[0.17, 0.17, 0.11, 20]} />
       <meshStandardMaterial ref={matRef} color="#4caf7d" emissive="#4caf7d" emissiveIntensity={0.25} />
-      <primitive object={labelSprite} position={[0, 0.29, 0]} />
+      <primitive object={labelSprite} position={[0, LABEL_OFFSET_SMALL, 0]} />
     </mesh>
   );
 }
