@@ -16,6 +16,11 @@
 //      (@react-three/fiber의 Canvas는 자식에서 던진 에러를 내부에서
 //       잡았다가 상위로 다시 throw하도록 구현되어 있어, 바깥의 일반
 //       React 에러 바운더리가 이를 안전하게 캐치한다.)
+//
+// G2.1-R1 추가: 선택적 onSceneError 콜백. Canvas 런타임 오류로 이
+//   fallback이 뜨는 순간을 상위(XrChefClient 등)에 알려, 상위가 자신의
+//   진행 UI를 HTML 흐름으로 즉시 전환할 수 있게 한다. 기존 호출부는
+//   이 prop을 넘기지 않아도 동작이 전혀 바뀌지 않는다(선택적, 하위호환).
 // ====================================================
 
 import { Component, type ReactNode } from "react";
@@ -24,6 +29,7 @@ import { isWebglSupported } from "./webglSupport";
 interface CanvasErrorBoundaryProps {
   children: ReactNode;
   fallback: ReactNode;
+  onError?: () => void;
 }
 
 interface CanvasErrorBoundaryState {
@@ -40,6 +46,10 @@ class CanvasErrorBoundary extends Component<
     return { hasError: true };
   }
 
+  componentDidCatch() {
+    this.props.onError?.();
+  }
+
   render() {
     if (this.state.hasError) {
       return this.props.fallback;
@@ -51,11 +61,16 @@ class CanvasErrorBoundary extends Component<
 export interface XrSceneGuardProps {
   children: ReactNode;
   fallback: ReactNode;
+  onSceneError?: () => void;
 }
 
-export default function XrSceneGuard({ children, fallback }: XrSceneGuardProps) {
+export default function XrSceneGuard({ children, fallback, onSceneError }: XrSceneGuardProps) {
   if (!isWebglSupported()) {
     return <>{fallback}</>;
   }
-  return <CanvasErrorBoundary fallback={fallback}>{children}</CanvasErrorBoundary>;
+  return (
+    <CanvasErrorBoundary fallback={fallback} onError={onSceneError}>
+      {children}
+    </CanvasErrorBoundary>
+  );
 }

@@ -17,11 +17,29 @@
 //   - choice 클릭은 ref 잠금 + reaction 단계로의 화면 전환으로 이중 차단
 //   - result 이벤트는 마지막 choice 클릭 핸들러에서 함께 전송
 //     (새싹은 result_axis: "none" — analytics 공용 property 타입 유지 결정)
+//
+// G2.1-R1 추가 — 인캔버스 직접 조작 전환:
+//   - webglOk: 마운트 시 1회 isWebglSupported()로 판정(useEffect 안에서
+//     track() 호출 없음 — 캡처빌리티 확인일 뿐 이벤트 아님).
+//   - uiMode("scene"|"html")로 1차 상호작용 표시를 전환한다. useScene이
+//     false인 동안(WebGL 미지원 · 사용자가 "글로 진행하기" 선택 · Canvas
+//     런타임 오류)에는 아래 select/place/order 분기(HTML,
+//     interactions.tsx 무수정)가 그대로 자동 노출된다 — 오늘과 동일한
+//     텍스트 완주 흐름.
+//   - sceneUnavailable: ChefScene의 onSceneError로 알려지는 Canvas 런타임
+//     오류 플래그. 한번 오류가 나면 그 세션에서는 계속 HTML 흐름으로
+//     고정한다(XrSceneGuard의 에러 바운더리도 원복하지 않는 것과 동일한
+//     설계).
+//   - useScene이 true일 때만 씬 쪽에 interactionKind/choices/onChoice를
+//     넘긴다. onChoice에는 handleChoice를 가공 없이 그대로 전달 —
+//     잠금/analytics 로직은 여기 한 곳에만 존재한다.
 // ====================================================
 
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { track } from "@/lib/analytics";
+import { isWebglSupported } from "../webglSupport";
+import { SCENE_HINTS, sceneInteractionId as buildSceneInteractionId } from "./interactions3d";
 import {
   AXIS_FEEDBACK,
   B2C_COMPLETE,
@@ -110,6 +128,19 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
   // 리렌더 전 연타로 인한 이벤트 중복 전송 방지 잠금
   const choiceLockRef = useRef(false);
 
+  // G2.1-R1: 씬 상호작용 가용 여부. SSR 출력과 동일하게 false로 시작해
+  // hydration mismatch를 피하고, 마운트 후 실제 판정으로 갱신한다.
+  const [webglOk, setWebglOk] = useState(false);
+  const [sceneUnavailable, setSceneUnavailable] = useState(false);
+  const [uiMode, setUiMode] = useState<"scene" | "html">("scene");
+
+  useEffect(() => {
+    // 캡처빌리티 확인일 뿐 — track() 호출 없음 (이벤트 규칙 준수)
+    setWebglOk(isWebglSupported());
+  }, []);
+
+  const useScene = webglOk && uiMode === "scene" && !sceneUnavailable;
+
   const points = MODE_POINTS[mode];
   const scenarioVersion = SCENARIO_VERSIONS[mode];
   const lastPoint = points.length;
@@ -195,7 +226,27 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
       </header>
 
       {/* 씬은 조건부 언마운트 금지 — Canvas 1회 마운트 유지, props로만 연출 변경 */}
-      <ChefScene stage={cameraStage} showPlate={showPlate} />
+      <ChefScene
+        stage={cameraStage}
+        showPlate={showPlate}
+        sceneInteractionId={
+          useScene && state.phase === "choosing" && currentPointData
+            ? buildSceneInteractionId(mode, state.currentPoint)
+            : null
+        }
+        interactionKind={
+          useScene && state.phase === "choosing" && currentPointData
+            ? currentPointData.interactionKind
+            : null
+        }
+        choices={
+          useScene && state.phase === "choosing" && currentPointData
+            ? currentPointData.choices
+            : []
+        }
+        onChoice={handleChoice}
+        onSceneError={() => setSceneUnavailable(true)}
+      />
 
       {state.phase === "intro" && (
         <section className="flex flex-col gap-4">
@@ -229,14 +280,28 @@ export default function XrChefClient({ mode }: { mode: Mode }) {
               {currentPointData.situation}
             </p>
           )}
-          {currentPointData.interactionKind === "select" && (
+          {useScene && (
+            <p className="text-xs font-medium text-gray-500">
+              {SCENE_HINTS[currentPointData.interactionKind]}
+            </p>
+          )}
+          {!useScene && currentPointData.interactionKind === "select" && (
             <SelectChoices choices={currentPointData.choices} onSelect={handleChoice} />
           )}
-          {currentPointData.interactionKind === "place" && (
+          {!useScene && currentPointData.interactionKind === "place" && (
             <PlaceInteraction choices={currentPointData.choices} onPlace={handleChoice} />
           )}
-          {currentPointData.interactionKind === "order" && (
+          {!useScene && currentPointData.interactionKind === "order" && (
             <OrderInteraction choices={currentPointData.choices} onConfirm={handleChoice} />
+          )}
+          {webglOk && !sceneUnavailable && (
+            <button
+              type="button"
+              onClick={() => setUiMode((previous) => (previous === "scene" ? "html" : "scene"))}
+              className="self-start text-xs text-gray-500 underline"
+            >
+              {useScene ? "글로 진행하기" : "화면으로 진행하기"}
+            </button>
           )}
         </section>
       )}

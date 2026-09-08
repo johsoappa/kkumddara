@@ -8,28 +8,51 @@
 //   - Canvas는 고정 높이 박스 안에만 렌더링 → 페이지 스크롤/버튼 터치 방해 없음
 //
 // v0.2 추가:
-//   - stage props에 따라 CameraRig가 카메라를 즉시(스냅) 이동 — 보간 금지
+//   - stage props에 따라 CameraRig가 카메라를 이동 (v0.2: 즉시 스냅 /
+//     G2.1-R1: 아래 참고 — 감쇠 보간으로 교체)
 //     Canvas camera prop은 초기값 전용이라 마운트 후 변경이 반영되지 않으므로,
-//     useThree()로 camera를 얻어 useLayoutEffect에서 직접 좌표를 바꾼다
+//     useThree()로 camera를 얻어 매 프레임 좌표를 갱신한다
 //   - showPlate props로 조리대 위 접시 1개 표시 (mesh 단위 조건부 —
 //     Canvas 재마운트 아님)
 //
 // G2.1 추가: WebGL 미지원/Canvas 오류 시 공용 XrSceneGuard가 이 Canvas
 //   영역만 정적 텍스트 패널로 대체한다 (선택/결과 로직은 XrChefClient에
 //   있으므로 영향 없음).
+//
+// G2.1-R1 추가 — 인캔버스 직접 조작 전환:
+//   - CameraRig: useLayoutEffect 즉시 스냅 → useFrame 지수 감쇠 보간으로
+//     교체(작업지시 "클릭 후 카메라가 자연스럽게 이동" 요구 반영).
+//     stage prop 트리거 방식은 그대로라 Canvas 재마운트 없음 불변조건 유지.
+//   - interactionKind/choices/onChoice가 전달되면 SceneInteractions가
+//     씬 안에 클릭·드래그 가능한 실제 타겟을 렌더링한다. onChoice는
+//     XrChefClient의 handleChoice를 가공 없이 그대로 관통시킨 값이므로
+//     이 파일에서 선택 잠금/analytics를 절대 복제하지 않는다.
+//   - onSceneError: Canvas 런타임 오류 시 상위에 알려 HTML fallback으로
+//     즉시 전환할 수 있게 하는 선택적 콜백 (XrSceneGuard로 그대로 전달).
 // ====================================================
 
-import { useLayoutEffect, useRef } from "react";
+import { useMemo, useRef } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { Mesh, MeshStandardMaterial } from "three";
-import type { CameraStage } from "./scenario";
+import type { Choice, CameraStage, InteractionKind } from "./scenario";
+import { easeAlpha, easeVec3, type Vec3 } from "./interactions3d";
+import SceneInteractions from "./SceneInteractions";
 import XrSceneGuard from "../XrSceneGuard";
 import XrScenePlaceholder from "../XrScenePlaceholder";
 
 export interface ChefSceneProps {
   stage: CameraStage;
   showPlate: boolean;
+  /** null/[]이면 씬은 지금처럼 배경으로만 존재(인트로·리액션·결과 단계) */
+  sceneInteractionId?: string | null;
+  interactionKind?: InteractionKind | null;
+  choices?: Choice[];
+  onChoice?: (choice: Choice) => void;
+  /** Canvas 런타임 오류 시 상위(XrChefClient)에 1회 알림 — 선택적, 하위호환 */
+  onSceneError?: () => void;
 }
+
+const CAMERA_EASE_HALF_LIFE = 0.35;
 
 // 단계별 카메라 좌표 테이블 (position + lookAt 쌍)
 // 조리대(중심 [0, 1, -1.2])가 항상 프레임에 들어오도록 이동 폭은 보수적으로 유지
@@ -53,14 +76,27 @@ const CAMERA_STAGES: Record<
   celebrate: { position: [0.6, 1.5, 1.4], lookAt: [0.3, 1.05, -0.6] },
 };
 
-// 카메라 스냅 이동 담당 — Canvas 내부에서만 사용 (재마운트 없이 좌표만 변경)
+// 카메라 이동 담당 — Canvas 내부에서만 사용 (재마운트 없이 좌표만 변경).
+// G2.1-R1: stage가 바뀔 때마다 목표 좌표로 순간 이동하지 않고, 프레임마다
+// 목표에 지수 감쇠로 접근한다(half-life 기반 — 프레임레이트 독립적).
+// 초기 카메라 위치(Canvas camera prop)가 이미 overview와 같아 첫 진입 시
+// 눈에 띄는 글라이드는 없다.
 function CameraRig({ stage }: { stage: CameraStage }) {
   const camera = useThree((state) => state.camera);
-  useLayoutEffect(() => {
+  const lookAtRef = useRef<Vec3>(CAMERA_STAGES.overview.lookAt);
+
+  useFrame((_, delta) => {
     const { position, lookAt } = CAMERA_STAGES[stage];
-    camera.position.set(position[0], position[1], position[2]);
-    camera.lookAt(lookAt[0], lookAt[1], lookAt[2]);
-  }, [camera, stage]);
+    const alpha = easeAlpha(delta, CAMERA_EASE_HALF_LIFE);
+    camera.position.set(
+      camera.position.x + (position[0] - camera.position.x) * alpha,
+      camera.position.y + (position[1] - camera.position.y) * alpha,
+      camera.position.z + (position[2] - camera.position.z) * alpha,
+    );
+    lookAtRef.current = easeVec3(lookAtRef.current, lookAt, alpha);
+    camera.lookAt(lookAtRef.current[0], lookAtRef.current[1], lookAtRef.current[2]);
+  });
+
   return null;
 }
 
@@ -280,14 +316,26 @@ function Kitchen() {
   );
 }
 
-export default function ChefScene({ stage, showPlate }: ChefSceneProps) {
+export default function ChefScene({
+  stage,
+  showPlate,
+  sceneInteractionId,
+  interactionKind,
+  choices,
+  onChoice,
+  onSceneError,
+}: ChefSceneProps) {
+  // choices가 undefined일 수 있어 매 렌더 새 배열을 만들지 않도록 메모이즈
+  const resolvedChoices = useMemo(() => choices ?? [], [choices]);
+
   return (
     <XrSceneGuard
+      onSceneError={onSceneError}
       fallback={
         <XrScenePlaceholder message="지금 화면에서는 그림 대신 글로 주방 체험을 이어가요." />
       }
     >
-      <div className="h-[60vh] w-full overflow-hidden rounded-xl bg-[#efe9dd]">
+      <div className="h-[60vh] w-full touch-none overflow-hidden rounded-xl bg-[#efe9dd]">
         <Canvas
           camera={{ position: [0, 1.8, 3.2], fov: 55 }}
           dpr={[1, 2]}
@@ -298,6 +346,14 @@ export default function ChefScene({ stage, showPlate }: ChefSceneProps) {
           <directionalLight position={[3, 5, 4]} intensity={1.1} />
           <Kitchen />
           {showPlate && <Plate />}
+          {sceneInteractionId && interactionKind && onChoice && (
+            <SceneInteractions
+              sceneInteractionId={sceneInteractionId}
+              interactionKind={interactionKind}
+              choices={resolvedChoices}
+              onChoice={onChoice}
+            />
+          )}
         </Canvas>
       </div>
     </XrSceneGuard>

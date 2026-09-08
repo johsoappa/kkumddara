@@ -60,4 +60,32 @@ describe("XrSceneGuard", () => {
 
     expect(screen.getByText("텍스트 fallback")).toBeInTheDocument();
   });
+
+  it("G2.1-R1: onSceneError를 넘기면 Canvas 런타임 오류 시 1회 호출한다", () => {
+    isWebglSupportedMock.mockReturnValue(true);
+    const onSceneError = vi.fn();
+
+    render(
+      <XrSceneGuard fallback={<div>텍스트 fallback</div>} onSceneError={onSceneError}>
+        <ThrowingScene />
+      </XrSceneGuard>,
+    );
+
+    expect(screen.getByText("텍스트 fallback")).toBeInTheDocument();
+    expect(onSceneError).toHaveBeenCalledTimes(1);
+  });
+
+  it("G2.1-R1: onSceneError 없이도(미전달) 기존 동작이 그대로 유지된다", () => {
+    isWebglSupportedMock.mockReturnValue(true);
+
+    expect(() =>
+      render(
+        <XrSceneGuard fallback={<div>텍스트 fallback</div>}>
+          <ThrowingScene />
+        </XrSceneGuard>,
+      ),
+    ).not.toThrow();
+
+    expect(screen.getByText("텍스트 fallback")).toBeInTheDocument();
+  });
 });
