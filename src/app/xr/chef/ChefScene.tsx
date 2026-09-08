@@ -42,10 +42,12 @@ import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { Mesh, MeshStandardMaterial, PerspectiveCamera } from "three";
 import type { Choice, CameraStage, InteractionKind } from "./scenario";
 import {
+  CAMERA_STAGES,
   easeAlpha,
   easeVec3,
   fitCameraFraming,
   framingPointsForStage,
+  scaledCameraPosition,
   type Vec3,
 } from "./interactions3d";
 import SceneInteractions from "./SceneInteractions";
@@ -68,27 +70,9 @@ const CAMERA_EASE_HALF_LIFE = 0.35;
 /** framingPointsForStage가 null(=씬 상호작용 없음, HTML 모드 등)일 때 쓰는 기존 기본 FOV */
 const DEFAULT_FOV = 55;
 
-// 단계별 카메라 좌표 테이블 (position + lookAt 쌍)
-// 조리대(중심 [0, 1, -1.2])가 항상 프레임에 들어오도록 이동 폭은 보수적으로 유지
-const CAMERA_STAGES: Record<
-  CameraStage,
-  { position: [number, number, number]; lookAt: [number, number, number] }
-> = {
-  // 주방 전체 기본 시점 (intro) — v0.1 초기 시점과 동일한 위치
-  overview: { position: [0, 1.8, 3.2], lookAt: [0, 1.1, -1.2] },
-  // 지점1: 조리대 쪽으로 약간 접근 — 작업 시작 느낌
-  approach: { position: [0, 1.6, 2.3], lookAt: [0, 1.0, -1.2] },
-  // 지점2: 조리대 아래·측면 쪽 — 무언가 찾는 느낌
-  // (뒤로·위로 소폭 물리고 시선을 중앙 우측으로 — 도마[x=0.8]가 프레임에 들어오게.
-  //  overview[y=1.8]보다 낮은 측면 시점은 유지)
-  search: { position: [-1.0, 1.4, 2.1], lookAt: [0.2, 0.8, -1.2] },
-  // 지점3: 살짝 뒤로 물러나 조리대 전체 — 상황을 살피는 느낌
-  survey: { position: [0, 2.1, 3.6], lookAt: [0, 1.0, -1.2] },
-  // 지점4·5: 조리대 위 접시 쪽으로 근접 — 마무리 작업 느낌
-  plating: { position: [0.4, 1.6, 0.6], lookAt: [0.1, 1.05, -1.1] },
-  // G2.1 추가 — 결과 화면 전용, 완성된 접시와 전달대 쪽을 비추는 축하 연출
-  celebrate: { position: [0.6, 1.5, 1.4], lookAt: [0.3, 1.05, -0.6] },
-};
+// 단계별 카메라 좌표 테이블(CAMERA_STAGES)은 interactions3d.ts로 옮겼다 —
+// place hit area의 화면 px 환산(G2.1-R1-F5)이 렌더링과 똑같은 카메라 값을
+// 써야 검증이 성립하므로, 순수 데이터 쪽을 단일 출처로 삼는다.
 
 // 카메라 이동 담당 — Canvas 내부에서만 사용 (재마운트 없이 좌표만 변경).
 // G2.1-R1: stage가 바뀔 때마다 목표 좌표로 순간 이동하지 않고, 프레임마다
@@ -131,12 +115,12 @@ function CameraRig({
     camera.updateProjectionMatrix();
     distanceScaleRef.current += (framing.distanceScale - distanceScaleRef.current) * alpha;
 
-    const scale = distanceScaleRef.current;
-    camera.position.set(
-      lookAtRef.current[0] + (basePosRef.current[0] - lookAtRef.current[0]) * scale,
-      lookAtRef.current[1] + (basePosRef.current[1] - lookAtRef.current[1]) * scale,
-      lookAtRef.current[2] + (basePosRef.current[2] - lookAtRef.current[2]) * scale,
+    const scaled = scaledCameraPosition(
+      basePosRef.current,
+      lookAtRef.current,
+      distanceScaleRef.current,
     );
+    camera.position.set(scaled[0], scaled[1], scaled[2]);
     camera.lookAt(lookAtRef.current[0], lookAtRef.current[1], lookAtRef.current[2]);
   });
 
