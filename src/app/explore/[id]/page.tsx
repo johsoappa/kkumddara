@@ -39,6 +39,7 @@ import { OCCUPATIONS } from "@/data/occupations";
 import { getOccupationDepth } from "@/data/occupationDepthSeed";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
 import Goyo24InfoSection from "@/components/explore/Goyo24InfoSection";
+import ChefXrEntryCard from "@/components/explore/ChefXrEntryCard";
 import OccupationTraitSection from "@/components/explore/OccupationTraitSection";
 import OccupationDepthTabs, { type DepthTab } from "@/components/explore/OccupationDepthTabs";
 import SportsInterestCareerSection from "@/components/explore/SportsInterestCareerSection";
@@ -821,6 +822,9 @@ export default function OccupationDetailPage() {
                     )}
                   </section>
                 )}
+
+                {/* 요리사 XR 진입 카드 — id!=="chef" 또는 게이트 OFF면 컴포넌트 내부에서 미노출 */}
+                <ChefXrEntryCard occupationId={id} />
 
                 {/* ②-1 심화 4탭 — Dream Map 게이트와 무관, 심화 시드 보유 직업만 표시 */}
                 {dreamMapDepth && dreamMapTabs && (
