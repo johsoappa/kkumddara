@@ -524,6 +524,7 @@ export default function OccupationDetailPage() {
                 tabs={depthOnlyTabs}
                 nextMission={dreamMapDepth?.nextMission ?? ""}
                 parentQuestions={dreamMapDepth?.parentQuestions ?? []}
+                afterTabsSlot={<ChefXrEntryCard occupationId={id} />}
               />
             )}
 

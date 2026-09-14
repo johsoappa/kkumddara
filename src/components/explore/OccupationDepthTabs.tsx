@@ -41,6 +41,13 @@ interface OccupationDepthTabsProps {
   tabs: [DepthTab, DepthTab, DepthTab, DepthTab];
   nextMission: string;
   parentQuestions: string[];
+  /**
+   * G2.1-R1-F15-R — 탭 패널과 "다음 미션" 카드 사이에 끼워 넣을 선택적 콘텐츠.
+   * 기본값 없음(렌더 안 함) — 이 prop을 넘기지 않는 기존 호출부(다른 모든
+   * 직업 상세)는 출력이 전혀 바뀌지 않는다. 요리사 legacy/fallback 상세의
+   * XR 진입 카드 전용으로 추가했다.
+   */
+  afterTabsSlot?: ReactNode;
 }
 
 export default function OccupationDepthTabs({
@@ -49,6 +56,7 @@ export default function OccupationDepthTabs({
   tabs,
   nextMission,
   parentQuestions,
+  afterTabsSlot,
 }: OccupationDepthTabsProps) {
   const [activeIndex, setActiveIndex] = useState(0);
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
@@ -109,6 +117,8 @@ export default function OccupationDepthTabs({
       >
         {activeTab.panel}
       </section>
+
+      {afterTabsSlot}
 
       {/* 다음 미션 — 탭이 아닌 별도 상시 안내 카드(5번째 콘텐츠 축) */}
       {nextMission.trim().length > 0 && (
