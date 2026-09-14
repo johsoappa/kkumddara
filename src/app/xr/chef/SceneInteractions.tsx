@@ -46,6 +46,7 @@ import {
 } from "three";
 import type { Choice, InteractionKind } from "./scenario";
 import {
+  DROP_ZONE_LABEL_SCALE,
   DROP_ZONE_RING_MULTIPLIER,
   LABEL_OFFSET_LARGE,
   LABEL_OFFSET_SMALL,
@@ -57,6 +58,7 @@ import {
   beginPlaceDrag,
   hitTestDropZone,
   intersectRayWithPlaneY,
+  isEarlyReadabilityStage,
   maxNonOverlappingHitAreaScale,
   placeDragPoint,
   placeHitAreaScale,
@@ -111,6 +113,9 @@ export default function SceneInteractions({
   onChoice,
 }: SceneInteractionsProps) {
   const anchor = SCENE_ANCHORS[sceneInteractionId];
+  // G2.1-R1-F15: 1~3단계 전용 라벨 가독성 보정 — 라벨 박스의 world 크기/위치는
+  // 그대로 두고(카메라 프레이밍·충돌 회귀 없음), 텍스처 안 글자만 더 크게 그린다.
+  const emphasize = isEarlyReadabilityStage(sceneInteractionId);
 
   if (!anchor || anchor.kind !== interactionKind) {
     if (process.env.NODE_ENV !== "production") {
@@ -124,7 +129,13 @@ export default function SceneInteractions({
 
   if (anchor.kind === "select") {
     return (
-      <SelectTargets key={sceneInteractionId} targets={anchor.targets} choices={choices} onChoice={onChoice} />
+      <SelectTargets
+        key={sceneInteractionId}
+        targets={anchor.targets}
+        choices={choices}
+        onChoice={onChoice}
+        emphasize={emphasize}
+      />
     );
   }
 
@@ -137,6 +148,7 @@ export default function SceneInteractions({
         dropRadius={anchor.dropRadius}
         choices={choices}
         onChoice={onChoice}
+        emphasize={emphasize}
       />
     );
   }
@@ -148,6 +160,7 @@ export default function SceneInteractions({
       confirm={anchor.confirm}
       choices={choices}
       onChoice={onChoice}
+      emphasize={emphasize}
     />
   );
 }
@@ -158,10 +171,12 @@ function SelectTargets({
   targets,
   choices,
   onChoice,
+  emphasize,
 }: {
   targets: Vec3[];
   choices: Choice[];
   onChoice: (choice: Choice) => void;
+  emphasize: boolean;
 }) {
   return (
     <group>
@@ -171,6 +186,7 @@ function SelectTargets({
           position={targets[index] ?? targets[0] ?? [0, 1.2, -1.2]}
           label={choice.label}
           onSelect={() => onChoice(choice)}
+          emphasize={emphasize}
         />
       ))}
     </group>
@@ -181,14 +197,19 @@ function SelectTarget({
   position,
   label,
   onSelect,
+  emphasize,
 }: {
   position: Vec3;
   label: string;
   onSelect: () => void;
+  emphasize: boolean;
 }) {
   const [hovered, setHovered] = useState(false);
   const matRef = useRef<MeshStandardMaterial>(null);
-  const labelSprite = useMemo(() => createLabelSprite(label, LABEL_SCALE_LARGE), [label]);
+  const labelSprite = useMemo(
+    () => createLabelSprite(label, LABEL_SCALE_LARGE, emphasize),
+    [label, emphasize],
+  );
 
   useFrame(({ clock }) => {
     const material = matRef.current;
@@ -233,12 +254,14 @@ function PlaceZone({
   dropRadius,
   choices,
   onChoice,
+  emphasize,
 }: {
   tokens: Vec3[];
   dropZone: Vec3;
   dropRadius: number;
   choices: Choice[];
   onChoice: (choice: Choice) => void;
+  emphasize: boolean;
 }) {
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [zoneHot, setZoneHot] = useState(false);
@@ -247,7 +270,12 @@ function PlaceZone({
   const ringMeshRef = useRef<Mesh>(null);
   // G2.1-R1-F3: "여기에 놓기" 라벨 — 이전에는 드롭존에 라벨이 전혀 없어
   // 어디에 내려놓아야 하는지 알 수 없었다(Gate C 실브라우저 QA 발견).
-  const dropLabelSprite = useMemo(() => createLabelSprite("여기에 놓기", LABEL_SCALE_SMALL), []);
+  // G2.1-R1-F15: DROP_ZONE_LABEL_SCALE(LABEL_SCALE_SMALL보다 축소) 사용 —
+  // 드롭존이 토큰 줄보다 카메라에 가까워 같은 크기면 토큰 라벨과 겹쳤다.
+  const dropLabelSprite = useMemo(
+    () => createLabelSprite("여기에 놓기", DROP_ZONE_LABEL_SCALE, emphasize),
+    [emphasize],
+  );
   const zones = useMemo(
     () => [{ id: "drop", x: dropZone[0], z: dropZone[2], radius: dropRadius }],
     [dropZone, dropRadius],
@@ -330,6 +358,7 @@ function PlaceZone({
             setZoneHot(false);
             if (committed) onChoice(choice);
           }}
+          emphasize={emphasize}
         />
       ))}
     </group>
@@ -345,6 +374,7 @@ function DragToken({
   onDragStart,
   onHoverZoneChange,
   onDragEnd,
+  emphasize,
 }: {
   label: string;
   origin: Vec3;
@@ -354,6 +384,7 @@ function DragToken({
   onDragStart: () => void;
   onHoverZoneChange: (hot: boolean) => void;
   onDragEnd: (committed: boolean) => void;
+  emphasize: boolean;
 }) {
   // G2.1-R1-F5: 재료 mesh·라벨·보이지 않는 hit area를 하나의 group으로 묶어
   // 함께 움직이고, 셋 모두에 "완전히 같은" 핸들러 객체(dragHandlers)를 단다.
@@ -364,7 +395,10 @@ function DragToken({
   const hitRef = useRef<Mesh>(null);
   const matRef = useRef<MeshStandardMaterial>(null);
   const [hovered, setHovered] = useState(false);
-  const labelSprite = useMemo(() => createLabelSprite(label, LABEL_SCALE_SMALL), [label]);
+  const labelSprite = useMemo(
+    () => createLabelSprite(label, LABEL_SCALE_SMALL, emphasize),
+    [label, emphasize],
+  );
   // onPointerMove는 여기 최신 목표 좌표만 써두고, useFrame이 매 프레임 읽어 처리한다.
   const targetRef = useRef({ x: origin[0], z: origin[2] });
   const hotRef = useRef(false);
@@ -534,11 +568,13 @@ function OrderTiles({
   confirm,
   choices,
   onChoice,
+  emphasize,
 }: {
   slots: Vec3[];
   confirm: Vec3;
   choices: Choice[];
   onChoice: (choice: Choice) => void;
+  emphasize: boolean;
 }) {
   const [order, setOrder] = useState<string[]>(() => choices.map((choice) => choice.id));
   const slotX = useMemo(() => slots.map((slot) => slot[0]), [slots]);
@@ -562,6 +598,7 @@ function OrderTiles({
           onDragMove={(x) =>
             setOrder((previous) => reorderOnDrag(previous, choice.id, x, slotX))
           }
+          emphasize={emphasize}
         />
       ))}
       <ConfirmProp
@@ -570,6 +607,7 @@ function OrderTiles({
           const first = orderedChoices[0];
           if (first) onChoice(first);
         }}
+        emphasize={emphasize}
       />
     </group>
   );
@@ -582,6 +620,7 @@ function OrderTile({
   y,
   z,
   onDragMove,
+  emphasize,
 }: {
   label: string;
   index: number;
@@ -589,12 +628,16 @@ function OrderTile({
   y: number;
   z: number;
   onDragMove: (x: number) => void;
+  emphasize: boolean;
 }) {
   const meshRef = useRef<Mesh>(null);
   const matRef = useRef<MeshStandardMaterial>(null);
   const [dragging, setDragging] = useState(false);
   const [hovered, setHovered] = useState(false);
-  const labelSprite = useMemo(() => createLabelSprite(label, LABEL_SCALE_SMALL), [label]);
+  const labelSprite = useMemo(
+    () => createLabelSprite(label, LABEL_SCALE_SMALL, emphasize),
+    [label, emphasize],
+  );
   const restX = slotX[index] ?? slotX[0] ?? 0;
   // onPointerMove는 여기 최신 목표 x만 써두고, useFrame이 매 프레임 읽어 처리한다
   // (재정렬 계산도 포인터 이벤트 빈도가 아니라 렌더 루프 주기로 이뤄져 튀지 않는다).
@@ -692,10 +735,21 @@ function OrderTile({
   );
 }
 
-function ConfirmProp({ position, onConfirm }: { position: Vec3; onConfirm: () => void }) {
+function ConfirmProp({
+  position,
+  onConfirm,
+  emphasize,
+}: {
+  position: Vec3;
+  onConfirm: () => void;
+  emphasize: boolean;
+}) {
   const [hovered, setHovered] = useState(false);
   const matRef = useRef<MeshStandardMaterial>(null);
-  const labelSprite = useMemo(() => createLabelSprite("이 순서로 확정", LABEL_SCALE_SMALL), []);
+  const labelSprite = useMemo(
+    () => createLabelSprite("이 순서로 확정", LABEL_SCALE_SMALL, emphasize),
+    [emphasize],
+  );
 
   useFrame(({ clock }) => {
     const material = matRef.current;

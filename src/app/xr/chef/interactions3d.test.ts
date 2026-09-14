@@ -3,6 +3,7 @@ import { MODE_POINTS, type CameraStage, type Mode } from "./scenario";
 import {
   CAMERA_STAGES,
   CELEBRATE_LANDMARKS,
+  DROP_ZONE_LABEL_SCALE,
   DROP_ZONE_RING_MULTIPLIER,
   LABEL_HALF_HEIGHT_LARGE,
   LABEL_HALF_HEIGHT_SMALL,
@@ -25,6 +26,7 @@ import {
   cameraRayForScreenPoint,
   intersectRayWithPlane,
   intersectRayWithPlaneY,
+  isEarlyReadabilityStage,
   maxNonOverlappingHitAreaScale,
   placeDragPoint,
   projectPointToScreen,
@@ -51,6 +53,36 @@ describe("sceneInteractionId", () => {
       sceneInteractionId("sprout", 3),
     ];
     expect(new Set(ids).size).toBe(3);
+  });
+});
+
+describe("isEarlyReadabilityStage — G2.1-R1-F15 1~3단계 라벨 가독성 보정 대상 판정", () => {
+  it.each(["compass_p1", "compass_p2", "compass_p3", "sprout_p1", "sprout_p2", "sprout_p3"])(
+    "%s는 보정 대상이다 (point <= 3)",
+    (id) => {
+      expect(isEarlyReadabilityStage(id)).toBe(true);
+    },
+  );
+
+  it.each(["compass_p4", "compass_p5"])(
+    "%s는 보정 대상이 아니다 (point > 3, plating — 4~5단계 회귀 방지)",
+    (id) => {
+      expect(isEarlyReadabilityStage(id)).toBe(false);
+    },
+  );
+
+  it("모든 MODE_POINTS 지점에 대해 sceneInteractionId(mode, point)와 일관된 결과를 낸다", () => {
+    (["compass", "sprout"] as Mode[]).forEach((mode) => {
+      MODE_POINTS[mode].forEach((point) => {
+        const id = sceneInteractionId(mode, point.point);
+        expect(isEarlyReadabilityStage(id)).toBe(point.point <= 3);
+      });
+    });
+  });
+
+  it("형식이 다른 id는 안전하게 false를 반환한다", () => {
+    expect(isEarlyReadabilityStage("")).toBe(false);
+    expect(isEarlyReadabilityStage("unknown")).toBe(false);
   });
 });
 
@@ -1310,6 +1342,73 @@ describe("compass_p2 첫 토큰 — 드롭존 라벨 '여기에 놓기'와 겹�
       points: framingPointsForAnchor(anchor),
       aspect,
     });
+    expect(framing.distanceScale).toBe(1);
+    expect(framing.fovDeg).toBeCloseTo(60.51, 1);
+  });
+});
+
+describe("place 드롭존 라벨 — DROP_ZONE_LABEL_SCALE로 나머지 토큰과도 겹치지 않는다 (G2.1-R1-F15)", () => {
+  // G2.1-R1-F8은 첫 토큰(index 0)과 드롭존 라벨의 겹침만 해결했다. 375px 실측
+  // 투영으로 다시 재보면(G2.1-R1-F15), compass_p2의 두 번째 토큰("수납장을
+  // 차례로 확인한다" — sprout_p2에서는 첫 번째 토큰)과 드롭존 라벨이 여전히
+  // 6.4px 겹쳐 있었다. 토큰 좌표를 옮기면 F6/F7/F8이 맞춰 둔 토큰-토큰 간격·
+  // 드래그 평면·hit area를 전부 다시 검증해야 하므로, 대신 드롭존 라벨만
+  // DROP_ZONE_LABEL_SCALE(LABEL_SCALE_SMALL보다 작음)로 줄여 겹침을 없앤다.
+  // 프레이밍 계산(framingPointsForAnchor)은 그대로 LABEL_SCALE_SMALL 기준을
+  // 써서 더 넉넉하게(보수적으로) 잡으므로 이 테스트는 카메라 FOV/거리에
+  // 영향이 없음도 함께 확인한다.
+
+  function boxesIntersect(
+    a: { left: number; right: number; top: number; bottom: number },
+    b: { left: number; right: number; top: number; bottom: number },
+  ): boolean {
+    return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom;
+  }
+
+  it("DROP_ZONE_LABEL_SCALE은 LABEL_SCALE_SMALL보다 작다", () => {
+    expect(DROP_ZONE_LABEL_SCALE[0]).toBeLessThan(LABEL_SCALE_SMALL[0]);
+    expect(DROP_ZONE_LABEL_SCALE[1]).toBeLessThan(LABEL_SCALE_SMALL[1]);
+  });
+
+  it.each(["compass_p2", "sprout_p2"] as const)(
+    "%s — 375px에서 모든 토큰 라벨이 DROP_ZONE_LABEL_SCALE 드롭존 라벨과 겹치지 않는다",
+    (id) => {
+      const anchor = SCENE_ANCHORS[id];
+      if (anchor.kind !== "place") throw new Error(`${id}는 place여야 한다`);
+      const view = viewForPlaceAnchor(anchor);
+
+      const dropBox = spriteScreenBox(
+        [anchor.dropZone[0], anchor.dropZone[1] + LABEL_OFFSET_SMALL, anchor.dropZone[2]],
+        view,
+        DROP_ZONE_LABEL_SCALE,
+      );
+      if (!dropBox) throw new Error("드롭존 라벨이 카메라 뒤에 있다");
+
+      anchor.tokens.forEach((token, index) => {
+        const tokenBox = spriteScreenBox([token[0], token[1] + LABEL_OFFSET_SMALL, token[2]], view);
+        if (!tokenBox) throw new Error(`토큰 ${index} 라벨이 카메라 뒤에 있다`);
+        expect(
+          boxesIntersect(tokenBox, dropBox),
+          `${id} 토큰${index} 라벨(x ${tokenBox.left.toFixed(1)}~${tokenBox.right.toFixed(1)})이 ` +
+            `축소된 드롭존 라벨(x ${dropBox.left.toFixed(1)}~${dropBox.right.toFixed(1)})과 겹친다`,
+        ).toBe(false);
+      });
+    },
+  );
+
+  it("드롭존 라벨 축소는 프레이밍(FOV·거리)에 영향을 주지 않는다 — framingPointsForAnchor는 LABEL_SCALE_SMALL 기준 그대로", () => {
+    const anchor = SCENE_ANCHORS.compass_p2;
+    if (anchor.kind !== "place") throw new Error("compass_p2는 place여야 한다");
+    const stage = CAMERA_STAGES.search;
+    const aspect = PLACE_MOBILE_CANVAS.width / PLACE_MOBILE_CANVAS.height;
+    const framing = fitCameraFraming({
+      cameraPos: stage.position,
+      lookAt: stage.lookAt,
+      points: framingPointsForAnchor(anchor),
+      aspect,
+    });
+    // F7이 고정한 기준값과 동일 — 드롭존 라벨 렌더 크기를 바꿔도 프레이밍 점
+    // 계산(framingPointsForAnchor)은 손대지 않았으므로 이 값은 F7과 같아야 한다.
     expect(framing.distanceScale).toBe(1);
     expect(framing.fovDeg).toBeCloseTo(60.51, 1);
   });

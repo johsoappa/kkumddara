@@ -23,6 +23,19 @@ export function sceneInteractionId(mode: Mode, point: number): string {
   return `${mode}_p${point}`;
 }
 
+/**
+ * G2.1-R1-F15 — 1~3단계(나침반 1/5~3/5, 새싹 1/3~3/3) 라벨 가독성 보정 대상 여부.
+ * sceneInteractionId(`${mode}_p${point}`)에서 point만 파싱해 판단한다 — 카메라
+ * stage나 interactionKind로 추론하지 않는 것은 sceneInteractionId 자체의 설계
+ * 원칙(파일 상단 주석)과 같다. 4~5단계(plating)는 이미 상대적으로 읽기 쉬워
+ * 대상에서 제외한다.
+ */
+export function isEarlyReadabilityStage(sceneInteractionId: string): boolean {
+  const match = /_p(\d+)$/.exec(sceneInteractionId);
+  if (!match) return false;
+  return Number(match[1]) <= 3;
+}
+
 // ---------- 지점별 씬 앵커 좌표 (프레젠테이션 데이터) ----------
 
 export interface SelectAnchor {
@@ -258,6 +271,23 @@ export const LABEL_SCALE_SMALL: [number, number] = [0.58, 0.3];
 export const LABEL_OFFSET_SMALL = 0.29;
 export const LABEL_HALF_WIDTH_SMALL = LABEL_SCALE_SMALL[0] / 2;
 export const LABEL_HALF_HEIGHT_SMALL = LABEL_SCALE_SMALL[1] / 2;
+
+/**
+ * G2.1-R1-F15 — "여기에 놓기" 드롭존 라벨 전용 축소 스프라이트.
+ *
+ * compass_p2/sprout_p2의 토큰 줄(z=-1.75)보다 드롭존(z=-1.05)이 카메라에
+ * 0.7 가까워, 드롭존 라벨이 LABEL_SCALE_SMALL 그대로면 토큰 라벨보다 화면에서
+ * 더 크게 그려진다. F8은 첫 토큰의 x를 옮겨 이 중 하나(토큰0-드롭존) 겹침만
+ * 해결했는데, 375px 투영으로 재보면 두 번째 토큰("수납장을 차례로 확인한다")
+ * 라벨과는 여전히 6.4px 겹쳐 있었다(G2.1-R1-F15에서 새로 확인). 토큰 위치를
+ * 다시 옮기면 F6/F7/F8이 이미 맞춰 둔 토큰-토큰 간격·드래그 평면·hit area를
+ * 연쇄적으로 다시 검증해야 해 회귀 위험이 크므로, 대신 "드롭존 라벨만" 더
+ * 작게 그려 두 토큰 모두와 겹치지 않게 한다 — 드롭 판정(dropRadius)·토큰
+ * 좌표·프레이밍 계산(framingPointsForAnchor는 기존 LABEL_SCALE_SMALL 기준을
+ * 그대로 써 더 넉넉하게(보수적으로) 프레임을 잡으므로 화면 밖으로 잘릴 위험은
+ * 없다)은 전혀 건드리지 않는다.
+ */
+export const DROP_ZONE_LABEL_SCALE: [number, number] = [0.42, 0.22];
 
 /**
  * G2.1-R1-F5 — place 토큰의 "보이지 않는 통합 터치 영역" 크기. 실제 재료

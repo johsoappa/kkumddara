@@ -14,11 +14,24 @@ describe("ChefXrEntryCard", () => {
 
     expect(screen.getByText("요리사 XR 체험")).toBeInTheDocument();
 
-    const sproutLink = screen.getByRole("link", { name: "새싹 모드 체험하기" });
+    const sproutLink = screen.getByRole("link", { name: /새싹 모드 체험하기/ });
     expect(sproutLink).toHaveAttribute("href", "/xr/chef?mode=sprout");
 
-    const compassLink = screen.getByRole("link", { name: "나침반 모드 체험하기" });
+    const compassLink = screen.getByRole("link", { name: /나침반 모드 체험하기/ });
     expect(compassLink).toHaveAttribute("href", "/xr/chef?mode=compass");
+  });
+
+  it("학년별 안내 문구와 모드별 추천 학년이 함께 노출된다", () => {
+    vi.stubEnv("NEXT_PUBLIC_XR_CHEF_ENABLED", "true");
+
+    render(<ChefXrEntryCard occupationId="chef" />);
+
+    expect(screen.getByText("우리 아이 학년에 맞는 체험을 선택해 주세요.")).toBeInTheDocument();
+    expect(screen.getByText("초등 3~4학년 추천")).toBeInTheDocument();
+    expect(screen.getByText("초등 5학년~중1 추천")).toBeInTheDocument();
+    // 두 모드 모두 계속 노출된다 — 하나를 숨기거나 기본값으로 강제하지 않는다
+    expect(screen.getByRole("link", { name: /새싹 모드 체험하기/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /나침반 모드 체험하기/ })).toBeInTheDocument();
   });
 
   it("게이트가 꺼져 있으면(unset) 카드를 렌더하지 않는다", () => {
