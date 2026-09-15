@@ -40,6 +40,7 @@ import { getOccupationDepth } from "@/data/occupationDepthSeed";
 import OccupationQuiz from "@/components/quiz/OccupationQuiz";
 import Goyo24InfoSection from "@/components/explore/Goyo24InfoSection";
 import ChefXrEntryCard from "@/components/explore/ChefXrEntryCard";
+import VetXrEntryCard from "@/components/explore/VetXrEntryCard";
 import OccupationTraitSection from "@/components/explore/OccupationTraitSection";
 import OccupationDepthTabs, { type DepthTab } from "@/components/explore/OccupationDepthTabs";
 import SportsInterestCareerSection from "@/components/explore/SportsInterestCareerSection";
@@ -524,7 +525,12 @@ export default function OccupationDetailPage() {
                 tabs={depthOnlyTabs}
                 nextMission={dreamMapDepth?.nextMission ?? ""}
                 parentQuestions={dreamMapDepth?.parentQuestions ?? []}
-                afterTabsSlot={<ChefXrEntryCard occupationId={id} />}
+                afterTabsSlot={
+                  <>
+                    <ChefXrEntryCard occupationId={id} />
+                    <VetXrEntryCard occupationId={id} />
+                  </>
+                }
               />
             )}
 
@@ -826,6 +832,8 @@ export default function OccupationDetailPage() {
 
                 {/* 요리사 XR 진입 카드 — id!=="chef" 또는 게이트 OFF면 컴포넌트 내부에서 미노출 */}
                 <ChefXrEntryCard occupationId={id} />
+                {/* 수의사 XR 진입 카드 — id!=="veterinarian" 또는 게이트 OFF면 컴포넌트 내부에서 미노출 */}
+                <VetXrEntryCard occupationId={id} />
 
                 {/* ②-1 심화 4탭 — Dream Map 게이트와 무관, 심화 시드 보유 직업만 표시 */}
                 {dreamMapDepth && dreamMapTabs && (
@@ -1185,6 +1193,9 @@ export default function OccupationDetailPage() {
                 <h3 className="text-sm font-bold text-base-text mb-2">직업 소개</h3>
                 <ExpandableText text={occupation.description} maxLines={2} textClassName="text-sm text-base-muted leading-relaxed" />
               </section>
+
+              {/* 수의사 XR 진입 카드 — id!=="veterinarian" 또는 게이트 OFF면 컴포넌트 내부에서 미노출 */}
+              <VetXrEntryCard occupationId={occupation.id} />
 
               {/* ①-1 심화 4탭 — Dream Map 게이트와 무관, 심화 시드 보유 직업만 표시 */}
               {dreamMapDepth && dreamMapTabs && (

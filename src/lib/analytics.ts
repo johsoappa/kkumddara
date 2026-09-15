@@ -12,6 +12,8 @@
 //   ⑦ 꿈 지도(Dream Map) 프로토타입 (대표 승인 — 꿈 지도 프로토타입 작업지시서 10장):
 //      dream_map_viewed / dream_map_branch_selected / dream_map_cta_clicked
 //      / dream_map_extra_content_opened
+//   ⑧ XR 수의사 v1 (G2.2-R1 — xr_chef_* 명명 규칙을 그대로 따르되 직업별로 분리):
+//      xr_vet_choice_selected / xr_vet_result_shown / xr_vet_cta_clicked
 // ====================================================
 
 import posthog from "posthog-js";
@@ -45,6 +47,10 @@ export type AnalyticsEvent =
   | "xr_chef_choice_selected" // 선택 지점 클릭 (choice_point/choice_id/axis_tag/scenario_version)
   | "xr_chef_result_shown"    // 결과 화면 도달 (result_axis/scenario_version)
   | "xr_chef_cta_clicked"     // "다음 미션 시작하기" 클릭 — v0.1은 이동 없음, 이벤트만
+  // XR 수의사 v1 정식 사용 (/xr/vet) — G2.2-R1, xr_chef_*와 동일 명명 규칙
+  | "xr_vet_choice_selected" // 선택 지점 클릭 (choice_point/choice_id/axis_tag/scenario_version)
+  | "xr_vet_result_shown"    // 결과 화면 도달 (result_axis/scenario_version)
+  | "xr_vet_cta_clicked"     // "다음 미션 시작하기" 클릭 — 이동 없음, 이벤트만
   // 꿈 지도(Dream Map) 프로토타입 — /explore/[id] 직업 상세
   | "dream_map_viewed"              // 꿈 지도 영역 50% 이상 노출 (페이지 세션당 1회)
   | "dream_map_branch_selected"     // 콘텐츠 탭 4개 중 선택
