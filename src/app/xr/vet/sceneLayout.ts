@@ -16,6 +16,27 @@ import { CHOICE_POINTS, SPROUT_POINTS } from "./scenario";
 
 export type Vec3 = [number, number, number];
 
+/** XrVetClient의 진행 단계 — VetScene/CameraRig가 오버뷰/지점별 카메라를 고를 때 쓴다. */
+export type VetScenePhase = "intro" | "choosing" | "reaction" | "result";
+
+/**
+ * G2.2-R2-R — 3D 좌표 totality 가드. R3F는 position/rotation/scale/lookAt에
+ * undefined·NaN·Infinity가 섞여 들어오면 "Cannot read properties of
+ * undefined (reading 'z')" 같은 런타임 오류를 던진다(Canvas mount 자체가
+ * 깨져 XrSceneGuard의 에러 바운더리가 fallback으로 전환하게 만든다).
+ * 이 함수는 그 값을 실제로 JSX prop에 넘기기 전에 "숫자 3개인가"를
+ * 확인하는 유일한 관문이다 — 좌표를 계산하는 모든 함수(cameraFor,
+ * resolveTargets 등)의 출력이 이 predicate를 통과해야 한다는 것을
+ * sceneLayout.test.ts가 전수 검증한다.
+ */
+export function isFiniteVec3(value: unknown): value is Vec3 {
+  return (
+    Array.isArray(value) &&
+    value.length === 3 &&
+    value.every((n) => typeof n === "number" && Number.isFinite(n))
+  );
+}
+
 /** XrVetClient가 현재 선택 지점을 가리키는 안정적인 id를 만든다 (요리사와 동일 패턴, 파일은 독립). */
 export function sceneInteractionId(mode: Mode, point: number): string {
   return `${mode}_p${point}`;
@@ -306,6 +327,36 @@ export function cameraForPoint(id: string): { position: Vec3; lookAt: Vec3; poin
 
 export function overviewCamera(): { position: Vec3; lookAt: Vec3; points: Vec3[] } {
   return { ...cameraFor(OVERVIEW_LANDMARKS, OVERVIEW_CAMERA_PULL_BACK), points: OVERVIEW_LANDMARKS };
+}
+
+export interface ScenePresentation {
+  camera: { position: Vec3; lookAt: Vec3; points: Vec3[] };
+  /** phase === "choosing"일 때만 값이 있다 — 그 외에는 null(인터랙션 타깃 없음) */
+  sceneId: string | null;
+  /** sceneId가 null이면 항상 빈 배열 */
+  targets: ResolvedTarget[];
+}
+
+/**
+ * VetScene(CameraRig + 인터랙션 타깃)이 매 프레임/매 렌더 참조하는 "이번에
+ * 보여줄 화면" 하나로 묶은 단일 진입점. intro/result는 overview 카메라,
+ * choosing/reaction은 현재 (mode, point)의 카메라를 쓴다 — reaction에서도
+ * 같은 카메라를 유지해 CONTINUE 전까지 화면이 갑자기 바뀌지 않는다(기존
+ * 설계와 동일). choices는 phase==="choosing"일 때만 의미가 있고, 그 외에는
+ * 호출부가 빈 배열을 넘겨도 sceneId 자체가 null이라 targets도 항상 빈
+ * 배열이다 — "0개 타깃" 상태가 상호작용 UI로 잘못 노출되지 않는다.
+ */
+export function resolveScenePresentation(
+  mode: Mode,
+  phase: VetScenePhase,
+  point: number,
+  choices: Choice[],
+): ScenePresentation {
+  const isOverview = phase === "intro" || phase === "result";
+  const camera = isOverview ? overviewCamera() : cameraForPoint(sceneInteractionId(mode, point));
+  const sceneId = phase === "choosing" ? sceneInteractionId(mode, point) : null;
+  const targets = sceneId ? resolveTargets(sceneId, choices) : [];
+  return { camera, sceneId, targets };
 }
 
 // ---------- 부드러운 전환(현기증 유발 방지 — 짧고 감쇠하는 보간) ----------

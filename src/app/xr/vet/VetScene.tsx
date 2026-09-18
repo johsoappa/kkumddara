@@ -47,23 +47,21 @@ import {
   SENIOR_ANCHOR,
   TABLE_CENTER,
   WALL_SIGN_ANCHOR,
-  cameraForPoint,
   easeAlpha,
   easeScalar,
   easeVec3,
   fitVerticalFov,
   framingPointsForPositions,
-  overviewCamera,
-  resolveTargets,
-  sceneInteractionId as buildSceneInteractionId,
+  resolveScenePresentation,
   type Vec3,
+  type VetScenePhase,
 } from "./sceneLayout";
 import VetSceneInteractions from "./VetSceneInteractions";
 import { createVetLabelSprite } from "./vetLabelSprite";
 import XrSceneGuard from "../XrSceneGuard";
 import XrScenePlaceholder from "../XrScenePlaceholder";
 
-export type VetScenePhase = "intro" | "choosing" | "reaction" | "result";
+export type { VetScenePhase };
 
 export interface VetSceneProps {
   mode: "compass" | "sprout";
@@ -93,15 +91,16 @@ function CameraRig({
 }) {
   const camera = useThree((state) => state.camera) as PerspectiveCamera;
   const size = useThree((state) => state.size);
-  const isOverview = phase === "intro" || phase === "result";
-  const config = isOverview ? overviewCamera() : cameraForPoint(buildSceneInteractionId(mode, point));
+  // camera 계산은 choices에 의존하지 않는다 — resolveScenePresentation의
+  // 단일 진입점을 그대로 쓰되 targets는 여기서 쓰지 않으므로 빈 배열을 넘긴다.
+  const config = resolveScenePresentation(mode, phase, point, []).camera;
 
   const basePosRef = useRef<Vec3>(config.position);
   const lookAtRef = useRef<Vec3>(config.lookAt);
   const fovRef = useRef(DEFAULT_FOV);
 
   useFrame((_, delta) => {
-    const target = isOverview ? overviewCamera() : cameraForPoint(buildSceneInteractionId(mode, point));
+    const target = resolveScenePresentation(mode, phase, point, []).camera;
     const alpha = easeAlpha(delta, CAMERA_EASE_HALF_LIFE);
 
     basePosRef.current = easeVec3(basePosRef.current, target.position, alpha);
@@ -147,8 +146,8 @@ function Dog() {
         <meshStandardMaterial color="#e8c9a0" />
       </mesh>
       {/* 주둥이 */}
-      <mesh position={[0.42, 0.03, 0]}>
-        <cylinderGeometry args={[0.06, 0.08, 0.14, 12]} rotation-z={Math.PI / 2} />
+      <mesh position={[0.42, 0.03, 0]} rotation={[0, 0, Math.PI / 2]}>
+        <cylinderGeometry args={[0.06, 0.08, 0.14, 12]} />
         <meshStandardMaterial color="#f0d9b8" />
       </mesh>
       <mesh position={[0.49, 0.02, 0]}>
@@ -465,10 +464,9 @@ export default function VetScene({
   showChart,
   onSceneError,
 }: VetSceneProps) {
-  const currentSceneId = phase === "choosing" ? buildSceneInteractionId(mode, point) : null;
   const resolvedTargets = useMemo(
-    () => (currentSceneId ? resolveTargets(currentSceneId, choices) : []),
-    [currentSceneId, choices],
+    () => resolveScenePresentation(mode, phase, point, choices).targets,
+    [mode, phase, point, choices],
   );
 
   return (

@@ -71,6 +71,20 @@ describe("XrVetClient — WebGL 지원 시 씬(Canvas) 경로가 1차 상호작�
     trackMock.mockReset();
   });
 
+  it("G2.2-R2-R: 토글 없이도 씬은 기본값으로 활성 상태다 — useScene을 임의로 false로 초기화하지 않는다", async () => {
+    render(<XrVetClient mode="compass" />);
+    fireEvent.click(screen.getByRole("button", { name: "첫 상담 시작하기" }));
+
+    const scene = await screen.findByTestId("fake-vet-scene");
+    // 토글을 누르지 않은 상태에서 씬에 choices가 전달되어 있어야
+    // "글로 진행하기"가 아니라 씬 자체가 기본 1차 경로임이 증명된다.
+    expect(await screen.findByRole("button", { name: "scene-choice:p1_a" })).toBeInTheDocument();
+    expect(scene).toHaveAttribute("data-phase", "choosing");
+    // 오류 fallback으로 전환된 적이 없으므로 "글로 진행하기" 토글이 노출된다
+    // (오류 시 이 토글 자체가 사라지는 것과 구분되는 정상 기본 상태).
+    expect(screen.getByRole("button", { name: "글로 진행하기" })).toBeInTheDocument();
+  });
+
   it("나침반: 5지점 모두 mode/phase/point가 올바르고, 기존 이벤트 계약(5+1+1)과 C 동점 결과가 씬 경로로도 동일하다", async () => {
     // 지점1→5: p1_a(axis1) / p2_a(axis2) / p3_c(axis2) / p4_a(axis1) / p5_b(axis3)
     // → axis1×2, axis2×2, axis3×1 (2:2:1 동점) → 역순 탐색으로 axis1 채택

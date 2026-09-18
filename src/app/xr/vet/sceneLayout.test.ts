@@ -1,15 +1,28 @@
 import { describe, expect, it } from "vitest";
 import { CHOICE_POINTS, SPROUT_POINTS, type Mode } from "./scenario";
 import {
+  CABINET_ANCHOR,
+  CLIPBOARD_ANCHOR,
+  DOG_ANCHOR,
+  GUARDIAN_ANCHOR,
   MIN_TARGET_SPACING,
   MODE_POINT_CHOICES,
+  MONITOR_ANCHOR,
+  OVERVIEW_LANDMARKS,
+  SCALE_ANCHOR,
   SCENE_TARGETS,
+  SENIOR_ANCHOR,
+  TABLE_CENTER,
+  WALL_SIGN_ANCHOR,
   cameraForPoint,
   fitVerticalFov,
+  isFiniteVec3,
   overviewCamera,
   pairwiseMinDistance,
+  resolveScenePresentation,
   resolveTargets,
   sceneInteractionId,
+  type VetScenePhase,
 } from "./sceneLayout";
 
 // G2.2-R2 필수 테스트 1~3:
@@ -110,6 +123,133 @@ describe("cameraForPoint / overviewCamera — 카메라는 항상 씬 앞쪽(+z 
     const { position, points } = overviewCamera();
     for (const point of points) {
       expect(position[2]).toBeGreaterThan(point[2]);
+    }
+  });
+});
+
+// ====================================================
+// G2.2-R2-R — Vec3 totality 가드
+//
+// 실제 사고: <cylinderGeometry>(BufferGeometry, .rotation 없음)에
+// rotation-z를 잘못 붙여 R3F의 applyProps가 undefined.z를 읽으려다
+// "Cannot read properties of undefined (reading 'z')"로 Canvas mount
+// 자체가 깨졌다(XrSceneGuard 에러 바운더리가 fallback으로 전환해
+// 겉보기엔 "정상 동작"처럼 보였다). 이 JSX 배치 실수 자체는 좌표 데이터
+// 문제가 아니라 별도로 수정했지만(VetScene.tsx의 rotation을 부모 mesh로
+// 이동), 이 테스트 블록은 작업지시서가 요구하는 "모든 mode·phase·point의
+// 좌표 데이터가 undefined/NaN/Infinity 없이 완전한 숫자 3개인가"를
+// 데이터 레이어에서 전수 검증해 같은 계열의 사고(예: 좌표 계산 함수가
+// 특정 입력에서 undefined를 반환)를 구조적으로 막는다.
+// ====================================================
+
+describe("isFiniteVec3 — 3D 좌표 totality predicate", () => {
+  it("숫자 3개로 이뤄진 배열만 true를 반환한다", () => {
+    expect(isFiniteVec3([0, 1.5, -2])).toBe(true);
+    expect(isFiniteVec3([0, 0, 0])).toBe(true);
+  });
+
+  it("undefined·NaN·Infinity·길이 불일치는 모두 false다", () => {
+    expect(isFiniteVec3(undefined)).toBe(false);
+    expect(isFiniteVec3(null)).toBe(false);
+    expect(isFiniteVec3([1, 2])).toBe(false);
+    expect(isFiniteVec3([1, 2, 3, 4])).toBe(false);
+    expect(isFiniteVec3([1, NaN, 3])).toBe(false);
+    expect(isFiniteVec3([1, Infinity, 3])).toBe(false);
+    expect(isFiniteVec3([1, -Infinity, 3])).toBe(false);
+    expect(isFiniteVec3(["1", 2, 3])).toBe(false);
+  });
+});
+
+describe("상시 캐릭터/소품 앵커 — 전부 유효한 Vec3", () => {
+  const anchors: Record<string, unknown> = {
+    DOG_ANCHOR,
+    GUARDIAN_ANCHOR,
+    SENIOR_ANCHOR,
+    CLIPBOARD_ANCHOR,
+    CABINET_ANCHOR,
+    TABLE_CENTER,
+    MONITOR_ANCHOR,
+    SCALE_ANCHOR,
+    WALL_SIGN_ANCHOR,
+  };
+
+  it.each(Object.entries(anchors))("%s는 유효한 Vec3다", (_name, value) => {
+    expect(isFiniteVec3(value)).toBe(true);
+  });
+
+  it("OVERVIEW_LANDMARKS의 모든 점이 유효한 Vec3다", () => {
+    for (const point of OVERVIEW_LANDMARKS) {
+      expect(isFiniteVec3(point)).toBe(true);
+    }
+  });
+});
+
+describe("SCENE_TARGETS — 모든 point의 모든 타깃 position이 유효한 Vec3", () => {
+  it.each(Object.keys(SCENE_TARGETS))("%s의 모든 타깃 position이 유효하다", (id) => {
+    for (const target of SCENE_TARGETS[id]) {
+      expect(isFiniteVec3(target.position)).toBe(true);
+    }
+  });
+});
+
+describe("resolveScenePresentation — 필수 테스트 1·2·3: 모든 mode·phase·point의 좌표 완전성", () => {
+  const PHASES: VetScenePhase[] = ["intro", "choosing", "reaction", "result"];
+
+  function assertPresentationIsComplete(mode: Mode, phase: VetScenePhase, point: number) {
+    const points = mode === "compass" ? CHOICE_POINTS : SPROUT_POINTS;
+    const pointData = points[point - 1];
+    const choices = phase === "choosing" && pointData ? pointData.choices : [];
+
+    const presentation = resolveScenePresentation(mode, phase, point, choices);
+
+    // camera position/lookAt은 어떤 phase·point에서도 undefined/NaN 없이 완전해야 한다
+    expect(isFiniteVec3(presentation.camera.position)).toBe(true);
+    expect(isFiniteVec3(presentation.camera.lookAt)).toBe(true);
+    for (const p of presentation.camera.points) {
+      expect(isFiniteVec3(p)).toBe(true);
+    }
+
+    if (phase === "choosing" && pointData) {
+      // choosing 단계에서는 target이 1개 이상이며(요구사항 3), choices와 1:1이고
+      // (요구사항 1·2), 모든 target position이 유효한 Vec3여야 한다.
+      expect(presentation.sceneId).toBe(sceneInteractionId(mode, point));
+      expect(presentation.targets.length).toBeGreaterThan(0);
+      expect(presentation.targets.length).toBe(pointData.choices.length);
+      expect(presentation.targets.map((t) => t.choice.id)).toEqual(
+        pointData.choices.map((c) => c.id),
+      );
+      for (const resolved of presentation.targets) {
+        expect(isFiniteVec3(resolved.target.position)).toBe(true);
+      }
+    } else {
+      // intro/reaction/result에서는 인터랙션 타깃이 구조적으로 존재하지 않는다
+      // (0개 타깃이 UI로 잘못 노출되는 것을 막기 위해 sceneId 자체가 null).
+      expect(presentation.sceneId).toBeNull();
+      expect(presentation.targets).toEqual([]);
+    }
+  }
+
+  it("나침반(compass): intro·1~5지점(choosing/reaction 모두)·result 전 구간에서 좌표가 완전하다", () => {
+    for (const phase of PHASES) {
+      if (phase === "choosing" || phase === "reaction") {
+        for (const point of CHOICE_POINTS) {
+          assertPresentationIsComplete("compass", phase, point.point);
+        }
+      } else {
+        assertPresentationIsComplete("compass", phase, 1);
+      }
+    }
+  });
+
+  it("새싹(sprout): intro·1~3지점(choosing/reaction 모두)·result 전 구간에서 좌표가 완전하다", () => {
+    for (const phase of PHASES) {
+      if (phase === "choosing" || phase === "reaction") {
+        for (const point of SPROUT_POINTS) {
+          assertPresentationIsComplete("sprout", phase, point.point);
+        }
+      } else {
+        assertPresentationIsComplete("sprout", phase, 1);
+      }
     }
   });
 });
