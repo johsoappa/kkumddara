@@ -1,18 +1,28 @@
 "use client";
 
 // ====================================================
-// XR 수의사 Client 래퍼 — v1 (나침반모드 + 새싹모드)
-//
-// 참고 브랜치(cf277c8)의 XrVetClient v0.3 상태머신·화면 구성을 그대로
-// 이식했다. 요리사 G2.1-R1의 인캔버스 직접 조작(useScene/uiMode 토글,
-// SceneInteractions)은 수의사 원본 시나리오가 select(선택형)만 사용하므로
-// 이식하지 않는다 — 선택은 항상 HTML 버튼으로만 진행한다(원본과 동일).
+// XR 수의사 Client 래퍼 — v2 (나침반모드 + 새싹모드, G2.2-R2 씬 상호작용 개편)
 //
 //   - next/dynamic(ssr:false)으로 R3F 씬(VetScene)을 브라우저에서만 로드
 //   - useReducer로 모드별 선택 지점 진행 상태 관리
 //     · compass(나침반, 기본): 5지점 → 축 집계(C 동점 규칙) → 피드백 결과
 //     · sprout(새싹): 3지점 → 성취 중심 완료 화면 (축 결과·피드백·고지 미노출)
 //   - 씬 조건부 언마운트 금지 — Canvas 1회 마운트 유지
+//
+// G2.2-R2 추가 — 요리사 G2.1-R1과 동일한 검증된 토글 패턴을 그대로
+// 이식했다(파일은 공유하지 않고 이 컴포넌트 안에서 다시 구현):
+//   - webglOk: 마운트 시 1회 isWebglSupported()로 판정(useEffect 안에서
+//     track() 호출 없음 — 캡처빌리티 확인일 뿐 이벤트 아님).
+//   - uiMode("scene"|"html")로 1차 상호작용 표시를 전환한다. useScene이
+//     false인 동안(WebGL 미지원 · 사용자가 "글로 진행하기" 선택 · Canvas
+//     런타임 오류)에는 기존 텍스트 선택지가 그대로, 완전한 형태로 노출된다
+//     — 오늘과 동일한 텍스트 완주 흐름(키보드·스크린리더 사용자 포함).
+//   - sceneUnavailable: VetScene의 onSceneError로 알려지는 Canvas 런타임
+//     오류 플래그. 한번 오류가 나면 그 세션에서는 계속 HTML 흐름으로 고정한다.
+//   - 씬 탭과 텍스트 버튼 클릭은 반드시 같은 handleChoice를 호출한다 —
+//     잠금(choiceLockRef)·analytics는 이 함수 한 곳에만 있으므로 어느
+//     경로로 선택해도 이벤트가 정확히 1회만 전송된다(중복 방지는 새 코드를
+//     추가한 게 아니라 기존 잠금을 씬 경로에도 그대로 통과시킨 것뿐이다).
 //
 // 이벤트 규칙 (chef XR과 동일 명명 규칙 — xr_chef_* 이름은 재사용하지 않고
 // 수의사 전용 xr_vet_* 이벤트만 사용한다. analytics.ts 참고):
@@ -22,9 +32,10 @@
 //   - result 이벤트는 마지막 choice 클릭 핸들러에서 함께 전송
 // ====================================================
 
-import { useReducer, useRef, useState } from "react";
+import { useEffect, useReducer, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { track } from "@/lib/analytics";
+import { isWebglSupported } from "../webglSupport";
 import {
   AXIS_FEEDBACK,
   CTA_CLICKED_NOTICE,
@@ -39,7 +50,6 @@ import {
   VET_SAFETY_NOTICE,
   aggregateResult,
   type AxisId,
-  type CameraStage,
   type Choice,
   type ChoiceRecord,
   type Mode,
@@ -113,16 +123,23 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
   // 리렌더 전 연타로 인한 이벤트 중복 전송 방지 잠금
   const choiceLockRef = useRef(false);
 
+  // G2.2-R2: 씬 상호작용 가용 여부. SSR 출력과 동일하게 false로 시작해
+  // hydration mismatch를 피하고, 마운트 후 실제 판정으로 갱신한다.
+  const [webglOk, setWebglOk] = useState(false);
+  const [sceneUnavailable, setSceneUnavailable] = useState(false);
+  const [uiMode, setUiMode] = useState<"scene" | "html">("scene");
+
+  useEffect(() => {
+    // 캡처빌리티 확인일 뿐 — track() 호출 없음 (이벤트 규칙 준수)
+    setWebglOk(isWebglSupported());
+  }, []);
+
+  const useScene = webglOk && uiMode === "scene" && !sceneUnavailable;
+
   const points = MODE_POINTS[mode];
   const scenarioVersion = SCENARIO_VERSIONS[mode];
   const lastPoint = points.length;
   const currentPointData = points[state.currentPoint - 1];
-
-  // 카메라 단계: intro/result는 진료실 전체(overview), 진행 중엔 지점별 태그
-  const cameraStage: CameraStage =
-    state.phase === "intro" || state.phase === "result"
-      ? "overview"
-      : currentPointData?.cameraStage ?? "overview";
 
   // 기록판: 지점3 선택 후 지점4부터 등장 (결과 화면에서도 유지 — currentPoint 보존)
   const showChart = state.phase !== "intro" && state.currentPoint >= 3;
@@ -195,7 +212,15 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
       </header>
 
       {/* 씬은 조건부 언마운트 금지 — Canvas 1회 마운트 유지, props로만 연출 변경 */}
-      <VetScene stage={cameraStage} showChart={showChart} />
+      <VetScene
+        mode={mode}
+        phase={state.phase}
+        point={state.currentPoint}
+        choices={useScene && state.phase === "choosing" && currentPointData ? currentPointData.choices : []}
+        onChoice={handleChoice}
+        showChart={showChart}
+        onSceneError={() => setSceneUnavailable(true)}
+      />
 
       {state.phase === "intro" && (
         <section className="flex flex-col gap-4">
@@ -226,18 +251,39 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
               {currentPointData.situation}
             </p>
           )}
-          <div className="flex flex-col gap-3">
+          {useScene && (
+            <p className="text-xs font-medium text-gray-500">
+              반짝이는 대상을 눌러서 선택해보세요.
+            </p>
+          )}
+          {/* 씬이 1차 수단일 때는 텍스트 선택지를 보조 수단으로 간결하게 유지하고,
+              씬을 쓸 수 없을 때(WebGL 미지원·오류·사용자 선택)는 지금처럼 완전한
+              형태로 노출한다 — 두 경로 모두 같은 handleChoice를 호출한다. */}
+          <div className={useScene ? "flex flex-col gap-2" : "flex flex-col gap-3"}>
             {currentPointData.choices.map((choice) => (
               <button
                 key={choice.id}
                 type="button"
                 onClick={() => handleChoice(choice)}
-                className="min-h-[52px] w-full rounded-xl bg-teal-600 px-4 text-base font-semibold text-white transition-colors active:bg-teal-700"
+                className={
+                  useScene
+                    ? "min-h-[44px] w-full rounded-lg border border-teal-200 bg-white px-4 text-sm font-medium text-teal-700 transition-colors active:bg-teal-50"
+                    : "min-h-[52px] w-full rounded-xl bg-teal-600 px-4 text-base font-semibold text-white transition-colors active:bg-teal-700"
+                }
               >
                 {choice.label}
               </button>
             ))}
           </div>
+          {webglOk && !sceneUnavailable && (
+            <button
+              type="button"
+              onClick={() => setUiMode((previous) => (previous === "scene" ? "html" : "scene"))}
+              className="self-start text-xs text-gray-500 underline"
+            >
+              {useScene ? "글로 진행하기" : "화면으로 진행하기"}
+            </button>
+          )}
         </section>
       )}
 
