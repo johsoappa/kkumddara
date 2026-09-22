@@ -1,41 +1,32 @@
 "use client";
 
 // ====================================================
-// XR 수의사 진료실 씬 — v3 (R3F Canvas 본체, G2.2-R2-L 화면 구성 수정)
+// XR 수의사 진료실 씬 — v4 (R3F Canvas 본체, G2.2-R2-L2 선택 카드 제거)
 //
-// [G2.2-R2-L 배경] 대표님의 실제 화면 캡처에서 확인된 문제:
-//   1) 강아지가 진찰대 뒤에 가려 거의 보이지 않고, 보호자·선배 수의사가
-//      화면 양옆에서 잘림 — 원인은 캐릭터/진찰대 앵커가 "바닥(y=0)"이
-//      아니라 임의의 y값에 떠 있었고, 지점별 카메라가 그 지점의 타깃 +
-//      강아지만 프레이밍해 보호자·선배 수의사가 계산에서 빠지곤 했기 때문
-//      (sceneLayout.ts 상단 주석 참고).
-//   2) 선택 단계마다 카메라가 타깃을 따라 크게 이동 — 지점마다 카메라
-//      position 자체를 타깃 무게중심으로 재계산했기 때문.
-//   3) 장면 속 큰 한글 라벨 카드가 서로/인물과 겹침.
+// [G2.2-R2-L2 배경] 대표님의 G2.2-R2-L 실제 화면 검수: 강아지·인물 배치는
+// 개선됐지만, 장면 속 "번호 카드"(하이라이트 링 + 숫자 스프라이트)가 여전히
+// 선택 대상·서로를 가리는 화면의 주인공이었다. 이번 버전은 그 마커 레이어
+// 자체를 없앴다 — 모든 choice는 이제 실제 진료실 오브젝트(강아지·보호자·
+// 선배 수의사·기록판·약장·모니터·병원 사인)를 직접 가리키고, 그 오브젝트
+// 컴포넌트 자신이 보이지 않는 hit box(TapHitBox)와, 필요한 경우 발밑의
+// 아주 작은 링(BaseHighlight, 얼굴보다 항상 아래)을 자기 group 안에
+// 포함시킨다. 활성 타깃은 오브젝트 자신의 재질에 은은한 강조 발광을 준다
+// (별도 카드를 얹지 않는다) — VetSceneInteractions.tsx 참고.
 //
-// [이번 수정]
-//   - 캐릭터(보호자·선배 수의사)·진찰대·약장 앵커를 "바닥에 닿는" 좌표로
-//     바로잡았다(sceneLayout.ts의 GUARDIAN_ANCHOR/SENIOR_ANCHOR/
-//     CABINET_ANCHOR/TABLE_CENTER가 이제 floor-root). 강아지는 진찰대
-//     상판 바로 위·앞쪽에 배치해 상판에 가리지 않는다.
-//   - 카메라 position/lookAt을 HERO_CAMERA로 고정하고(sceneLayout.ts),
-//     오직 FOV만 "이번에 반드시 보여야 하는 점"(핵심 3인의 발~정수리 +
-//     현재 지점 타깃)에 맞춰 완만하게 보정한다 — 더 이상 카메라가 좌우로
-//     옮겨가거나 특정 타깃에 과도하게 확대되지 않는다.
-//   - 장면 속 선택 표시는 큰 문구 카드 대신 작은 번호 배지 + 하이라이트
-//     링으로 바꿨다(VetSceneInteractions.tsx). 정확한 선택 문구는 Canvas
-//     밖 HTML 선택지(XrVetClient.tsx)에서 그대로 읽을 수 있다.
+// [카메라] sceneLayout.ts의 HERO_CAMERA(position/lookAt 고정) + FOV만
+//   지점별로 보정하는 구조는 G2.2-R2-L과 동일하게 유지한다 — 이번 라운드는
+//   "카드 제거"가 목적이라 카메라 이동 로직은 건드리지 않는다.
 //
-// [공간] "작은 동물병원 첫 상담실" 하나로 통일 — 중앙 진찰대 위 강아지
-//   환자, 한쪽에 보호자, 반대쪽에 흰 가운을 입은 선배 수의사, 주변에
-//   진료기록판·약장·체중계·모니터·병원 정체성 소품(발바닥 사인)을 배치한다.
-//   드래그·순서교체는 수의사 원본 시나리오에 없으므로 만들지 않는다 —
-//   모든 상호작용은 select(장면 속 대상 탭)뿐이다.
+// [공간] 이전보다 바닥·벽 크기를 줄이고(회색 빈 공간 축소), 진찰대 밑에
+//   러그를, 벽 아래에 걸레받이 색 띠를 더해 "진료실의 일부"로 읽히게 했다.
+//
+// [단계 전환] 활성 타깃의 발광, 기록판 체크 표시(showChart), 결과 화면에서
+//   보호자·선배 수의사가 서로를 향해 살짝 돌아서는 자세 + 완료 배지로
+//   "상담을 마친 장면"을 표현한다. 시나리오 문구·choice ID·결과 판정
+//   로직은 전혀 건드리지 않는다(scenario.ts 무수정).
 //
 // [WebGL 가드] 요리사·수의사 공용 XrSceneGuard/XrScenePlaceholder를 그대로
-//   재사용한다(이 파일에서 수정하지 않음) — 미지원/런타임 오류 시 이
-//   영역만 정적 텍스트 패널로 대체되고 선택/결과 로직은 XrVetClient에
-//   그대로 있어 영향이 없다.
+//   재사용한다(이 파일에서 수정하지 않음).
 // ====================================================
 
 import { useMemo, useRef } from "react";
@@ -58,10 +49,11 @@ import {
   fitVerticalFov,
   framingPointsForPositions,
   resolveScenePresentation,
+  type NamedTargetKind,
   type Vec3,
   type VetScenePhase,
 } from "./sceneLayout";
-import VetSceneInteractions from "./VetSceneInteractions";
+import { BaseHighlight, TapHitBox, useTapHover } from "./VetSceneInteractions";
 import { createVetLabelSprite } from "./vetLabelSprite";
 import XrSceneGuard from "../XrSceneGuard";
 import XrScenePlaceholder from "../XrScenePlaceholder";
@@ -85,9 +77,9 @@ export interface VetSceneProps {
 const CAMERA_EASE_HALF_LIFE = 0.3;
 const DEFAULT_FOV = 55;
 
-// G2.2-R2-L — position/lookAt은 sceneLayout의 HERO_CAMERA로 고정이라 더 이상
-// 지점마다 바뀌지 않는다. 이 Rig가 매 프레임 하는 일은 오직 "이번에 반드시
-// 보여야 하는 점" 목록이 바뀔 때 FOV를 완만하게 재조정하는 것뿐이다.
+// position/lookAt은 sceneLayout의 HERO_CAMERA로 고정이라 지점마다 바뀌지
+// 않는다. 이 Rig가 매 프레임 하는 일은 오직 "이번에 반드시 보여야 하는 점"
+// 목록이 바뀔 때 FOV를 완만하게 재조정하는 것뿐이다(G2.2-R2-L에서 확정).
 function CameraRig({
   mode,
   phase,
@@ -124,15 +116,47 @@ function CameraRig({
   return null;
 }
 
+/** 활성 타깃일 때 오브젝트 "자기 자신"의 재질에 주는 은은한 강조 발광 —
+ *  별도 카드를 얹지 않고, 이미 그 오브젝트가 갖고 있는 표면 하나를
+ *  살짝 빛나게 하는 방식이다. hovered면 더 밝아진다. */
+function useActiveGlow(active: boolean, hovered: boolean) {
+  const ref = useRef<MeshStandardMaterial>(null);
+  useFrame(({ clock }) => {
+    const material = ref.current;
+    if (!material) return;
+    if (!active) {
+      material.emissiveIntensity = 0;
+      return;
+    }
+    const base = hovered ? 0.55 : 0.3;
+    material.emissiveIntensity = base + Math.abs(Math.sin(clock.elapsedTime * 2.4)) * 0.25;
+  });
+  return ref;
+}
+
+interface InteractiveProps {
+  /** 이 지점에서 선택 가능한 타깃이면 true — hit box/발광/베이스 링을 켠다. */
+  active: boolean;
+  onSelect?: () => void;
+}
+
 // ---------- 상시 캐릭터/소품 ----------
 
-function Dog() {
+function Dog({ active, onSelect }: InteractiveProps) {
+  const { hovered, setHovered } = useTapHover();
+  const glowRef = useActiveGlow(active, hovered);
   return (
-    <group position={DOG_ANCHOR} rotation={[0, 0.3, 0]}>
-      {/* 몸통 */}
+    <group position={DOG_ANCHOR} rotation={[0, 0.3, 0]} scale={hovered ? 1.05 : 1}>
+      {active && onSelect && (
+        <>
+          <TapHitBox size={[0.75, 0.6, 0.75]} onSelect={onSelect} onHoverChange={setHovered} />
+          <BaseHighlight y={-0.2} hovered={hovered} innerRadius={0.24} outerRadius={0.3} color="#ffb26b" />
+        </>
+      )}
+      {/* 몸통 — 활성 타깃일 때 이 표면 자체가 은은하게 빛난다(별도 카드 없음) */}
       <mesh scale={[1.3, 0.8, 1]}>
         <sphereGeometry args={[0.22, 16, 16]} />
-        <meshStandardMaterial color="#e8c9a0" />
+        <meshStandardMaterial ref={glowRef} color="#e8c9a0" emissive="#ffb26b" emissiveIntensity={0} />
       </mesh>
       {/* 배(밝은 무늬) */}
       <mesh position={[0, -0.12, 0.05]} scale={[1, 0.55, 0.75]}>
@@ -204,19 +228,27 @@ function personBase(skin: string, hair: string) {
   );
 }
 
-// G2.2-R2-L: 이 두 캐릭터의 <group position={ANCHOR}>는 이제 "발이 닿는 바닥"
-// 좌표다(sceneLayout.ts의 GUARDIAN_ANCHOR/SENIOR_ANCHOR가 y=0으로 수정됨).
-// 아래 로컬 좌표(다리 0.4~0.42, 몸통 0.82~0.85, 머리 1.15~1.26)는 그대로 —
-// 이전에도 "발이 y=0에 있다"고 가정하고 쌓아올린 구조였고, 버그는 오직
-// ANCHOR 상수의 y값이었다.
+// 이 두 캐릭터의 <group position={ANCHOR}>는 "발이 닿는 바닥" 좌표다
+// (sceneLayout.ts의 GUARDIAN_ANCHOR/SENIOR_ANCHOR가 y=0). resultPose가
+// true면(결과 화면) 서로를 향해 살짝 더 돌아서 "상담을 마무리하는" 자세를
+// 준다 — 회전 값만 살짝 바꿀 뿐 위치는 그대로다.
 
-function Guardian() {
+function Guardian({ active, onSelect, resultPose }: InteractiveProps & { resultPose: boolean }) {
+  const { hovered, setHovered } = useTapHover();
+  const glowRef = useActiveGlow(active, hovered);
+  const yaw = -0.5 + (resultPose ? 0.25 : 0);
   return (
-    <group position={GUARDIAN_ANCHOR} rotation={[0, -0.5, 0]}>
+    <group position={GUARDIAN_ANCHOR} rotation={[0, yaw, 0]}>
+      {active && onSelect && (
+        <>
+          <TapHitBox size={[0.7, 1.5, 0.7]} centerY={0.75} onSelect={onSelect} onHoverChange={setHovered} />
+          <BaseHighlight y={0.015} hovered={hovered} />
+        </>
+      )}
       {personBase("#e8b98c", "#5a4432")}
       <mesh position={[0, 0.85, 0]}>
         <cylinderGeometry args={[0.19, 0.22, 0.62, 14]} />
-        <meshStandardMaterial color="#ff8a73" />
+        <meshStandardMaterial ref={glowRef} color="#ff8a73" emissive="#ffd9a0" emissiveIntensity={0} />
       </mesh>
       <mesh position={[-0.22, 0.85, 0]} rotation={[0, 0, 0.35]}>
         <cylinderGeometry args={[0.045, 0.045, 0.5, 10]} />
@@ -234,14 +266,23 @@ function Guardian() {
   );
 }
 
-function SeniorVet() {
+function SeniorVet({ active, onSelect, resultPose }: InteractiveProps & { resultPose: boolean }) {
+  const { hovered, setHovered } = useTapHover();
+  const glowRef = useActiveGlow(active, hovered);
+  const yaw = -2.3 + (resultPose ? -0.25 : 0);
   return (
-    <group position={SENIOR_ANCHOR} rotation={[0, -2.3, 0]}>
+    <group position={SENIOR_ANCHOR} rotation={[0, yaw, 0]}>
+      {active && onSelect && (
+        <>
+          <TapHitBox size={[0.7, 1.5, 0.7]} centerY={0.75} onSelect={onSelect} onHoverChange={setHovered} />
+          <BaseHighlight y={0.015} hovered={hovered} />
+        </>
+      )}
       {personBase("#f0cf9e", "#8a8a8a")}
       {/* 흰 가운 */}
       <mesh position={[0, 0.82, 0]}>
         <cylinderGeometry args={[0.21, 0.25, 0.68, 14]} />
-        <meshStandardMaterial color="#ffffff" />
+        <meshStandardMaterial ref={glowRef} color="#ffffff" emissive="#7fd8c9" emissiveIntensity={0} />
       </mesh>
       <mesh position={[0, 0.82, 0.19]}>
         <boxGeometry args={[0.06, 0.6, 0.02]} />
@@ -276,7 +317,9 @@ function SeniorVet() {
   );
 }
 
-function ClipboardProp({ showChart }: { showChart: boolean }) {
+function ClipboardProp({ active, onSelect, showChart }: InteractiveProps & { showChart: boolean }) {
+  const { hovered, setHovered } = useTapHover();
+  const glowRef = useActiveGlow(active, hovered);
   const checkRef = useRef<Mesh>(null);
   useFrame(({ clock }) => {
     const mat = checkRef.current?.material as MeshStandardMaterial | undefined;
@@ -284,9 +327,12 @@ function ClipboardProp({ showChart }: { showChart: boolean }) {
   });
   return (
     <group position={CLIPBOARD_ANCHOR} rotation={[-Math.PI / 2.6, 0, 0.05]}>
-      <mesh>
+      {active && onSelect && (
+        <TapHitBox size={[0.44, 0.54, 0.15]} onSelect={onSelect} onHoverChange={setHovered} />
+      )}
+      <mesh scale={hovered ? 1.06 : 1}>
         <boxGeometry args={[0.34, 0.44, 0.02]} />
-        <meshStandardMaterial color="#f7f3ea" />
+        <meshStandardMaterial ref={glowRef} color="#f7f3ea" emissive="#3f9c96" emissiveIntensity={0} />
       </mesh>
       <mesh position={[0, 0.2, 0.012]}>
         <boxGeometry args={[0.1, 0.03, 0.01]} />
@@ -307,15 +353,18 @@ function ClipboardProp({ showChart }: { showChart: boolean }) {
   );
 }
 
-// G2.2-R2-L: CABINET_ANCHOR도 이제 바닥 좌표다(기존에도 이 로컬 구조는
-// "y=0이 바닥"이라고 가정했었다 — 버그는 앵커 상수의 y값 하나였다).
-function Cabinet() {
+function Cabinet({ active, onSelect }: InteractiveProps) {
+  const { hovered, setHovered } = useTapHover();
+  const glowRef = useActiveGlow(active, hovered);
   const doorColors = ["#7fd8c9", "#ff8a73", "#ffd166"];
   return (
     <group position={CABINET_ANCHOR}>
-      <mesh position={[0, 0.55, 0]}>
+      {active && onSelect && (
+        <TapHitBox size={[1.0, 1.2, 0.5]} centerY={0.6} onSelect={onSelect} onHoverChange={setHovered} />
+      )}
+      <mesh scale={hovered ? 1.03 : 1}>
         <boxGeometry args={[0.9, 1.1, 0.4]} />
-        <meshStandardMaterial color="#ffffff" />
+        <meshStandardMaterial ref={glowRef} color="#ffffff" emissive="#ffd166" emissiveIntensity={0} />
       </mesh>
       {doorColors.map((color, index) => (
         <mesh key={color} position={[-0.28 + index * 0.28, 0.55, 0.21]}>
@@ -331,16 +380,21 @@ function Cabinet() {
   );
 }
 
-function Monitor() {
+function Monitor({ active, onSelect }: InteractiveProps) {
+  const { hovered, setHovered } = useTapHover();
+  const glowRef = useActiveGlow(active, hovered);
   return (
     <group position={MONITOR_ANCHOR}>
-      <mesh>
+      {active && onSelect && (
+        <TapHitBox size={[0.6, 0.5, 0.25]} onSelect={onSelect} onHoverChange={setHovered} />
+      )}
+      <mesh scale={hovered ? 1.05 : 1}>
         <boxGeometry args={[0.5, 0.36, 0.03]} />
         <meshStandardMaterial color="#2b2f33" />
       </mesh>
       <mesh position={[0, 0, 0.018]}>
         <boxGeometry args={[0.44, 0.3, 0.005]} />
-        <meshStandardMaterial color="#7fd8c9" emissive="#3f9c96" emissiveIntensity={0.3} />
+        <meshStandardMaterial ref={glowRef} color="#7fd8c9" emissive="#3f9c96" emissiveIntensity={0.3} />
       </mesh>
       <mesh position={[0, -0.24, 0]}>
         <boxGeometry args={[0.06, 0.14, 0.06]} />
@@ -365,10 +419,9 @@ function Scale() {
   );
 }
 
-// G2.2-R2-L: TABLE_CENTER도 이제 바닥 좌표다(y=0). 다리 상자 높이를 0.65로
-// 낮추고 상판 두께를 얇게 잡아 상판이 0.71~0.72 높이에 오도록 했다 —
-// DOG_ANCHOR(몸통 중심 y=0.92, 반높이 약 0.18)가 상판 위(0.71~0.72)에
-// 자연스럽게 걸치도록 맞춘 값이다(강아지가 상판 속에 파묻히던 문제 수정).
+// TABLE_CENTER는 바닥 좌표다(y=0). 다리 상자 높이 0.65 + 얇은 상판으로
+// 상판이 0.71~0.72 높이에 오도록 했다 — DOG_ANCHOR(몸통 중심 y=0.92)가
+// 상판 위에 자연스럽게 걸치도록 맞춘 값이다.
 function ExamTable() {
   return (
     <group position={TABLE_CENTER}>
@@ -389,8 +442,11 @@ function ExamTable() {
   );
 }
 
-/** 병원 정체성 소품 — 발바닥 사인 (텍스트 없이도 동물병원임을 알 수 있게) */
-function PawSign() {
+/** 병원 정체성 소품 — 발바닥 사인. 지점3(전체 상황 먼저 살핀다)에서는
+ *  실제 선택 대상도 겸한다(공간 전체를 상징하는 기존 소품 재사용). */
+function PawSign({ active, onSelect }: InteractiveProps) {
+  const { hovered, setHovered } = useTapHover();
+  const glowRef = useActiveGlow(active, hovered);
   const toeOffsets: Vec3[] = [
     [-0.09, 0.09, 0],
     [-0.03, 0.13, 0],
@@ -399,13 +455,16 @@ function PawSign() {
   ];
   return (
     <group position={WALL_SIGN_ANCHOR}>
-      <mesh>
+      {active && onSelect && (
+        <TapHitBox size={[0.8, 0.6, 0.25]} onSelect={onSelect} onHoverChange={setHovered} />
+      )}
+      <mesh scale={hovered ? 1.05 : 1}>
         <boxGeometry args={[0.7, 0.5, 0.03]} />
         <meshStandardMaterial color="#ffffff" />
       </mesh>
       <mesh position={[0, -0.03, 0.02]} scale={[1, 0.8, 1]}>
         <sphereGeometry args={[0.11, 16, 16]} />
-        <meshStandardMaterial color="#ff8a73" />
+        <meshStandardMaterial ref={glowRef} color="#ff8a73" emissive="#ffd166" emissiveIntensity={0} />
       </mesh>
       {toeOffsets.map((offset, index) => (
         <mesh key={index} position={[offset[0], offset[1] - 0.03, 0.02]}>
@@ -442,28 +501,80 @@ function CompletionBadge() {
   );
 }
 
-function ExamRoom({ showChart }: { showChart: boolean }) {
+/** 진찰대 밑 러그 — 바닥이 그대로 이어지지 않고 "여기가 진료 공간의
+ *  중심"이라고 읽히도록 하는 넓고 옅은 색 패치(회색 빈 공간 완화). */
+function Rug() {
+  return (
+    <mesh position={[0, 0.005, -1.0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <circleGeometry args={[1.35, 32]} />
+      <meshStandardMaterial color="#e3d9c4" />
+    </mesh>
+  );
+}
+
+/** 벽 아래 걸레받이 띠 — 바닥과 벽이 각지게 만나는 대신 하나의 방으로 읽히게 한다. */
+function Baseboard() {
+  return (
+    <mesh position={[0, 0.06, -2.98]}>
+      <boxGeometry args={[7, 0.12, 0.04]} />
+      <meshStandardMaterial color="#cfe3df" />
+    </mesh>
+  );
+}
+
+interface ActiveTargets {
+  dog?: () => void;
+  guardian?: () => void;
+  senior?: () => void;
+  clipboard?: () => void;
+  cabinet?: () => void;
+  monitor?: () => void;
+  pawSign?: () => void;
+}
+
+function buildActiveTargets(
+  resolvedTargets: { target: { kind: NamedTargetKind }; choice: Choice }[],
+  onChoice: (choice: Choice) => void,
+): ActiveTargets {
+  const map: ActiveTargets = {};
+  for (const { target, choice } of resolvedTargets) {
+    map[target.kind] = () => onChoice(choice);
+  }
+  return map;
+}
+
+function ExamRoom({
+  showChart,
+  active,
+  resultPose,
+}: {
+  showChart: boolean;
+  active: ActiveTargets;
+  resultPose: boolean;
+}) {
   return (
     <group>
-      {/* 바닥 — 밝은 아이보리 */}
+      {/* 바닥 — 밝은 아이보리(이전보다 축소해 빈 공간을 줄였다) */}
       <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[10, 8]} />
+        <planeGeometry args={[7, 6]} />
         <meshStandardMaterial color="#f5ede0" />
       </mesh>
-      {/* 뒷벽 — 화이트 */}
-      <mesh position={[0, 2, -3]}>
-        <planeGeometry args={[10, 4.2]} />
+      <Rug />
+      {/* 뒷벽 — 화이트(이전보다 축소) */}
+      <mesh position={[0, 1.8, -3]}>
+        <planeGeometry args={[7, 3.7]} />
         <meshStandardMaterial color="#f7f3ea" />
       </mesh>
+      <Baseboard />
       <ExamTable />
-      <Dog />
-      <Guardian />
-      <SeniorVet />
-      <ClipboardProp showChart={showChart} />
-      <Cabinet />
-      <Monitor />
+      <Dog active={!!active.dog} onSelect={active.dog} />
+      <Guardian active={!!active.guardian} onSelect={active.guardian} resultPose={resultPose} />
+      <SeniorVet active={!!active.senior} onSelect={active.senior} resultPose={resultPose} />
+      <ClipboardProp active={!!active.clipboard} onSelect={active.clipboard} showChart={showChart} />
+      <Cabinet active={!!active.cabinet} onSelect={active.cabinet} />
+      <Monitor active={!!active.monitor} onSelect={active.monitor} />
       <Scale />
-      <PawSign />
+      <PawSign active={!!active.pawSign} onSelect={active.pawSign} />
     </group>
   );
 }
@@ -480,6 +591,10 @@ export default function VetScene({
   const resolvedTargets = useMemo(
     () => resolveScenePresentation(mode, phase, point, choices).targets,
     [mode, phase, point, choices],
+  );
+  const activeTargets = useMemo(
+    () => buildActiveTargets(resolvedTargets, onChoice),
+    [resolvedTargets, onChoice],
   );
 
   return (
@@ -498,10 +613,8 @@ export default function VetScene({
           <CameraRig mode={mode} phase={phase} point={point} />
           <ambientLight intensity={1.0} />
           <directionalLight position={[2, 5, 3]} intensity={1.1} />
-          <ExamRoom showChart={showChart} />
-          {resolvedTargets.length > 0 && (
-            <VetSceneInteractions targets={resolvedTargets} onChoice={onChoice} />
-          )}
+          <directionalLight position={[-1.5, 3, 1]} intensity={0.35} color="#ffe4c4" />
+          <ExamRoom showChart={showChart} active={activeTargets} resultPose={phase === "result"} />
           {phase === "result" && <CompletionBadge />}
         </Canvas>
       </div>

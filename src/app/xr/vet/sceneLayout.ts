@@ -22,15 +22,21 @@
 //   3) 장면 속 큰 한글 라벨 카드가 겹침 — 선택형 타깃 3개 모두에 0.85x0.42
 //      크기의 전체 문구 스프라이트를 띄웠기 때문.
 //
-// 해결 방향:
+// 해결 방향(R2-L):
 //   - 캐릭터는 "발이 바닥(y=0)에 닿는" 루트 앵커에서 렌더한다.
 //   - 카메라 position/lookAt을 지점과 무관하게 고정한다(HERO_CAMERA) —
 //     오직 FOV만 "이번에 반드시 보여야 하는 점들"에 맞춰 완만하게 보정된다.
-//     "반드시 보여야 하는 점"에는 강아지·보호자·선배 수의사의 실제 몸 전체
-//     범위(발~정수리)가 항상 포함되므로, 이제는 지점 하나의 타깃에 맞춰
-//     카메라가 확대·이동하는 일이 구조적으로 없다.
-//   - 장면 속 선택 표시는 전체 문구 대신 작은 번호 배지 + 링으로 축소한다
-//     (전체 문구는 Canvas 밖 HTML 선택지에서 읽는다 — VetSceneInteractions.tsx).
+//
+// [G2.2-R2-L2 추가 배경] 대표님 실제 화면 검수: 강아지·인물 배치는
+// 개선됐지만, 여전히 "장면 속 큰 번호 카드"가 선택 대상·서로를 가리고
+// 있었다(번호로 줄어도 카드가 화면의 주인공). 이번 라운드는:
+//   - 추상 아이콘(idea/together/overview/compare)과 번호 배지를 완전히
+//     제거하고, 기존 진료실 소품(강아지·보호자·선배 수의사·기록판·약장·
+//     모니터·병원 사인)"만"을 선택 대상으로 재사용한다 — 모든 choice가
+//     실제 diegetic 오브젝트를 가리키므로 별도 마커 레이어 자체가 없다.
+//   - 상호작용은 그 오브젝트를 감싸는 보이지 않는 hit-box + (필요한 경우)
+//     발밑/받침대 높이의 아주 작은 링으로만 표시한다(얼굴·몸통을 가리지
+//     않는 위치). VetScene.tsx의 각 캐릭터/소품 컴포넌트가 직접 담당한다.
 // ====================================================
 
 import type { AxisId, Choice, CameraStage, Mode } from "./scenario";
@@ -64,14 +70,23 @@ export function sceneInteractionId(mode: Mode, point: number): string {
 
 // ---------- 장면 속 대상 종류 ----------
 
-/** 항상 씬에 존재하는(상시 렌더) "이름 있는" 캐릭터/소품 — 현재 지점의 타깃일 때만 상호작용 가능해진다. */
-export type NamedTargetKind = "dog" | "guardian" | "senior" | "clipboard" | "cabinet";
-/** 특정 지점에서만 잠깐 나타나는 추상 개념 아이콘(예: "다른 방법을 생각해본다") — 상시 소품이 아니다. */
-export type IconVariant = "idea" | "together" | "overview" | "compare";
+/** 항상 씬에 상시 렌더되는 "실제 진료실 오브젝트"만 선택 대상이 될 수 있다.
+ *  G2.2-R2-L2: 추상 아이콘(icon/variant)을 완전히 없애고, 모든 choice가
+ *  이 중 하나의 진짜 소품/캐릭터를 가리키게 했다 — 별도 마커 레이어가
+ *  없으므로 "카드가 화면의 주인공이 되는" 문제가 구조적으로 생기지 않는다. */
+export type NamedTargetKind =
+  | "dog"
+  | "guardian"
+  | "senior"
+  | "clipboard"
+  | "cabinet"
+  | "monitor"
+  | "pawSign";
 
-export type SceneTarget =
-  | { kind: NamedTargetKind; position: Vec3 }
-  | { kind: "icon"; position: Vec3; variant: IconVariant };
+export interface SceneTarget {
+  kind: NamedTargetKind;
+  position: Vec3;
+}
 
 export interface ResolvedTarget {
   target: SceneTarget;
@@ -124,14 +139,9 @@ export const SENIOR_HEAD_TOP: Vec3 = [
   SENIOR_ANCHOR[2],
 ];
 
-/** 지점에 따라서만 잠깐 등장하는 추상 아이콘 슬롯 — 상시 소품이 아니므로 캐릭터 앵커와는 별도로 둔다.
- *  전부 핵심 3인(강아지·보호자·선배)의 프레임 근처에 배치해 카메라가 크게 벗어나지 않게 한다. */
-const ICON_IDEA_ANCHOR: Vec3 = [0.45, 1.65, -0.45];
-const ICON_TOGETHER_ANCHOR: Vec3 = [-0.7, 1.4, -1.3];
-const ICON_OVERVIEW_ANCHOR: Vec3 = [0, 1.85, -1.85];
-const ICON_COMPARE_ANCHOR: Vec3 = [0.8, 1.65, -0.3];
-
-/** 씬을 구성하는 상시 배경 소품(비상호작용) 좌표 — VetScene이 참조한다. */
+/** 씬을 구성하는 상시 배경 소품 좌표 — VetScene이 참조한다. 모니터·병원 사인은
+ *  평소엔 배경 소품이지만, 특정 지점에서는 SCENE_TARGETS를 통해 그대로
+ *  상호작용 대상이 된다(새 마커를 만들지 않고 기존 소품을 재사용). */
 export const TABLE_CENTER: Vec3 = [0, 0, -1.0];
 export const CLIPBOARD_ANCHOR: Vec3 = [-0.15, 0.85, -0.65];
 export const MONITOR_ANCHOR: Vec3 = [-1.15, 1.35, -2.25];
@@ -143,59 +153,71 @@ export const WALL_SIGN_ANCHOR: Vec3 = [0, 2.0, -2.35];
 // 실제 매핑은 scenario.ts의 각 지점 choice 문구·순서를 그대로 따른다
 // (문구는 여기서 복제하지 않고 choices 배열 인덱스로만 대응시킨다 —
 // resolveTargets가 choices[i]와 짝지어 반환한다).
+//
+// G2.2-R2-L2: 더 이상 추상 아이콘이 없다 — "다른 방법을 생각해본다"류
+// choice는 모니터(참고 화면)를, "전체 상황을 살핀다"는 병원 사인(공간
+// 전체를 상징하는 기존 소품)을, "동물과 보호자를 함께 살펴본다"는 보호자
+// 본인을 가리키는 식으로 실제 오브젝트에 재배정했다. 같은 물리적 오브젝트
+// (예: 모니터)가 여러 지점에서 재사용되지만, 한 지점 안에서는 항상 서로
+// 다른 오브젝트만 등장한다(중복 kind 없음 — sceneLayout.test.ts가 검증).
 
 export const SCENE_TARGETS: Record<string, SceneTarget[]> = {
-  // p1_a 관찰부터 시작 / p1_b 다른 확인 순서를 생각 / p1_c 동물+보호자 함께
+  // p1_a 관찰부터 시작 → 강아지 / p1_b 다른 확인 순서를 생각 → 모니터(참고 화면)
+  // / p1_c 동물과 보호자를 함께 살펴본다 → 보호자
   compass_p1: [
     { kind: "dog", position: DOG_ANCHOR },
-    { kind: "icon", position: ICON_IDEA_ANCHOR, variant: "idea" },
-    { kind: "icon", position: ICON_TOGETHER_ANCHOR, variant: "together" },
+    { kind: "monitor", position: MONITOR_ANCHOR },
+    { kind: "guardian", position: GUARDIAN_TARGET },
   ],
-  // p2_a 선배에게 함께 들어달라 / p2_b 순서대로 적어둔다 / p2_c 다른 기록 방법 생각
+  // p2_a 선배에게 함께 들어달라 → 선배 수의사 / p2_b 순서대로 적어둔다 → 기록판
+  // / p2_c 다른 기록 방법 생각 → 모니터
   compass_p2: [
     { kind: "senior", position: SENIOR_TARGET },
     { kind: "clipboard", position: CLIPBOARD_ANCHOR },
-    { kind: "icon", position: ICON_IDEA_ANCHOR, variant: "idea" },
+    { kind: "monitor", position: MONITOR_ANCHOR },
   ],
-  // p3_a 전체 상황 먼저 살핀다 / p3_b 두 상황 비교 / p3_c 선배와 역할 나눈다
+  // p3_a 전체 상황 먼저 살핀다 → 병원 사인(공간 전체 상징) / p3_b 두 상황 비교 → 모니터
+  // / p3_c 선배와 역할 나눈다 → 선배 수의사
   compass_p3: [
-    { kind: "icon", position: ICON_OVERVIEW_ANCHOR, variant: "overview" },
-    { kind: "icon", position: ICON_COMPARE_ANCHOR, variant: "compare" },
+    { kind: "pawSign", position: WALL_SIGN_ANCHOR },
+    { kind: "monitor", position: MONITOR_ANCHOR },
     { kind: "senior", position: SENIOR_TARGET },
   ],
-  // p4_a 바로 정리 시작 / p4_b 새로운 정리 방법 시도 / p4_c 기록 전체 다시 살펴본다
+  // p4_a 바로 정리 시작 → 기록판 / p4_b 새로운 정리 방법 시도 → 모니터
+  // / p4_c 기록 전체 다시 살펴본다 → 약장(보관된 기록)
   compass_p4: [
     { kind: "clipboard", position: CLIPBOARD_ANCHOR },
-    { kind: "icon", position: ICON_IDEA_ANCHOR, variant: "idea" },
+    { kind: "monitor", position: MONITOR_ANCHOR },
     { kind: "cabinet", position: CABINET_TARGET },
   ],
-  // p5_a 정리한 기록 다시 확인 / p5_b 안내 순서 다시 정리 / p5_c 선배에게 확인받는다
+  // p5_a 정리한 기록 다시 확인 → 기록판 / p5_b 안내 순서 다시 정리 → 모니터
+  // / p5_c 선배에게 확인받는다 → 선배 수의사
   compass_p5: [
     { kind: "clipboard", position: CLIPBOARD_ANCHOR },
-    { kind: "icon", position: ICON_IDEA_ANCHOR, variant: "idea" },
+    { kind: "monitor", position: MONITOR_ANCHOR },
     { kind: "senior", position: SENIOR_TARGET },
   ],
-  // s1_a 보호자 이야기 먼저 듣는다 / s1_b 동물 먼저 살펴본다
+  // s1_a 보호자 이야기 먼저 듣는다 → 보호자 / s1_b 동물 먼저 살펴본다 → 강아지
   sprout_p1: [
     { kind: "guardian", position: GUARDIAN_TARGET },
     { kind: "dog", position: DOG_ANCHOR },
   ],
-  // s2_a 선배에게 물어본다 / s2_b 하나씩 적어본다
+  // s2_a 선배에게 물어본다 → 선배 수의사 / s2_b 하나씩 적어본다 → 기록판
   sprout_p2: [
     { kind: "senior", position: SENIOR_TARGET },
     { kind: "clipboard", position: CLIPBOARD_ANCHOR },
   ],
-  // s3_a 익숙한 방법으로 안내 / s3_b 새롭게 안내해본다
+  // s3_a 익숙한 방법으로 안내 → 보호자 / s3_b 새롭게 안내해본다 → 모니터
   sprout_p3: [
     { kind: "guardian", position: GUARDIAN_TARGET },
-    { kind: "icon", position: ICON_IDEA_ANCHOR, variant: "idea" },
+    { kind: "monitor", position: MONITOR_ANCHOR },
   ],
 };
 
 /** choices[i] ↔ SCENE_TARGETS[id][i]를 인덱스로 짝짓는다. 길이가 다르면(설정 오류) 짧은 쪽까지만 짝짓는다.
- *  G2.2-R2-L: 장면 안에는 더 이상 전체 문구 라벨을 그리지 않고(번호 배지만 그린다 —
- *  VetSceneInteractions.tsx), 배지 번호는 이 배열의 인덱스(i+1)로 정해진다 — 즉 choices의
- *  순서가 곧 화면 속 "1/2/3" 번호와 HTML 선택지의 표시 순서를 모두 결정하는 단일 출처다. */
+ *  G2.2-R2-L2: 장면 안에는 더 이상 문구·번호 라벨을 전혀 그리지 않는다 — 실제 오브젝트
+ *  (강아지·보호자·선배 수의사·기록판·약장·모니터·병원 사인) 자체가 탭 대상이고, 정확한
+ *  선택 문구는 Canvas 밖 HTML 선택지(XrVetClient.tsx)에서만 읽는다. */
 export function resolveTargets(id: string, choices: Choice[]): ResolvedTarget[] {
   const targets = SCENE_TARGETS[id];
   if (!targets) return [];

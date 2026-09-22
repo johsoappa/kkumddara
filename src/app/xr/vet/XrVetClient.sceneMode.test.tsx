@@ -85,19 +85,17 @@ describe("XrVetClient — WebGL 지원 시 씬(Canvas) 경로가 1차 상호작�
     expect(screen.getByRole("button", { name: "글로 진행하기" })).toBeInTheDocument();
   });
 
-  it("G2.2-R2-L: 씬이 1차일 때 HTML 보조 선택지의 번호가 choices 순서(1,2,3...)와 정확히 일치한다", async () => {
-    // compass_p1은 choices 3개(p1_a/p1_b/p1_c) — sceneLayout의 SCENE_TARGETS도
-    // 같은 순서로 3개다(resolveTargets가 인덱스로 1:1 대응, sceneLayout.test.ts가
-    // 별도로 전수 검증). 여기서는 "그 순서가 HTML 목록의 번호에도 그대로
-    // 반영되는가"만 확인한다 — 장면 속 번호 배지와 HTML 목록이 같은 배열의
-    // 같은 인덱스를 공유하므로 항상 같은 순서다.
+  it("G2.2-R2-L2: 씬이 1차일 때도 HTML 보조 선택지는 번호 없이 choices와 같은 순서·문구로 3개 모두 노출된다", async () => {
+    // 장면 속 번호 카드를 완전히 없앴으므로(대상 자체를 직접 탭), HTML 목록도
+    // 더 이상 번호를 붙이지 않는다 — choices 순서 그대로 3개가 각각 구분되어
+    // 노출되는지만 확인한다(sceneLayout.test.ts가 target=choices 1:1을 별도로 검증).
     render(<XrVetClient mode="compass" />);
     fireEvent.click(screen.getByRole("button", { name: "첫 상담 시작하기" }));
 
     await screen.findByTestId("fake-vet-scene");
-    expect(screen.getByRole("button", { name: /^1\. 차분히 관찰부터 시작한다/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^2\. 다른 확인 순서를 생각해본다/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^3\. 동물과 보호자를 함께 살펴본다/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "차분히 관찰부터 시작한다" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "다른 확인 순서를 생각해본다" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "동물과 보호자를 함께 살펴본다" })).toBeInTheDocument();
   });
 
   it("나침반: 5지점 모두 mode/phase/point가 올바르고, 기존 이벤트 계약(5+1+1)과 C 동점 결과가 씬 경로로도 동일하다", async () => {
@@ -198,11 +196,9 @@ describe("XrVetClient — WebGL 지원 시 씬(Canvas) 경로가 1차 상호작�
     fireEvent.click(screen.getByRole("button", { name: "첫 상담 시작하기" }));
 
     await screen.findByTestId("fake-vet-scene");
-    // 씬이 1차일 때 텍스트 선택지는 보조 수단으로 여전히 존재한다 — 장면 속
-    // 번호 배지와 같은 순서를 알 수 있도록 "1. " 같은 번호가 문구 앞에 붙는다
-    // (정확한 문구 자체는 바뀌지 않는다 — 정규식으로 부분 일치 확인).
-    expect(screen.getByRole("button", { name: /차분히 관찰부터 시작한다/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^1\./ })).toBeInTheDocument();
+    // 씬이 1차일 때도 텍스트 선택지는 보조 수단으로 여전히 존재한다(G2.2-R2-L2:
+    // 번호 카드가 없으므로 문구도 항상 그대로다 — 번호 접두사가 없다).
+    expect(screen.getByRole("button", { name: "차분히 관찰부터 시작한다" })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: "글로 진행하기" }));
 
@@ -212,7 +208,6 @@ describe("XrVetClient — WebGL 지원 시 씬(Canvas) 경로가 1차 상호작�
       .filter((button) => button.textContent?.startsWith("scene-choice:"));
     expect(sceneChoiceButtons).toHaveLength(0);
 
-    // 토글 후(HTML 전체 흐름)에는 번호 접두사 없이 원래 문구 그대로다.
     const htmlChoiceButton = screen.getByRole("button", { name: "차분히 관찰부터 시작한다" });
     fireEvent.click(htmlChoiceButton);
     fireEvent.click(await screen.findByRole("button", { name: "계속하기" }));

@@ -88,13 +88,40 @@ describe("SCENE_TARGETS — 모든 mode·point에서 choices와 1:1 대응", () 
 
 describe("SCENE_TARGETS — 같은 point 안에서 동시에 등장하는 타깃 간 최소 간격", () => {
   it.each(Object.keys(SCENE_TARGETS))(
-    "%s의 타깃들은 서로 최소 간격(%s) 이상 떨어져 있다 — 장면 속 번호 배지·하이라이트 링이 겹치지 않는다",
+    "%s의 타깃들은 서로 최소 간격(%s) 이상 떨어져 있다 — hit box·발밑 링이 겹치지 않는다",
     (id) => {
       const positions = SCENE_TARGETS[id].map((t) => t.position);
       if (positions.length < 2) return;
       expect(pairwiseMinDistance(positions)).toBeGreaterThanOrEqual(MIN_TARGET_SPACING);
     },
   );
+});
+
+describe("SCENE_TARGETS — G2.2-R2-L2: 같은 point 안에서는 실제 오브젝트가 중복되지 않는다", () => {
+  // 모든 choice가 실제 진료실 오브젝트(강아지·보호자·선배 수의사·기록판·약장·
+  // 모니터·병원 사인)를 가리키므로, 한 지점 안에서 같은 kind가 두 번 나오면
+  // 서로 다른 두 choice가 화면에서는 "같은 물건"을 가리키는 모순이 생긴다.
+  it.each(Object.keys(SCENE_TARGETS))("%s의 타깃 kind는 서로 중복되지 않는다", (id) => {
+    const kinds = SCENE_TARGETS[id].map((t) => t.kind);
+    expect(new Set(kinds).size).toBe(kinds.length);
+  });
+
+  it("SCENE_TARGETS에는 더 이상 추상 아이콘(icon) kind가 존재하지 않는다 — 전부 실제 오브젝트다", () => {
+    const allowedKinds = new Set([
+      "dog",
+      "guardian",
+      "senior",
+      "clipboard",
+      "cabinet",
+      "monitor",
+      "pawSign",
+    ]);
+    for (const targets of Object.values(SCENE_TARGETS)) {
+      for (const target of targets) {
+        expect(allowedKinds.has(target.kind)).toBe(true);
+      }
+    }
+  });
 });
 
 describe("isFiniteVec3 — 3D 좌표 totality predicate", () => {
