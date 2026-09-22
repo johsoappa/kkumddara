@@ -252,26 +252,36 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
             </p>
           )}
           {useScene && (
-            <p className="text-xs font-medium text-gray-500">
-              반짝이는 대상을 눌러서 선택해보세요.
+            <p className="text-sm font-medium text-gray-600">
+              장면 속 번호가 붙은 대상을 눌러서 선택해보세요. 아래 목록에서도 같은 번호로 골라도 돼요.
             </p>
           )}
-          {/* 씬이 1차 수단일 때는 텍스트 선택지를 보조 수단으로 간결하게 유지하고,
+          {/* 씬이 1차 수단일 때는 텍스트 선택지를 보조 수단으로 유지하되, 글씨를
+              지나치게 줄이지 않는다(모바일에서 읽고 누르기 어렵다는 검수 지적 반영) —
+              장면 속 번호 배지와 같은 순서로 번호를 붙여 상호 대응을 알 수 있게 한다.
               씬을 쓸 수 없을 때(WebGL 미지원·오류·사용자 선택)는 지금처럼 완전한
               형태로 노출한다 — 두 경로 모두 같은 handleChoice를 호출한다. */}
-          <div className={useScene ? "flex flex-col gap-2" : "flex flex-col gap-3"}>
-            {currentPointData.choices.map((choice) => (
+          <div className="flex flex-col gap-2.5">
+            {currentPointData.choices.map((choice, index) => (
               <button
                 key={choice.id}
                 type="button"
                 onClick={() => handleChoice(choice)}
                 className={
                   useScene
-                    ? "min-h-[44px] w-full rounded-lg border border-teal-200 bg-white px-4 text-sm font-medium text-teal-700 transition-colors active:bg-teal-50"
+                    ? "flex min-h-[48px] w-full items-center gap-3 rounded-lg border-2 border-teal-300 bg-teal-50 px-4 text-base font-semibold text-teal-800 transition-colors active:bg-teal-100"
                     : "min-h-[52px] w-full rounded-xl bg-teal-600 px-4 text-base font-semibold text-white transition-colors active:bg-teal-700"
                 }
               >
-                {choice.label}
+                {useScene && (
+                  <span
+                    aria-hidden="true"
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-teal-600 text-sm font-bold text-white"
+                  >
+                    {index + 1}
+                  </span>
+                )}
+                <span>{useScene ? `${index + 1}. ${choice.label}` : choice.label}</span>
               </button>
             ))}
           </div>

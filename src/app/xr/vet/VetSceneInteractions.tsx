@@ -1,29 +1,39 @@
 "use client";
 
 // ====================================================
-// VetSceneInteractions — 수의사 XR 인캔버스 직접 조작 (G2.2-R2)
+// VetSceneInteractions — 수의사 XR 인캔버스 직접 조작 (G2.2-R2-L)
 //
 // 수의사 원본 시나리오는 select(선택형)만 사용한다 — 드래그(place)·순서
-// 교체(order)는 요리사 전용이라 이식하지 않는다(작업지시서 4-5, 5-3).
+// 교체(order)는 요리사 전용이라 이식하지 않는다.
 //
 // 이 컴포넌트는 onChoice(choice)를 호출할 뿐, 잠금(choiceLockRef)이나
 // analytics는 절대 여기서 복제하지 않는다 — onChoice는 XrVetClient의
 // handleChoice를 그대로 관통시킨 값이라 텍스트 버튼 경로와 완전히 같은
 // 계약을 공유한다(포인터 1회 = handleChoice 1회 = analytics 1회).
 //
+// [G2.2-R2-L] 실제 화면 검수에서 "장면 속 큰 한글 라벨 카드가 인물·소품·
+// 다른 카드와 겹치고, 나침반 단계에서는 카드 자체가 잘리거나 다른 카드의
+// 글씨를 가려 식별하기 어렵다"는 문제가 확인됐다. 전체 문구를 띄우던 큰
+// 라벨 스프라이트(0.85x0.42)를 제거하고, 대신 선택 순서를 가리키는 작은
+// 번호 배지(1/2/3, 0.24x0.24)만 그린다 — 정확한 선택 문구는 Canvas 밖
+// HTML 선택지(XrVetClient.tsx)가 같은 번호로 병기해 읽을 수 있게 한다.
+// MIN_TARGET_SPACING(0.9) 대비 hit area 반경을 0.32로 낮춰(이전 0.4~0.45)
+// 인접 타깃과 겹치지 않는 여유를 넉넉히 남겼다(sceneLayout.test.ts가
+// 이 여유를 회귀 검증한다).
+//
 // "이름 있는" 타깃(dog/guardian/senior/clipboard/cabinet)은 VetScene이
 // 항상 그 자리에 캐릭터/소품을 렌더링하고, 이 컴포넌트는 그 위에 "지금
-// 선택 가능함"을 알리는 하이라이트 링·라벨만 얹는다(캐릭터 자신의 형태는
-// 바꾸지 않는다 — 강아지가 강아지로 계속 보여야 하므로). "icon" 타깃(예:
-// "다른 방법을 생각해본다")은 그 지점에서만 잠깐 나타나는 추상 소품이라
-// 이 컴포넌트가 직접 지오메트리까지 그린다.
+// 선택 가능함"을 알리는 하이라이트 링·번호 배지만 얹는다(캐릭터 자신의
+// 형태는 바꾸지 않는다). "icon" 타깃(예: "다른 방법을 생각해본다")은 그
+// 지점에서만 잠깐 나타나는 추상 소품이라 이 컴포넌트가 직접 지오메트리까지
+// 그린다.
 // ====================================================
 
 import { useMemo, useRef, useState } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
-import type { Group, Mesh, MeshStandardMaterial } from "three";
+import type { Group, MeshStandardMaterial } from "three";
 import type { Choice } from "./scenario";
-import { targetLabel, type ResolvedTarget, type Vec3 } from "./sceneLayout";
+import type { ResolvedTarget, Vec3 } from "./sceneLayout";
 import { createVetLabelSprite } from "./vetLabelSprite";
 
 export interface VetSceneInteractionsProps {
@@ -31,26 +41,36 @@ export interface VetSceneInteractionsProps {
   onChoice: (choice: Choice) => void;
 }
 
+/** hit area 반경 — MIN_TARGET_SPACING(0.9)의 절반보다 작게 잡아 인접
+ *  타깃과 겹치지 않는다(sceneLayout.test.ts가 이 관계를 회귀 검증). */
+const HIT_AREA_RADIUS = 0.32;
+const BADGE_SCALE: [number, number] = [0.24, 0.24];
+
 function setCursor(value: string) {
   if (typeof document !== "undefined") {
     document.body.style.cursor = value;
   }
 }
 
+/** 선택 순서를 나타내는 작은 번호 배지 — 전체 문구 대신 숫자만 그린다. */
+function NumberBadge({ number, hovered }: { number: number; hovered: boolean }) {
+  const sprite = useMemo(() => createVetLabelSprite(String(number), BADGE_SCALE), [number]);
+  return <primitive object={sprite} position={[0, 0.34, 0]} scale={hovered ? 1.12 : 1} />;
+}
+
 /** 항상 카메라를 향하는 얇은 링 하이라이트 — "이름 있는" 캐릭터/소품 발밑에 얹어
  *  실제 형태는 바꾸지 않으면서 "지금 탭 가능"임을 알린다. */
 function HighlightRing({
   position,
-  label,
+  number,
   onSelect,
 }: {
   position: Vec3;
-  label: string;
+  number: number;
   onSelect: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const ringMatRef = useRef<MeshStandardMaterial>(null);
-  const labelSprite = useMemo(() => createVetLabelSprite(label), [label]);
 
   // 항상 은은하게 펄스 — 호버 이전(=터치 기기)에도 "여기 누를 수 있다"는 신호를 준다.
   useFrame(({ clock }) => {
@@ -63,7 +83,7 @@ function HighlightRing({
 
   return (
     <group position={position}>
-      {/* 보이지 않는 넉넉한 hit area — 캐릭터 실루엣보다 크게 잡아 375px에서도 손가락으로 정확히 짚을 필요가 없게 한다 */}
+      {/* 보이지 않는 hit area — 인접 타깃과 겹치지 않도록 HIT_AREA_RADIUS로 고정 */}
       <mesh
         visible={false}
         onPointerOver={(event: ThreeEvent<PointerEvent>) => {
@@ -81,7 +101,7 @@ function HighlightRing({
           onSelect();
         }}
       >
-        <sphereGeometry args={[0.45, 12, 12]} />
+        <sphereGeometry args={[HIT_AREA_RADIUS, 12, 12]} />
       </mesh>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.55, 0]} scale={hovered ? 1.12 : 1}>
         <ringGeometry args={[0.26, 0.34, 24]} />
@@ -94,7 +114,7 @@ function HighlightRing({
           opacity={0.92}
         />
       </mesh>
-      <primitive object={labelSprite} position={[0, 0.62, 0]} scale={hovered ? 1.08 : 1} />
+      <NumberBadge number={number} hovered={hovered} />
     </group>
   );
 }
@@ -104,18 +124,17 @@ function HighlightRing({
 function IconTarget({
   position,
   variant,
-  label,
+  number,
   onSelect,
 }: {
   position: Vec3;
   variant: "idea" | "together" | "overview" | "compare";
-  label: string;
+  number: number;
   onSelect: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
   const groupRef = useRef<Group>(null);
   const matRef = useRef<MeshStandardMaterial>(null);
-  const labelSprite = useMemo(() => createVetLabelSprite(label), [label]);
   const baseY = position[1];
 
   useFrame(({ clock }) => {
@@ -150,7 +169,7 @@ function IconTarget({
           onSelect();
         }}
       >
-        <sphereGeometry args={[0.4, 12, 12]} />
+        <sphereGeometry args={[HIT_AREA_RADIUS, 12, 12]} />
       </mesh>
       {variant === "idea" && (
         <>
@@ -188,7 +207,7 @@ function IconTarget({
           </mesh>
         </group>
       )}
-      <primitive object={labelSprite} position={[0, 0.34, 0]} scale={[0.62, 0.31, 1]} />
+      <NumberBadge number={number} hovered={hovered} />
     </group>
   );
 }
@@ -196,14 +215,15 @@ function IconTarget({
 export default function VetSceneInteractions({ targets, onChoice }: VetSceneInteractionsProps) {
   return (
     <group>
-      {targets.map(({ target, choice }) => {
+      {targets.map(({ target, choice }, index) => {
+        const number = index + 1;
         if (target.kind === "icon") {
           return (
             <IconTarget
               key={choice.id}
               position={target.position}
               variant={target.variant}
-              label={targetLabel(target)}
+              number={number}
               onSelect={() => onChoice(choice)}
             />
           );
@@ -212,7 +232,7 @@ export default function VetSceneInteractions({ targets, onChoice }: VetSceneInte
           <HighlightRing
             key={choice.id}
             position={target.position}
-            label={targetLabel(target)}
+            number={number}
             onSelect={() => onChoice(choice)}
           />
         );

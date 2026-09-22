@@ -1,31 +1,36 @@
 "use client";
 
 // ====================================================
-// XR 수의사 진료실 씬 — v2 (R3F Canvas 본체, G2.2-R2 전면 개편)
+// XR 수의사 진료실 씬 — v3 (R3F Canvas 본체, G2.2-R2-L 화면 구성 수정)
 //
-// [배경] 수동 화면 검수에서 "동물·보호자·수의사·진료 도구가 보이지 않아
-//   동물병원으로 인식되지 않는다", "카메라만 움직이고 빈 공간·잘린
-//   오브젝트만 보인다", "사용자가 장면이 아니라 하단 텍스트 버튼만
-//   선택한다"는 문제가 확인됐다. 이번 v2는 시나리오·choice ID·axis·
-//   결과 규칙은 전혀 건드리지 않고(scenario.ts 무수정), 장면 구성과
-//   직접 상호작용만 제품 수준으로 다시 설계한다.
+// [G2.2-R2-L 배경] 대표님의 실제 화면 캡처에서 확인된 문제:
+//   1) 강아지가 진찰대 뒤에 가려 거의 보이지 않고, 보호자·선배 수의사가
+//      화면 양옆에서 잘림 — 원인은 캐릭터/진찰대 앵커가 "바닥(y=0)"이
+//      아니라 임의의 y값에 떠 있었고, 지점별 카메라가 그 지점의 타깃 +
+//      강아지만 프레이밍해 보호자·선배 수의사가 계산에서 빠지곤 했기 때문
+//      (sceneLayout.ts 상단 주석 참고).
+//   2) 선택 단계마다 카메라가 타깃을 따라 크게 이동 — 지점마다 카메라
+//      position 자체를 타깃 무게중심으로 재계산했기 때문.
+//   3) 장면 속 큰 한글 라벨 카드가 서로/인물과 겹침.
+//
+// [이번 수정]
+//   - 캐릭터(보호자·선배 수의사)·진찰대·약장 앵커를 "바닥에 닿는" 좌표로
+//     바로잡았다(sceneLayout.ts의 GUARDIAN_ANCHOR/SENIOR_ANCHOR/
+//     CABINET_ANCHOR/TABLE_CENTER가 이제 floor-root). 강아지는 진찰대
+//     상판 바로 위·앞쪽에 배치해 상판에 가리지 않는다.
+//   - 카메라 position/lookAt을 HERO_CAMERA로 고정하고(sceneLayout.ts),
+//     오직 FOV만 "이번에 반드시 보여야 하는 점"(핵심 3인의 발~정수리 +
+//     현재 지점 타깃)에 맞춰 완만하게 보정한다 — 더 이상 카메라가 좌우로
+//     옮겨가거나 특정 타깃에 과도하게 확대되지 않는다.
+//   - 장면 속 선택 표시는 큰 문구 카드 대신 작은 번호 배지 + 하이라이트
+//     링으로 바꿨다(VetSceneInteractions.tsx). 정확한 선택 문구는 Canvas
+//     밖 HTML 선택지(XrVetClient.tsx)에서 그대로 읽을 수 있다.
 //
 // [공간] "작은 동물병원 첫 상담실" 하나로 통일 — 중앙 진찰대 위 강아지
 //   환자, 한쪽에 보호자, 반대쪽에 흰 가운을 입은 선배 수의사, 주변에
 //   진료기록판·약장·체중계·모니터·병원 정체성 소품(발바닥 사인)을 배치한다.
 //   드래그·순서교체는 수의사 원본 시나리오에 없으므로 만들지 않는다 —
 //   모든 상호작용은 select(장면 속 대상 탭)뿐이다.
-//
-// [카메라] sceneLayout.ts의 cameraForPoint/overviewCamera + fitVerticalFov로
-//   지점별 타깃이 항상 프레임 안에 들어오도록 자동 보정한다(요리사
-//   interactions3d.ts와 같은 핀홀 카메라 삼각함수를 이 파일 트리 안에서
-//   독립적으로 재구현한 것 — 파일을 공유하지 않는다). 스냅이 아니라
-//   짧은 감쇠 보간으로 이동해 이전처럼 "카메라만 툭툭 튀는" 느낌을 줄였다.
-//
-// [상호작용] VetSceneInteractions가 현재 지점의 choices와 1:1로 짝지어진
-//   타깃(강아지/보호자/선배 수의사/기록판/약장 또는 지점 한정 아이콘)을
-//   탭 가능하게 만든다. onChoice는 XrVetClient의 handleChoice를 그대로
-//   관통시킨 값이므로 잠금·analytics는 이 파일에 전혀 복제되지 않는다.
 //
 // [WebGL 가드] 요리사·수의사 공용 XrSceneGuard/XrScenePlaceholder를 그대로
 //   재사용한다(이 파일에서 수정하지 않음) — 미지원/런타임 오류 시 이
@@ -43,13 +48,13 @@ import {
   DOG_ANCHOR,
   GUARDIAN_ANCHOR,
   MONITOR_ANCHOR,
+  RESULT_BADGE_POINT,
   SCALE_ANCHOR,
   SENIOR_ANCHOR,
   TABLE_CENTER,
   WALL_SIGN_ANCHOR,
   easeAlpha,
   easeScalar,
-  easeVec3,
   fitVerticalFov,
   framingPointsForPositions,
   resolveScenePresentation,
@@ -80,6 +85,9 @@ export interface VetSceneProps {
 const CAMERA_EASE_HALF_LIFE = 0.3;
 const DEFAULT_FOV = 55;
 
+// G2.2-R2-L — position/lookAt은 sceneLayout의 HERO_CAMERA로 고정이라 더 이상
+// 지점마다 바뀌지 않는다. 이 Rig가 매 프레임 하는 일은 오직 "이번에 반드시
+// 보여야 하는 점" 목록이 바뀔 때 FOV를 완만하게 재조정하는 것뿐이다.
 function CameraRig({
   mode,
   phase,
@@ -91,33 +99,24 @@ function CameraRig({
 }) {
   const camera = useThree((state) => state.camera) as PerspectiveCamera;
   const size = useThree((state) => state.size);
-  // camera 계산은 choices에 의존하지 않는다 — resolveScenePresentation의
-  // 단일 진입점을 그대로 쓰되 targets는 여기서 쓰지 않으므로 빈 배열을 넘긴다.
-  const config = resolveScenePresentation(mode, phase, point, []).camera;
-
-  const basePosRef = useRef<Vec3>(config.position);
-  const lookAtRef = useRef<Vec3>(config.lookAt);
   const fovRef = useRef(DEFAULT_FOV);
 
   useFrame((_, delta) => {
     const target = resolveScenePresentation(mode, phase, point, []).camera;
     const alpha = easeAlpha(delta, CAMERA_EASE_HALF_LIFE);
 
-    basePosRef.current = easeVec3(basePosRef.current, target.position, alpha);
-    lookAtRef.current = easeVec3(lookAtRef.current, target.lookAt, alpha);
-
     const aspect = size.height > 0 ? size.width / size.height : 1;
     const framingPoints = framingPointsForPositions(target.points);
     const neededFov = fitVerticalFov({
-      cameraPos: basePosRef.current,
-      lookAt: lookAtRef.current,
+      cameraPos: target.position,
+      lookAt: target.lookAt,
       points: framingPoints,
       aspect,
     });
     fovRef.current = easeScalar(fovRef.current, neededFov, alpha);
 
-    camera.position.set(basePosRef.current[0], basePosRef.current[1], basePosRef.current[2]);
-    camera.lookAt(lookAtRef.current[0], lookAtRef.current[1], lookAtRef.current[2]);
+    camera.position.set(target.position[0], target.position[1], target.position[2]);
+    camera.lookAt(target.lookAt[0], target.lookAt[1], target.lookAt[2]);
     camera.fov = fovRef.current;
     camera.updateProjectionMatrix();
   });
@@ -204,6 +203,12 @@ function personBase(skin: string, hair: string) {
     </>
   );
 }
+
+// G2.2-R2-L: 이 두 캐릭터의 <group position={ANCHOR}>는 이제 "발이 닿는 바닥"
+// 좌표다(sceneLayout.ts의 GUARDIAN_ANCHOR/SENIOR_ANCHOR가 y=0으로 수정됨).
+// 아래 로컬 좌표(다리 0.4~0.42, 몸통 0.82~0.85, 머리 1.15~1.26)는 그대로 —
+// 이전에도 "발이 y=0에 있다"고 가정하고 쌓아올린 구조였고, 버그는 오직
+// ANCHOR 상수의 y값이었다.
 
 function Guardian() {
   return (
@@ -302,6 +307,8 @@ function ClipboardProp({ showChart }: { showChart: boolean }) {
   );
 }
 
+// G2.2-R2-L: CABINET_ANCHOR도 이제 바닥 좌표다(기존에도 이 로컬 구조는
+// "y=0이 바닥"이라고 가정했었다 — 버그는 앵커 상수의 y값 하나였다).
 function Cabinet() {
   const doorColors = ["#7fd8c9", "#ff8a73", "#ffd166"];
   return (
@@ -358,20 +365,24 @@ function Scale() {
   );
 }
 
+// G2.2-R2-L: TABLE_CENTER도 이제 바닥 좌표다(y=0). 다리 상자 높이를 0.65로
+// 낮추고 상판 두께를 얇게 잡아 상판이 0.71~0.72 높이에 오도록 했다 —
+// DOG_ANCHOR(몸통 중심 y=0.92, 반높이 약 0.18)가 상판 위(0.71~0.72)에
+// 자연스럽게 걸치도록 맞춘 값이다(강아지가 상판 속에 파묻히던 문제 수정).
 function ExamTable() {
   return (
     <group position={TABLE_CENTER}>
-      <mesh position={[0, 0.5, 0]}>
-        <boxGeometry args={[1.4, 1, 0.9]} />
+      <mesh position={[0, 0.325, 0]}>
+        <boxGeometry args={[1.1, 0.65, 0.7]} />
         <meshStandardMaterial color="#bfe3da" />
       </mesh>
-      <mesh position={[0, 1.02, 0]}>
-        <boxGeometry args={[1.5, 0.08, 1.0]} />
+      <mesh position={[0, 0.68, 0]}>
+        <boxGeometry args={[1.15, 0.06, 0.75]} />
         <meshStandardMaterial color="#eef7f4" />
       </mesh>
       {/* 매트 */}
-      <mesh position={[0, 1.07, 0]}>
-        <boxGeometry args={[1.1, 0.02, 0.6]} />
+      <mesh position={[0, 0.72, 0]}>
+        <boxGeometry args={[0.8, 0.02, 0.5]} />
         <meshStandardMaterial color="#ffffff" />
       </mesh>
     </group>
@@ -406,7 +417,9 @@ function PawSign() {
   );
 }
 
-/** 결과 화면 전용 — 완료 배지(리본) + "체험 완료!" 라벨 */
+/** 결과 화면 전용 — 완료 배지(리본) + "체험 완료!" 라벨. sceneLayout의
+ *  RESULT_BADGE_POINT와 같은 좌표를 써야 카메라 프레이밍 계산과 실제
+ *  렌더 위치가 어긋나지 않는다. */
 function CompletionBadge() {
   const labelSprite = useMemo(() => createVetLabelSprite("체험 완료!"), []);
   const ringRef = useRef<Mesh>(null);
@@ -415,7 +428,7 @@ function CompletionBadge() {
     if (mat) mat.emissiveIntensity = 0.5 + Math.abs(Math.sin(clock.elapsedTime * 2)) * 0.35;
   });
   return (
-    <group position={[0, 2.15, -1.1]}>
+    <group position={RESULT_BADGE_POINT}>
       <mesh ref={ringRef}>
         <torusGeometry args={[0.16, 0.045, 12, 24]} />
         <meshStandardMaterial color="#ffd166" emissive="#ffd166" emissiveIntensity={0.5} />
@@ -433,7 +446,7 @@ function ExamRoom({ showChart }: { showChart: boolean }) {
   return (
     <group>
       {/* 바닥 — 밝은 아이보리 */}
-      <mesh position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[10, 8]} />
         <meshStandardMaterial color="#f5ede0" />
       </mesh>
@@ -478,7 +491,7 @@ export default function VetScene({
     >
       <div className="h-[62vh] w-full touch-none overflow-hidden rounded-xl bg-[#f5ede0]">
         <Canvas
-          camera={{ position: [0, 1.9, 3.6], fov: DEFAULT_FOV }}
+          camera={{ position: [0, 1.6, 2.9], fov: DEFAULT_FOV }}
           dpr={[1, 2]}
           gl={{ antialias: true, powerPreference: "low-power" }}
         >

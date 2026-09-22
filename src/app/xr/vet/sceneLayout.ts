@@ -1,5 +1,5 @@
 // ====================================================
-// XR 수의사 씬 레이아웃 — 순수 데이터 + 순수 함수 (G2.2-R2)
+// XR 수의사 씬 레이아웃 — 순수 데이터 + 순수 함수 (G2.2-R2-L)
 //
 // React/Three.js 인스턴스에 의존하지 않는 순수 데이터·함수만 담는다
 // (scenario.ts가 순수 데이터/집계 로직만 담는 것과 동일한 원칙 — 요리사
@@ -9,6 +9,28 @@
 //
 // 이 파일은 scenario.ts를 읽기만 한다(타입·CHOICE_POINTS/SPROUT_POINTS
 // import) — scenario.ts 자체는 수정하지 않는다.
+//
+// [G2.2-R2-L 재설계 배경]
+// 실제 화면 캡처에서 확인된 문제:
+//   1) 강아지가 진찰대 뒤에 가려 거의 보이지 않고, 보호자·선배 수의사가
+//      화면 양옆에서 잘림 — 원인은 (a) 캐릭터 앵커가 "발 위치"가 아니라
+//      임의의 y값(1.35~1.5)에 떠 있어 실제로는 공중에 뜬 채로 렌더됐고,
+//      (b) 지점별 카메라가 "그 지점의 타깃 + 강아지"만 프레이밍해 보호자·
+//      선배 수의사가 프레이밍 계산에서 아예 빠지는 경우가 있었기 때문.
+//   2) 선택 단계마다 카메라가 타깃을 따라 크게 이동 — cameraForPoint가
+//      매 지점마다 타깃 무게중심으로 위치 자체를 재계산했기 때문.
+//   3) 장면 속 큰 한글 라벨 카드가 겹침 — 선택형 타깃 3개 모두에 0.85x0.42
+//      크기의 전체 문구 스프라이트를 띄웠기 때문.
+//
+// 해결 방향:
+//   - 캐릭터는 "발이 바닥(y=0)에 닿는" 루트 앵커에서 렌더한다.
+//   - 카메라 position/lookAt을 지점과 무관하게 고정한다(HERO_CAMERA) —
+//     오직 FOV만 "이번에 반드시 보여야 하는 점들"에 맞춰 완만하게 보정된다.
+//     "반드시 보여야 하는 점"에는 강아지·보호자·선배 수의사의 실제 몸 전체
+//     범위(발~정수리)가 항상 포함되므로, 이제는 지점 하나의 타깃에 맞춰
+//     카메라가 확대·이동하는 일이 구조적으로 없다.
+//   - 장면 속 선택 표시는 전체 문구 대신 작은 번호 배지 + 링으로 축소한다
+//     (전체 문구는 Canvas 밖 HTML 선택지에서 읽는다 — VetSceneInteractions.tsx).
 // ====================================================
 
 import type { AxisId, Choice, CameraStage, Mode } from "./scenario";
@@ -16,17 +38,15 @@ import { CHOICE_POINTS, SPROUT_POINTS } from "./scenario";
 
 export type Vec3 = [number, number, number];
 
-/** XrVetClient의 진행 단계 — VetScene/CameraRig가 오버뷰/지점별 카메라를 고를 때 쓴다. */
+/** XrVetClient의 진행 단계 — VetScene/CameraRig가 오버뷰/결과/지점별 카메라를 고를 때 쓴다. */
 export type VetScenePhase = "intro" | "choosing" | "reaction" | "result";
 
 /**
- * G2.2-R2-R — 3D 좌표 totality 가드. R3F는 position/rotation/scale/lookAt에
+ * 3D 좌표 totality 가드. R3F는 position/rotation/scale/lookAt에
  * undefined·NaN·Infinity가 섞여 들어오면 "Cannot read properties of
  * undefined (reading 'z')" 같은 런타임 오류를 던진다(Canvas mount 자체가
  * 깨져 XrSceneGuard의 에러 바운더리가 fallback으로 전환하게 만든다).
- * 이 함수는 그 값을 실제로 JSX prop에 넘기기 전에 "숫자 3개인가"를
- * 확인하는 유일한 관문이다 — 좌표를 계산하는 모든 함수(cameraFor,
- * resolveTargets 등)의 출력이 이 predicate를 통과해야 한다는 것을
+ * 좌표를 계산하는 모든 함수의 출력이 이 predicate를 통과해야 한다는 것을
  * sceneLayout.test.ts가 전수 검증한다.
  */
 export function isFiniteVec3(value: unknown): value is Vec3 {
@@ -58,28 +78,65 @@ export interface ResolvedTarget {
   choice: Choice;
 }
 
-// ---------- 상시 캐릭터/소품 앵커 좌표 ----------
-// "작은 동물병원 첫 상담실" 하나로 통일한 공간 안의 고정 위치.
-// dog/guardian/senior/clipboard/cabinet은 VetScene이 항상 이 위치에
-// 렌더링하는 상시 캐릭터/소품이며, 지점별로 상호작용 가능 여부만 바뀐다.
+// ---------- 캐릭터 루트 앵커(바닥 기준) ----------
+// VetScene의 <group position={...}>가 그대로 사용한다 — 이 좌표가 바로
+// "발이 닿는 바닥 위치"다(캐릭터 내부 mesh는 이 원점 기준 로컬 좌표로만
+// 쌓아올린다). 강아지는 낮고 단순해 몸통 중심을 루트 겸 타깃으로 쓴다.
 
-export const DOG_ANCHOR: Vec3 = [0.1, 1.35, -1.35];
-export const GUARDIAN_ANCHOR: Vec3 = [-1.4, 1.35, -0.6];
-export const SENIOR_ANCHOR: Vec3 = [1.4, 1.5, -1.6];
-export const CLIPBOARD_ANCHOR: Vec3 = [0.65, 1.1, -0.75];
-export const CABINET_ANCHOR: Vec3 = [-1.6, 1.0, -2.2];
+export const DOG_ANCHOR: Vec3 = [0, 0.92, -0.85];
+export const GUARDIAN_ANCHOR: Vec3 = [-1.0, 0, -0.95];
+export const SENIOR_ANCHOR: Vec3 = [1.0, 0, -1.05];
+export const CABINET_ANCHOR: Vec3 = [-1.4, 0, -1.85];
 
-/** 지점에 따라서만 잠깐 등장하는 추상 아이콘 슬롯 — 상시 소품이 아니므로 캐릭터 앵커와는 별도로 둔다. */
-const ICON_IDEA_ANCHOR: Vec3 = [-0.15, 1.75, -0.3];
-const ICON_TOGETHER_ANCHOR: Vec3 = [-0.75, 1.3, -1.95];
-const ICON_OVERVIEW_ANCHOR: Vec3 = [0.0, 2.1, -2.3];
-const ICON_COMPARE_ANCHOR: Vec3 = [1.5, 1.3, -0.4];
+/** 캐릭터 전신 높이 근사(발~정수리) — 카메라가 몸 전체를 프레임에 담을 때 쓴다. */
+export const CHARACTER_HEIGHT = 1.4;
+
+/** 캐릭터 루트에서 "상호작용 타깃/라벨"이 위치할 가슴 높이 오프셋. */
+const GUARDIAN_TARGET_OFFSET_Y = 0.95;
+const SENIOR_TARGET_OFFSET_Y = 1.05;
+const CABINET_TARGET_OFFSET_Y = 0.55;
+
+export const GUARDIAN_TARGET: Vec3 = [
+  GUARDIAN_ANCHOR[0],
+  GUARDIAN_ANCHOR[1] + GUARDIAN_TARGET_OFFSET_Y,
+  GUARDIAN_ANCHOR[2],
+];
+export const SENIOR_TARGET: Vec3 = [
+  SENIOR_ANCHOR[0],
+  SENIOR_ANCHOR[1] + SENIOR_TARGET_OFFSET_Y,
+  SENIOR_ANCHOR[2],
+];
+export const CABINET_TARGET: Vec3 = [
+  CABINET_ANCHOR[0],
+  CABINET_ANCHOR[1] + CABINET_TARGET_OFFSET_Y,
+  CABINET_ANCHOR[2],
+];
+
+/** 캐릭터 정수리 근사 — HERO_CAMERA가 항상 프레임에 담아야 하는 "몸 전체 범위" 계산용. */
+export const GUARDIAN_HEAD_TOP: Vec3 = [
+  GUARDIAN_ANCHOR[0],
+  GUARDIAN_ANCHOR[1] + CHARACTER_HEIGHT,
+  GUARDIAN_ANCHOR[2],
+];
+export const SENIOR_HEAD_TOP: Vec3 = [
+  SENIOR_ANCHOR[0],
+  SENIOR_ANCHOR[1] + CHARACTER_HEIGHT,
+  SENIOR_ANCHOR[2],
+];
+
+/** 지점에 따라서만 잠깐 등장하는 추상 아이콘 슬롯 — 상시 소품이 아니므로 캐릭터 앵커와는 별도로 둔다.
+ *  전부 핵심 3인(강아지·보호자·선배)의 프레임 근처에 배치해 카메라가 크게 벗어나지 않게 한다. */
+const ICON_IDEA_ANCHOR: Vec3 = [0.45, 1.65, -0.45];
+const ICON_TOGETHER_ANCHOR: Vec3 = [-0.7, 1.4, -1.3];
+const ICON_OVERVIEW_ANCHOR: Vec3 = [0, 1.85, -1.85];
+const ICON_COMPARE_ANCHOR: Vec3 = [0.8, 1.65, -0.3];
 
 /** 씬을 구성하는 상시 배경 소품(비상호작용) 좌표 — VetScene이 참조한다. */
-export const TABLE_CENTER: Vec3 = [0.1, 0.5, -1.3];
-export const MONITOR_ANCHOR: Vec3 = [-1.3, 1.55, -2.5];
-export const SCALE_ANCHOR: Vec3 = [-0.5, 0, -0.15];
-export const WALL_SIGN_ANCHOR: Vec3 = [0, 2.35, -2.55];
+export const TABLE_CENTER: Vec3 = [0, 0, -1.0];
+export const CLIPBOARD_ANCHOR: Vec3 = [-0.15, 0.85, -0.65];
+export const MONITOR_ANCHOR: Vec3 = [-1.15, 1.35, -2.25];
+export const SCALE_ANCHOR: Vec3 = [-0.35, 0, -0.4];
+export const WALL_SIGN_ANCHOR: Vec3 = [0, 2.0, -2.35];
 
 // ---------- 지점별 씬 타깃 (choices[i] ↔ SCENE_TARGETS[id][i] 1:1) ----------
 //
@@ -96,7 +153,7 @@ export const SCENE_TARGETS: Record<string, SceneTarget[]> = {
   ],
   // p2_a 선배에게 함께 들어달라 / p2_b 순서대로 적어둔다 / p2_c 다른 기록 방법 생각
   compass_p2: [
-    { kind: "senior", position: SENIOR_ANCHOR },
+    { kind: "senior", position: SENIOR_TARGET },
     { kind: "clipboard", position: CLIPBOARD_ANCHOR },
     { kind: "icon", position: ICON_IDEA_ANCHOR, variant: "idea" },
   ],
@@ -104,57 +161,41 @@ export const SCENE_TARGETS: Record<string, SceneTarget[]> = {
   compass_p3: [
     { kind: "icon", position: ICON_OVERVIEW_ANCHOR, variant: "overview" },
     { kind: "icon", position: ICON_COMPARE_ANCHOR, variant: "compare" },
-    { kind: "senior", position: SENIOR_ANCHOR },
+    { kind: "senior", position: SENIOR_TARGET },
   ],
   // p4_a 바로 정리 시작 / p4_b 새로운 정리 방법 시도 / p4_c 기록 전체 다시 살펴본다
   compass_p4: [
     { kind: "clipboard", position: CLIPBOARD_ANCHOR },
     { kind: "icon", position: ICON_IDEA_ANCHOR, variant: "idea" },
-    { kind: "cabinet", position: CABINET_ANCHOR },
+    { kind: "cabinet", position: CABINET_TARGET },
   ],
   // p5_a 정리한 기록 다시 확인 / p5_b 안내 순서 다시 정리 / p5_c 선배에게 확인받는다
   compass_p5: [
     { kind: "clipboard", position: CLIPBOARD_ANCHOR },
     { kind: "icon", position: ICON_IDEA_ANCHOR, variant: "idea" },
-    { kind: "senior", position: SENIOR_ANCHOR },
+    { kind: "senior", position: SENIOR_TARGET },
   ],
   // s1_a 보호자 이야기 먼저 듣는다 / s1_b 동물 먼저 살펴본다
   sprout_p1: [
-    { kind: "guardian", position: GUARDIAN_ANCHOR },
+    { kind: "guardian", position: GUARDIAN_TARGET },
     { kind: "dog", position: DOG_ANCHOR },
   ],
   // s2_a 선배에게 물어본다 / s2_b 하나씩 적어본다
   sprout_p2: [
-    { kind: "senior", position: SENIOR_ANCHOR },
+    { kind: "senior", position: SENIOR_TARGET },
     { kind: "clipboard", position: CLIPBOARD_ANCHOR },
   ],
   // s3_a 익숙한 방법으로 안내 / s3_b 새롭게 안내해본다
   sprout_p3: [
-    { kind: "guardian", position: GUARDIAN_ANCHOR },
+    { kind: "guardian", position: GUARDIAN_TARGET },
     { kind: "icon", position: ICON_IDEA_ANCHOR, variant: "idea" },
   ],
 };
 
-/** 지점 라벨(짧은 한글 라벨) — 씬 타깃 위 라벨 스프라이트용. choice.label 원문 대신
- *  화면에서 더 짧게 읽히도록 kind/variant 기준 고정 라벨을 쓴다(문구 자체는
- *  scenario.ts choice.label을 그대로 보조 텍스트로 병기 가능하도록 choice도 함께 반환한다). */
-export const TARGET_LABELS: Record<NamedTargetKind | IconVariant, string> = {
-  dog: "강아지",
-  guardian: "보호자",
-  senior: "선배 수의사",
-  clipboard: "기록판",
-  cabinet: "약장",
-  idea: "다른 방법",
-  together: "함께 보기",
-  overview: "전체 살피기",
-  compare: "비교하기",
-};
-
-function targetVariantKey(target: SceneTarget): NamedTargetKind | IconVariant {
-  return target.kind === "icon" ? target.variant : target.kind;
-}
-
-/** choices[i] ↔ SCENE_TARGETS[id][i]를 인덱스로 짝짓는다. 길이가 다르면(설정 오류) 짧은 쪽까지만 짝짓는다. */
+/** choices[i] ↔ SCENE_TARGETS[id][i]를 인덱스로 짝짓는다. 길이가 다르면(설정 오류) 짧은 쪽까지만 짝짓는다.
+ *  G2.2-R2-L: 장면 안에는 더 이상 전체 문구 라벨을 그리지 않고(번호 배지만 그린다 —
+ *  VetSceneInteractions.tsx), 배지 번호는 이 배열의 인덱스(i+1)로 정해진다 — 즉 choices의
+ *  순서가 곧 화면 속 "1/2/3" 번호와 HTML 선택지의 표시 순서를 모두 결정하는 단일 출처다. */
 export function resolveTargets(id: string, choices: Choice[]): ResolvedTarget[] {
   const targets = SCENE_TARGETS[id];
   if (!targets) return [];
@@ -166,10 +207,6 @@ export function resolveTargets(id: string, choices: Choice[]): ResolvedTarget[] 
   return resolved;
 }
 
-export function targetLabel(target: SceneTarget): string {
-  return TARGET_LABELS[targetVariantKey(target)];
-}
-
 // ---------- 회귀 검증용: 지점별 point 배열과 choices 배열 ----------
 // sceneLayout.test.ts가 "모든 mode·point에서 target 개수 === choices 개수"를
 // 검증할 때 scenario.ts를 다시 순회하지 않고 이 매핑을 통해 확인한다.
@@ -179,14 +216,14 @@ export const MODE_POINT_CHOICES: Record<Mode, Choice[][]> = {
   sprout: SPROUT_POINTS.map((p) => p.choices),
 };
 
-// ---------- 카메라: 지점별 타깃을 자동으로 프레임에 담는 계산 ----------
+// ---------- 카메라: 고정 위치 + 지점별 FOV 보정 ----------
 //
-// 요리사 interactions3d.ts의 fitVerticalFov와 같은 핀홀 카메라 삼각함수를
-// 쓰지만, 이 파일 안에서 독립적으로(파일 import 없이) 다시 구현했다 —
-// 두 직업의 씬 파일이 서로 참조하지 않는다는 기존 설계 원칙(G2.2-R1
-// scenario.ts 주석)을 카메라 계산에도 그대로 적용한다. 수의사는 select만
-// 쓰므로 라벨 모서리·드롭존 등 요리사 전용 계산은 필요 없다 — 타깃 중심점
-// + 여유 반경만으로 충분하다.
+// G2.2-R2-L — 이전(R2)에는 지점마다 타깃 무게중심으로 카메라 position을
+// 다시 계산했다(cameraFor). 이 방식이 "카메라가 타깃을 따라 크게 이동"
+// 문제의 직접 원인이었다. 이제 카메라 position/lookAt은 HERO_CAMERA로
+// 고정하고, 오직 FOV만 "이번에 반드시 보여야 하는 점들"에 맞춰 보정한다.
+// 핀홀 카메라 삼각함수 자체는 요리사 interactions3d.ts와 같은 원리이지만,
+// 이 파일 안에서 독립적으로(파일 import 없이) 다시 구현했다.
 
 function vSub(a: Vec3, b: Vec3): Vec3 {
   return [a[0] - b[0], a[1] - b[1], a[2] - b[2]];
@@ -206,26 +243,14 @@ function vNormalize(a: Vec3): Vec3 {
   return [a[0] / len, a[1] / len, a[2] / len];
 }
 
-export function averageVec3(points: Vec3[]): Vec3 {
-  if (points.length === 0) return [0, 1.3, -1.3];
-  const sum = points.reduce<Vec3>((acc, p) => [acc[0] + p[0], acc[1] + p[1], acc[2] + p[2]], [
-    0, 0, 0,
-  ]);
-  return [sum[0] / points.length, sum[1] / points.length, sum[2] / points.length];
-}
-
-/**
- * 타깃 점들의 무게중심을 바라보는 카메라 position/lookAt을 계산한다.
- * pullBack이 클수록 카메라가 더 멀리 물러나 여유 있게 담는다. 순수 함수라
- * 어떤 point 조합에도 안전하게 동작하며, 카메라가 항상 타깃보다 +z 쪽
- * (씬 앞쪽)에 위치하도록 보장한다(캐릭터 메시 내부에 카메라가 파묻히는
- * 사고를 구조적으로 방지).
- */
-export function cameraFor(points: Vec3[], pullBack: number): { position: Vec3; lookAt: Vec3 } {
-  const centroid = averageVec3(points);
-  const lookAt: Vec3 = [centroid[0] * 0.55, Math.max(1.05, centroid[1] - 0.05), centroid[2]];
-  const position: Vec3 = [centroid[0] * 0.3, centroid[1] + 0.45, centroid[2] + pullBack];
-  return { position, lookAt };
+/** 카메라 기준 정규직교 축(forward/right/up) — world up = +Y 규약(three.js와 동일). */
+function cameraBasis(cameraPos: Vec3, lookAt: Vec3): { forward: Vec3; right: Vec3; up: Vec3 } {
+  const forward = vNormalize(vSub(lookAt, cameraPos));
+  const worldUp: Vec3 = [0, 1, 0];
+  let right = vNormalize(vCross(forward, worldUp));
+  if (vLen(right) < 1e-6) right = [1, 0, 0];
+  const up = vNormalize(vCross(right, forward));
+  return { forward, right, up };
 }
 
 export interface FitFovInput {
@@ -256,11 +281,7 @@ export function fitVerticalFov({
   minFovDeg = 42,
   maxFovDeg = 80,
 }: FitFovInput): number {
-  const forward = vNormalize(vSub(lookAt, cameraPos));
-  const worldUp: Vec3 = [0, 1, 0];
-  let right = vNormalize(vCross(forward, worldUp));
-  if (vLen(right) < 1e-6) right = [1, 0, 0];
-  const up = vNormalize(vCross(right, forward));
+  const { forward, right, up } = cameraBasis(cameraPos, lookAt);
 
   let maxTanHalfH = 0;
   let maxTanHalfV = 0;
@@ -288,7 +309,38 @@ export function fitVerticalFov({
   return Math.min(maxFovDeg, Math.max(minFovDeg, vFovDeg));
 }
 
-/** "이 지점에서 반드시 보여야 하는" 점 목록에 타깃 주변 여유 반경(라벨 포함 근사)을 더한다. */
+/**
+ * 점 하나를 카메라 기준 NDC(정규화 화면 좌표, x/y 각각 [-1,1]이면 화면 안)로
+ * 투영한다. 카메라 뒤에 있으면 null. 실제 화면 픽셀 크기 없이 NDC만 반환하므로
+ * 테스트가 임의의 aspect에서 "잘리지 않는가"를 좌표 수준에서 재확인할 수 있다.
+ *
+ * [주의] 이 함수와 이 함수를 쓰는 테스트는 "카메라 수학이 맞는가"만 검증한다 —
+ * 실제 R3F Canvas가 그 수학대로 그려지는지, 사람 눈에 어떻게 보이는지는
+ * 검증하지 않는다(완료 보고 참고). 시각 검수를 대체하지 않는다.
+ */
+export function projectToNdc(
+  cameraPos: Vec3,
+  lookAt: Vec3,
+  fovDeg: number,
+  aspect: number,
+  point: Vec3,
+): { ndcX: number; ndcY: number } | null {
+  const { forward, right, up } = cameraBasis(cameraPos, lookAt);
+  const rel = vSub(point, cameraPos);
+  const depth = vDot(rel, forward);
+  if (depth <= 0.05) return null;
+  const tanHalfV = Math.tan((fovDeg * Math.PI) / 180 / 2);
+  const tanHalfH = tanHalfV * Math.max(0.01, aspect);
+  if (tanHalfV <= 1e-6 || tanHalfH <= 1e-6) return null;
+  return {
+    ndcX: vDot(rel, right) / depth / tanHalfH,
+    ndcY: vDot(rel, up) / depth / tanHalfV,
+  };
+}
+
+/** "이 지점에서 반드시 보여야 하는" 점 목록에 타깃 주변 여유 반경(배지·링 포함 근사)을 더한다.
+ *  R2-L에서는 핵심 인물의 실제 발~정수리 좌표를 이미 points에 포함시키므로, 이 반경은
+ *  "몸 전체를 근사"하는 용도가 아니라 배지·링 여유분만 담당한다(값을 0.55→0.3으로 축소). */
 function withPadding(points: Vec3[], radius: number): Vec3[] {
   const padded: Vec3[] = [];
   for (const p of points) {
@@ -301,32 +353,56 @@ function withPadding(points: Vec3[], radius: number): Vec3[] {
   return padded;
 }
 
-/** 좌표 목록(라벨 포함 근사 반경) 기준 프레이밍 포인트. */
+/** 좌표 목록(배지·링 여유 반경 포함) 기준 프레이밍 포인트. */
 export function framingPointsForPositions(points: Vec3[]): Vec3[] {
-  return withPadding(points, 0.55);
+  return withPadding(points, 0.3);
 }
 
-/** intro/결과 화면에서 반드시 보여야 하는 랜드마크(강아지·보호자·선배·기록판). */
-export const OVERVIEW_LANDMARKS: Vec3[] = [
+/**
+ * G2.2-R2-L — 고정 카메라 position/lookAt. 어떤 mode·phase·point에서도
+ * 이 값은 바뀌지 않는다(오직 FOV만 보정된다) — "카메라가 타깃을 따라
+ * 크게 이동"하는 문제를 구조적으로 제거한다.
+ */
+export const HERO_CAMERA_POSITION: Vec3 = [0, 1.6, 2.9];
+export const HERO_CAMERA_LOOKAT: Vec3 = [0, 0.95, -1.0];
+
+/** 모든 phase에서 항상 프레임에 있어야 하는 핵심 3인 — 강아지 몸통 중심 +
+ *  보호자·선배 수의사의 발~정수리(몸 전체 범위). */
+export const CORE_FRAMING_POINTS: Vec3[] = [
   DOG_ANCHOR,
   GUARDIAN_ANCHOR,
+  GUARDIAN_HEAD_TOP,
   SENIOR_ANCHOR,
-  CLIPBOARD_ANCHOR,
+  SENIOR_HEAD_TOP,
 ];
 
-export const OVERVIEW_CAMERA_PULL_BACK = 3.6;
-export const POINT_CAMERA_PULL_BACK = 2.9;
+/** 결과 화면 전용 완료 배지 위치 — CORE_FRAMING_POINTS와 함께 항상 프레임 안에 들어오도록
+ *  hero 카메라 tanV 여유 범위 안쪽으로 잡았다(VetScene.tsx의 CompletionBadge와 좌표를 공유). */
+export const RESULT_BADGE_POINT: Vec3 = [0, 1.85, -1.1];
 
-/** 특정 지점(sceneInteractionId)의 카메라 base position/lookAt. 강아지를 항상
- *  구도 안에 포함시켜(연속성 앵커) 병원 정체성이 매 지점에서 유지되게 한다. */
-export function cameraForPoint(id: string): { position: Vec3; lookAt: Vec3; points: Vec3[] } {
-  const targets = SCENE_TARGETS[id] ?? [];
-  const points = [...targets.map((t) => t.position), DOG_ANCHOR];
-  return { ...cameraFor(points, POINT_CAMERA_PULL_BACK), points };
+function heroCamera(extraPoints: Vec3[]): { position: Vec3; lookAt: Vec3; points: Vec3[] } {
+  return {
+    position: HERO_CAMERA_POSITION,
+    lookAt: HERO_CAMERA_LOOKAT,
+    points: [...CORE_FRAMING_POINTS, ...extraPoints],
+  };
 }
 
+/** 특정 지점(sceneInteractionId)의 카메라 — position/lookAt은 항상 HERO_CAMERA로
+ *  고정이고, 그 지점의 타깃들만 "추가로 반드시 보여야 하는 점"에 더한다. */
+export function cameraForPoint(id: string): { position: Vec3; lookAt: Vec3; points: Vec3[] } {
+  const targets = SCENE_TARGETS[id] ?? [];
+  return heroCamera(targets.map((t) => t.position));
+}
+
+/** intro 화면 — 핵심 3인만 프레임에 담으면 된다(선택 타깃 없음). */
 export function overviewCamera(): { position: Vec3; lookAt: Vec3; points: Vec3[] } {
-  return { ...cameraFor(OVERVIEW_LANDMARKS, OVERVIEW_CAMERA_PULL_BACK), points: OVERVIEW_LANDMARKS };
+  return heroCamera([]);
+}
+
+/** 결과 화면 — 핵심 3인 + 완료 배지가 함께 프레임에 담긴다. */
+export function resultCamera(): { position: Vec3; lookAt: Vec3; points: Vec3[] } {
+  return heroCamera([RESULT_BADGE_POINT]);
 }
 
 export interface ScenePresentation {
@@ -339,12 +415,13 @@ export interface ScenePresentation {
 
 /**
  * VetScene(CameraRig + 인터랙션 타깃)이 매 프레임/매 렌더 참조하는 "이번에
- * 보여줄 화면" 하나로 묶은 단일 진입점. intro/result는 overview 카메라,
- * choosing/reaction은 현재 (mode, point)의 카메라를 쓴다 — reaction에서도
- * 같은 카메라를 유지해 CONTINUE 전까지 화면이 갑자기 바뀌지 않는다(기존
- * 설계와 동일). choices는 phase==="choosing"일 때만 의미가 있고, 그 외에는
- * 호출부가 빈 배열을 넘겨도 sceneId 자체가 null이라 targets도 항상 빈
- * 배열이다 — "0개 타깃" 상태가 상호작용 UI로 잘못 노출되지 않는다.
+ * 보여줄 화면" 하나로 묶은 단일 진입점. intro는 overview 카메라, result는
+ * result 카메라(완료 배지 포함), choosing/reaction은 현재 (mode, point)의
+ * 카메라를 쓴다 — reaction에서도 같은 카메라를 유지해 CONTINUE 전까지
+ * 화면이 갑자기 바뀌지 않는다. 어느 경우든 position/lookAt은 HERO_CAMERA로
+ * 항상 동일하다 — 오직 camera.points(따라서 FOV)만 phase별로 다르다.
+ * choices는 phase==="choosing"일 때만 의미가 있고, 그 외에는 호출부가 빈
+ * 배열을 넘겨도 sceneId 자체가 null이라 targets도 항상 빈 배열이다.
  */
 export function resolveScenePresentation(
   mode: Mode,
@@ -352,27 +429,25 @@ export function resolveScenePresentation(
   point: number,
   choices: Choice[],
 ): ScenePresentation {
-  const isOverview = phase === "intro" || phase === "result";
-  const camera = isOverview ? overviewCamera() : cameraForPoint(sceneInteractionId(mode, point));
+  const camera =
+    phase === "intro"
+      ? overviewCamera()
+      : phase === "result"
+        ? resultCamera()
+        : cameraForPoint(sceneInteractionId(mode, point));
   const sceneId = phase === "choosing" ? sceneInteractionId(mode, point) : null;
   const targets = sceneId ? resolveTargets(sceneId, choices) : [];
   return { camera, sceneId, targets };
 }
 
 // ---------- 부드러운 전환(현기증 유발 방지 — 짧고 감쇠하는 보간) ----------
+// position/lookAt이 고정이라 더 이상 이 값들을 보간할 필요는 없지만, FOV
+// 전환은 여전히 완만하게 이어지는 편이 자연스러워 그대로 둔다.
 
 /** half-life(초) 기반 감쇠 — dt(프레임 간격)가 커도 오버슈트하지 않는다. */
 export function easeAlpha(dt: number, halfLifeSeconds: number): number {
   if (halfLifeSeconds <= 0) return 1;
   return 1 - Math.pow(0.5, dt / halfLifeSeconds);
-}
-
-export function easeVec3(current: Vec3, target: Vec3, alpha: number): Vec3 {
-  return [
-    current[0] + (target[0] - current[0]) * alpha,
-    current[1] + (target[1] - current[1]) * alpha,
-    current[2] + (target[2] - current[2]) * alpha,
-  ];
 }
 
 export function easeScalar(current: number, target: number, alpha: number): number {
