@@ -78,12 +78,12 @@ describe("XrVetClient — WebGL fallback 하에서도 전체 흐름 완료(Q8)",
     const choiceCall = trackMock.mock.calls.find(
       (call) => call[0] === "xr_vet_choice_selected",
     );
-    expect(choiceCall?.[1]).toMatchObject({ route: "/xr/vet", scenario_version: "v0.3" });
+    expect(choiceCall?.[1]).toMatchObject({ route: "/xr/vet", scenario_version: "v0.4" });
 
     const resultCall = trackMock.mock.calls.find(
       (call) => call[0] === "xr_vet_result_shown",
     );
-    expect(resultCall?.[1]).toMatchObject({ mode: "compass", scenario_version: "v0.3" });
+    expect(resultCall?.[1]).toMatchObject({ mode: "compass", scenario_version: "v0.4" });
   });
 
   it("새싹모드: WebGL 미지원이어도 3선택 후 축/피드백 노출 없이 완료 화면을 보여준다", async () => {

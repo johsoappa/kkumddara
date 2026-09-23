@@ -14,6 +14,7 @@ import {
   MIN_TARGET_SPACING,
   MODE_POINT_CHOICES,
   MONITOR_ANCHOR,
+  PIN_RADIUS_PX,
   RESULT_BADGE_POINT,
   SCALE_ANCHOR,
   SCENE_TARGETS,
@@ -23,12 +24,15 @@ import {
   TABLE_CENTER,
   WALL_SIGN_ANCHOR,
   cameraForPoint,
+  computeChoicePinPixels,
   fitVerticalFov,
   framingPointsForPositions,
   isFiniteVec3,
   overviewCamera,
   pairwiseMinDistance,
   projectToNdc,
+  resolveActionCardChoices,
+  resolvePinLayout,
   resolveScenePresentation,
   resolveTargets,
   resultCamera,
@@ -50,25 +54,46 @@ import {
 
 const MODES: Mode[] = ["compass", "sprout"];
 
-describe("SCENE_TARGETS — 모든 mode·point에서 choices와 1:1 대응", () => {
-  it.each(MODES)("%s 모드의 모든 point에 대해 target 개수 === choices 개수 (1개 이상)", (mode) => {
+describe("SCENE_TARGETS — G2.2-R3-B: choiceId 기반 매칭(더 이상 항상 1:1은 아니다)", () => {
+  // G2.2-R3-B: 물리적으로 대응할 대상이 없는 추상 행동(actionCard)은
+  // SCENE_TARGETS에 항목이 없다 — 그래서 target 개수 <= choices 개수다.
+  // resolveActionCardChoices가 그 나머지를 정확히 골라내는지도 함께 검증한다.
+
+  it.each(MODES)("%s 모드의 모든 point에서 target 개수는 1 이상이고 choices 개수를 넘지 않는다", (mode) => {
     const points = mode === "compass" ? CHOICE_POINTS : SPROUT_POINTS;
     for (const point of points) {
       const id = sceneInteractionId(mode, point.point);
       const targets = SCENE_TARGETS[id];
       expect(targets, `${id}에 대응하는 SCENE_TARGETS 항목이 없습니다`).toBeDefined();
       expect(targets.length).toBeGreaterThan(0);
-      expect(targets.length).toBe(point.choices.length);
+      expect(targets.length).toBeLessThanOrEqual(point.choices.length);
     }
   });
 
-  it.each(MODES)("%s 모드의 모든 point에서 resolveTargets가 choice.id를 그대로 보존한다", (mode) => {
+  it.each(MODES)("%s 모드의 모든 point에서 resolveTargets는 choiceId로 정확히 매칭되고, choices 순서를 보존한다", (mode) => {
     const points = mode === "compass" ? CHOICE_POINTS : SPROUT_POINTS;
     for (const point of points) {
       const id = sceneInteractionId(mode, point.point);
       const resolved = resolveTargets(id, point.choices);
-      expect(resolved.map((r) => r.choice.id)).toEqual(point.choices.map((c) => c.id));
-      expect(resolved.map((r) => r.choice.axis)).toEqual(point.choices.map((c) => c.axis));
+      // resolved는 targets 개수만큼만 나오되, choices 안에서의 상대 순서는 유지된다
+      const resolvedIds = resolved.map((r) => r.choice.id);
+      const choiceIdsInOrder = point.choices.map((c) => c.id).filter((id_) => resolvedIds.includes(id_));
+      expect(resolvedIds).toEqual(choiceIdsInOrder);
+      for (const { target, choice } of resolved) {
+        expect(target.choiceId).toBe(choice.id);
+      }
+    }
+  });
+
+  it.each(MODES)("%s 모드의 모든 point에서 sceneTarget+actionCard를 합치면 choices 전체와 정확히 같다", (mode) => {
+    const points = mode === "compass" ? CHOICE_POINTS : SPROUT_POINTS;
+    for (const point of points) {
+      const id = sceneInteractionId(mode, point.point);
+      const resolved = resolveTargets(id, point.choices);
+      const actionCards = resolveActionCardChoices(id, point.choices);
+      const combinedIds = new Set([...resolved.map((r) => r.choice.id), ...actionCards.map((c) => c.id)]);
+      expect(combinedIds.size).toBe(point.choices.length);
+      expect(combinedIds).toEqual(new Set(point.choices.map((c) => c.id)));
     }
   });
 
@@ -83,6 +108,7 @@ describe("SCENE_TARGETS — 모든 mode·point에서 choices와 1:1 대응", () 
 
   it("정의되지 않은 sceneInteractionId는 빈 배열을 반환한다(0개 타깃 방지 확인용 방어)", () => {
     expect(resolveTargets("compass_p99", [])).toEqual([]);
+    expect(resolveActionCardChoices("compass_p99", [])).toEqual([]);
   });
 });
 
@@ -341,3 +367,77 @@ describe(
     });
   },
 );
+
+// ---------- G2.2-R3-B: 화면 핀(pin) 좌표 — 겹치지 않고 경계를 벗어나지 않는다 ----------
+//
+// SceneTargetPins.tsx가 렌더하는 32px 원형 핀의 실제 화면 좌표를 계산하는
+// computeChoicePinPixels/resolvePinLayout은 순수 함수다(useFrame 없음).
+// 여기서는 375×812의 실제 Canvas 폭(패딩 제외 대략값)과 이보다 더 좁은
+// 320px 폭까지 포함해 "모든 mode·point에서 핀이 서로 최소 간격 이상
+// 떨어지고 Canvas 밖으로 나가지 않는다"를 검증한다. 이 테스트도 실제
+// 브라우저 렌더 결과가 아니라 좌표 계산의 정합성만 증명한다.
+
+describe("computeChoicePinPixels / resolvePinLayout — 화면 핀 충돌·경계 회귀", () => {
+  const CANVAS_SIZES = [
+    { width: 288, height: 300 }, // 320px 폭 기기, 좌우 패딩 제외
+    { width: 343, height: 300 }, // 375px 폭 기기
+    { width: 343, height: 360 },
+    { width: 700, height: 420 }, // 데스크톱 대표값
+  ];
+
+  it.each(MODES)("%s 모드의 모든 point에서, 여러 Canvas 크기에 대해 핀이 서로 겹치지 않고 경계 안에 있다", (mode) => {
+    const points = mode === "compass" ? CHOICE_POINTS : SPROUT_POINTS;
+    for (const point of points) {
+      const id = sceneInteractionId(mode, point.point);
+      for (const { width, height } of CANVAS_SIZES) {
+        const pins = computeChoicePinPixels(id, point.choices, width, height);
+        // 경계 안: 반지름만큼 여유를 둔 [radius, size-radius] 범위
+        for (const pin of pins) {
+          expect(pin.x).toBeGreaterThanOrEqual(PIN_RADIUS_PX - 0.01);
+          expect(pin.x).toBeLessThanOrEqual(width - PIN_RADIUS_PX + 0.01);
+          expect(pin.y).toBeGreaterThanOrEqual(PIN_RADIUS_PX - 0.01);
+          expect(pin.y).toBeLessThanOrEqual(height - PIN_RADIUS_PX + 0.01);
+        }
+        // 서로 겹치지 않음: 중심 간 거리가 지름(2*radius) 이상
+        for (let i = 0; i < pins.length; i += 1) {
+          for (let j = i + 1; j < pins.length; j += 1) {
+            const dx = pins[i].x - pins[j].x;
+            const dy = pins[i].y - pins[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            expect(
+              dist,
+              `${id} @ ${width}x${height}: 핀 ${pins[i].choiceId}/${pins[j].choiceId}이 겹칩니다(거리 ${dist.toFixed(1)}px)`,
+            ).toBeGreaterThanOrEqual(PIN_RADIUS_PX * 2 - 1);
+          }
+        }
+      }
+    }
+  });
+
+  it("width/height가 0 이하면 빈 배열을 반환한다(레이아웃 전 안전 가드)", () => {
+    expect(computeChoicePinPixels("compass_p1", CHOICE_POINTS[0].choices, 0, 300)).toEqual([]);
+    expect(computeChoicePinPixels("compass_p1", CHOICE_POINTS[0].choices, 300, 0)).toEqual([]);
+  });
+
+  it("각 핀의 ordinal은 choices 배열 안에서의 1-based 순번과 일치한다", () => {
+    const pins = computeChoicePinPixels("compass_p3", CHOICE_POINTS[2].choices, 343, 300);
+    for (const pin of pins) {
+      const expectedOrdinal = CHOICE_POINTS[2].choices.findIndex((c) => c.id === pin.choiceId) + 1;
+      expect(pin.ordinal).toBe(expectedOrdinal);
+    }
+  });
+
+  it("resolvePinLayout — 서로 정확히 같은 좌표로 주어진 핀도 최소 간격만큼 떨어뜨린다", () => {
+    const laidOut = resolvePinLayout(
+      [
+        { choiceId: "a", x: 100, y: 100 },
+        { choiceId: "b", x: 100, y: 100 },
+      ],
+      343,
+      300,
+    );
+    const dx = laidOut[0].x - laidOut[1].x;
+    const dy = laidOut[0].y - laidOut[1].y;
+    expect(Math.sqrt(dx * dx + dy * dy)).toBeGreaterThan(0);
+  });
+});

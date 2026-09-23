@@ -1,5 +1,5 @@
 // ====================================================
-// XR 수의사 시나리오 데이터 — 나침반 v0.3 + 새싹 v0.3
+// XR 수의사 시나리오 데이터 — 나침반 v0.4 + 새싹 v0.4
 //
 // - 이 파일은 순수 데이터 + 순수 함수만 담는다 (React/브라우저 의존 없음)
 // - G2.2-R1: 참고 브랜치(goal/dream-map-qa-20260830, cf277c8)의 수의사 v0.3
@@ -7,19 +7,27 @@
 //   공용 ../scenarioEngine 모듈을 가져다 썼지만, 그 모듈은 현재 main에는
 //   존재하지 않는다 — 현재 main의 chef/scenario.ts가 이미 같은 공용 로직을
 //   파일별로 자체 보유하는 방식으로 진화했으므로, 이 파일도 동일한 패턴을
-//   따라 자체 완결형으로 둔다(집계 로직·피드백 문구는 원본과 한 글자도
-//   다르지 않다 — chef/scenario.ts에 남아있는 동일 문구와 대조 가능).
+//   따라 자체 완결형으로 둔다(집계 로직은 원본과 한 글자도 다르지 않다).
 // - 수의사 원본 시나리오에는 select(선택형) 상호작용만 존재한다 — 드래그(place)·
 //   순서 교체(order)형은 요리사 G2.1에서 추가된 것으로 수의사 v0.3에는 없으므로
 //   이식하지 않는다(작업지시서 3-1: "실제 존재하는 유형만 이식").
 // - 실제 진료·처방·진단명은 다루지 않는다. 관찰·기록·소통·협업 행동만 다룬다.
+//
+// [G2.2-R3-B] choice ID·axis·지점 수(새싹3/나침반5)·집계 로직은 v0.3에서
+//   전혀 바꾸지 않았다(sceneLayout.test.ts/scenario.test.ts가 이 계약을
+//   전수 검증한다). 이번 라운드에서 바뀐 것은 "문구"뿐이다 — 강아지 이름
+//   '콩이'를 도입한 하나의 상담 사례가 도입부터 결과까지 이어지도록 title/
+//   situation/label/reaction/INTRO 문구를 더 구체적인 행동형 문장으로
+//   다듬었다(버전을 v0.3→v0.4로 올려 이 변경을 표시한다). 각 choice의 axis
+//   의미가 문구 변경으로 훼손되지 않았는지는 이 파일 하단 표와 vetStoryboard.ts
+//   양쪽에서 재확인할 수 있다.
 // ====================================================
 
 export type Mode = "compass" | "sprout";
 
 export const SCENARIO_VERSIONS: Record<Mode, string> = {
-  compass: "v0.3",
-  sprout: "v0.3",
+  compass: "v0.4",
+  sprout: "v0.4",
 };
 
 /** 지점별 카메라 연출 단계 (좌표 매핑은 VetScene이 담당) */
@@ -58,9 +66,9 @@ export const VET_SAFETY_NOTICE =
 
 export const INTRO = {
   narration: "오늘은 작은 동물병원에서 첫 상담을 시작하는 날이에요.",
-  senior:
-    "반가워요. 오늘은 제가 옆에서 함께할게요. 진찰과 처치는 제가 맡을 테니, 우리는 보호자 이야기를 듣고 관찰과 기록을 해봐요.",
-  firstOrder: "첫 보호자가 도착했어요. 반려동물이 평소와 다르다고 해요.",
+  guardianLine: "콩이가 어제부터 밥을 덜 먹고 평소보다 조용해졌어요.",
+  senior: "보호자의 이야기를 듣고 콩이의 모습을 차근차근 살펴보자.",
+  mission: "콩이에게 필요한 다음 확인 순서를 알아봐요.",
 } as const;
 
 // ---------- 나침반모드 선택 지점 5개 (v0.3) ----------
@@ -68,62 +76,62 @@ export const INTRO = {
 export const CHOICE_POINTS: ChoicePoint[] = [
   {
     point: 1,
-    title: "무엇부터 확인할까?",
-    situation: "보호자가 \"아이가 요즘 밥을 잘 안 먹어요\"라며 이야기를 시작해요.",
+    title: "콩이의 상태를 무엇부터 확인할까?",
+    situation: "보호자가 \"콩이가 어제부터 밥을 덜 먹고 평소보다 조용해졌어요\"라며 이야기를 시작해요.",
     reaction: "좋아요. 그 방법으로 오늘 상담을 시작해볼게요.",
     cameraStage: "approach",
     choices: [
-      { id: "p1_a", label: "차분히 관찰부터 시작한다", axis: "axis1" },
-      { id: "p1_b", label: "다른 확인 순서를 생각해본다", axis: "axis4" },
-      { id: "p1_c", label: "동물과 보호자를 함께 살펴본다", axis: "axis5" },
+      { id: "p1_a", label: "콩이의 움직임과 자세부터 차분히 살핀다", axis: "axis1" },
+      { id: "p1_b", label: "콩이가 편안한 방법으로 확인할 순서를 생각한다", axis: "axis4" },
+      { id: "p1_c", label: "보호자 이야기와 콩이 모습을 함께 살핀다", axis: "axis5" },
     ],
   },
   {
     point: 2,
-    title: "이야기를 어떻게 들을까?",
-    situation: "보호자가 최근 며칠 사이 달라진 점을 계속 이야기하고 있어요.",
+    title: "들은 내용을 어떻게 확인하고 남길까?",
+    situation: "보호자가 콩이에 대해 최근 며칠 사이 달라진 점을 계속 이야기하고 있어요.",
     reaction: "좋아요. 그 방식으로 이야기를 정리해볼게요.",
     cameraStage: "search",
     choices: [
-      { id: "p2_a", label: "선배 수의사에게 함께 들어달라고 한다", axis: "axis2" },
-      { id: "p2_b", label: "중요한 내용을 순서대로 적어둔다", axis: "axis3" },
-      { id: "p2_c", label: "다른 기록 방법을 생각해본다", axis: "axis4" },
+      { id: "p2_a", label: "선배 수의사에게 함께 들어 달라고 한다", axis: "axis2" },
+      { id: "p2_b", label: "중요한 내용을 시간 순서대로 기록한다", axis: "axis3" },
+      { id: "p2_c", label: "그림과 표시를 이용해 기록해본다", axis: "axis4" },
     ],
   },
   {
     point: 3,
-    title: "기록이 끝나기 전, 다음 순서가 도착했다",
-    situation: "기록이 끝나기 전에 다음 순서의 보호자와 동물이 도착했어요.",
+    title: "두 상황을 어떻게 살펴볼까?",
+    situation: "기록을 마치기 전에 다음 보호자와 동물이 도착했어요.",
     reaction: "좋아요. 그 판단으로 다음 순서를 이어가볼게요.",
     cameraStage: "survey",
     choices: [
       { id: "p3_a", label: "전체 상황을 먼저 살핀다", axis: "axis5" },
-      { id: "p3_b", label: "두 상황을 비교해본다", axis: "axis3" },
-      { id: "p3_c", label: "선배와 역할을 나눈다", axis: "axis2" },
+      { id: "p3_b", label: "두 상황의 상태와 순서를 비교한다", axis: "axis3" },
+      { id: "p3_c", label: "선배 수의사와 역할을 나눈다", axis: "axis2" },
     ],
   },
   {
     point: 4,
     title: "관찰한 내용을 어떻게 정리할까?",
-    situation: "이제 관찰하고 들은 내용을 진료기록에 정리할 차례예요.",
+    situation: "이제 콩이를 관찰하고 들은 내용을 진료기록에 정리할 차례예요.",
     reaction: "좋아요. 선택한 방식으로 기록을 정리해볼게요.",
     cameraStage: "plating",
     choices: [
-      { id: "p4_a", label: "바로 정리를 시작한다", axis: "axis1" },
-      { id: "p4_b", label: "새로운 정리 방법을 시도한다", axis: "axis4" },
-      { id: "p4_c", label: "기록 전체를 다시 살펴본다", axis: "axis5" },
+      { id: "p4_a", label: "확인한 내용을 바로 정리한다", axis: "axis1" },
+      { id: "p4_b", label: "표시카드로 새로운 정리 방법을 시도한다", axis: "axis4" },
+      { id: "p4_c", label: "기록과 콩이 상태를 함께 다시 살핀다", axis: "axis5" },
     ],
   },
   {
     point: 5,
-    title: "보호자에게 다음 절차를 안내할 차례",
-    situation: "보호자가 다음에 무엇을 확인해야 하는지 물어봐요.",
+    title: "보호자에게 무엇을 어떻게 설명할까?",
+    situation: "보호자가 콩이의 다음 확인 절차를 물어봐요.",
     reaction: "좋아요. 정리한 내용으로 다음 절차를 안내해볼게요.",
     cameraStage: "plating", // 지점4 시점 유지 (요리사 v1.1과 동일한 카메라 패턴)
     choices: [
-      { id: "p5_a", label: "정리한 기록을 다시 확인한다", axis: "axis1" },
-      { id: "p5_b", label: "안내할 순서를 다시 정리한다", axis: "axis3" },
-      { id: "p5_c", label: "선배에게 안내 내용을 확인받는다", axis: "axis2" },
+      { id: "p5_a", label: "정리한 기록을 바로 다시 확인한다", axis: "axis1" },
+      { id: "p5_b", label: "보호자에게 말할 순서를 차례대로 정리한다", axis: "axis3" },
+      { id: "p5_c", label: "선배에게 안내 내용을 함께 확인받는다", axis: "axis2" },
     ],
   },
 ];
@@ -134,32 +142,32 @@ export const CHOICE_POINTS: ChoicePoint[] = [
 export const SPROUT_POINTS: ChoicePoint[] = [
   {
     point: 1,
-    title: "무엇부터 볼까?",
+    title: "무엇부터 알아볼까?",
     reaction: "좋아요. 이제 이야기를 들어볼까요?",
     cameraStage: "approach",
     choices: [
       { id: "s1_a", label: "보호자 이야기를 먼저 듣는다", axis: "axis1" },
-      { id: "s1_b", label: "동물을 먼저 살펴본다", axis: "axis5" },
+      { id: "s1_b", label: "콩이의 움직임과 자세를 먼저 살핀다", axis: "axis5" },
     ],
   },
   {
     point: 2,
-    title: "중요한 내용을 기록하자",
+    title: "알게 된 내용을 어떻게 남길까?",
     reaction: "좋아요. 필요한 내용을 잘 기록했어요.",
     cameraStage: "search",
     choices: [
-      { id: "s2_a", label: "선배에게 물어본다", axis: "axis2" },
-      { id: "s2_b", label: "하나씩 적어본다", axis: "axis3" },
+      { id: "s2_a", label: "선배 수의사에게 함께 봐 달라고 한다", axis: "axis2" },
+      { id: "s2_b", label: "관찰한 변화를 기록판에 하나씩 적는다", axis: "axis3" },
     ],
   },
   {
     point: 3,
-    title: "보호자에게 안내하자",
+    title: "보호자에게 어떻게 안내할까?",
     reaction: "좋아요. 첫 상담을 잘 안내했어요.",
     cameraStage: "plating",
     choices: [
-      { id: "s3_a", label: "익숙한 방법으로 안내한다", axis: "axis4" },
-      { id: "s3_b", label: "새롭게 안내해본다", axis: "axis4" },
+      { id: "s3_a", label: "확인한 내용을 익숙한 말로 차분히 설명한다", axis: "axis4" },
+      { id: "s3_b", label: "그림 안내카드로 다음 확인 순서를 설명한다", axis: "axis4" },
     ],
   },
 ];
@@ -176,7 +184,7 @@ export const SPROUT_COMPLETE = {
   title: "첫 상담 완료!",
   congrats: "축하해요. 오늘 동물병원 체험을 끝냈어요!",
   summary:
-    "보호자 이야기를 듣고 필요한 것을 직접 선택해봤어요. 내가 고른 방법으로 첫 상담도 마무리했어요.",
+    "콩이의 이야기를 듣고 필요한 것을 직접 선택해봤어요. 내가 고른 방법으로 콩이의 첫 상담도 마무리했어요.",
   nextAction: "이제 수의사의 일을 더 알아보는 다음 미션으로 가볼까요?",
 } as const;
 

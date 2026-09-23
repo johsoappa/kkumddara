@@ -1,35 +1,37 @@
 "use client";
 
 // ====================================================
-// XR 수의사 진료실 씬 — v4 (R3F Canvas 본체, G2.2-R2-L2 선택 카드 제거)
+// XR 수의사 진료실 씬 — v5 (R3F Canvas 본체, G2.2-R3-B 상담 스토리 전면 구현)
 //
-// [G2.2-R2-L2 배경] 대표님의 G2.2-R2-L 실제 화면 검수: 강아지·인물 배치는
-// 개선됐지만, 장면 속 "번호 카드"(하이라이트 링 + 숫자 스프라이트)가 여전히
-// 선택 대상·서로를 가리는 화면의 주인공이었다. 이번 버전은 그 마커 레이어
-// 자체를 없앴다 — 모든 choice는 이제 실제 진료실 오브젝트(강아지·보호자·
-// 선배 수의사·기록판·약장·모니터·병원 사인)를 직접 가리키고, 그 오브젝트
-// 컴포넌트 자신이 보이지 않는 hit box(TapHitBox)와, 필요한 경우 발밑의
-// 아주 작은 링(BaseHighlight, 얼굴보다 항상 아래)을 자기 group 안에
-// 포함시킨다. 활성 타깃은 오브젝트 자신의 재질에 은은한 강조 발광을 준다
-// (별도 카드를 얹지 않는다) — VetSceneInteractions.tsx 참고.
+// [G2.2-R2-L2 유산] 모든 choice는 실제 진료실 오브젝트(강아지·보호자·선배
+// 수의사·기록판·약장·모니터·병원 사인)를 직접 가리킨다(일부는 이제
+// actionCard로 HTML 전용 — sceneLayout.ts 참고). 오브젝트 컴포넌트 자신이
+// 보이지 않는 hit box(TapHitBox)와 필요하면 발밑의 아주 작은 링
+// (BaseHighlight)을 자기 group 안에 포함시킨다.
+//
+// [G2.2-R3-B 변경] 실제 화면 검수에서 "본체 색이 단계마다 바뀐다"는 지적을
+// 받았다 — 원인은 활성 타깃일 때 본체 재질의 emissiveIntensity를 펄스시키던
+// useActiveGlow였다. 이번 버전은 그 메커니즘을 완전히 제거했다: 모든
+// meshStandardMaterial의 color/emissive는 phase·active 여부와 무관하게
+// 고정 상수다. 선택 가능 상태는 BaseHighlight(3D, 발밑) + SceneTargetPins
+// (DOM, Canvas 위 오버레이 — 핀 좌표는 mode/point/phase/FOV/Canvas 크기가
+// 바뀔 때만 재계산, 매 프레임 아님)만으로 표현한다.
 //
 // [카메라] sceneLayout.ts의 HERO_CAMERA(position/lookAt 고정) + FOV만
-//   지점별로 보정하는 구조는 G2.2-R2-L과 동일하게 유지한다 — 이번 라운드는
-//   "카드 제거"가 목적이라 카메라 이동 로직은 건드리지 않는다.
+//   지점별로 보정하는 구조는 그대로 유지한다.
 //
-// [공간] 이전보다 바닥·벽 크기를 줄이고(회색 빈 공간 축소), 진찰대 밑에
-//   러그를, 벽 아래에 걸레받이 색 띠를 더해 "진료실의 일부"로 읽히게 했다.
-//
-// [단계 전환] 활성 타깃의 발광, 기록판 체크 표시(showChart), 결과 화면에서
-//   보호자·선배 수의사가 서로를 향해 살짝 돌아서는 자세 + 완료 배지로
-//   "상담을 마친 장면"을 표현한다. 시나리오 문구·choice ID·결과 판정
-//   로직은 전혀 건드리지 않는다(scenario.ts 무수정).
+// [단계 전환] vetStoryboard.ts의 resolveStage()가 mode+phase+point(+방금
+//   고른 대상의 kind)로 인물 자세·강아지 행동·기록판 상태·대기 보호자
+//   등장을 선언형으로 계산한다 — 매 point가 이전 point와 최소 2개 요소가
+//   달라지도록 데이터 자체가 보장한다. 결과 화면은 완료 배지 + 인물이
+//   서로를 향해 도는 자세 + 강아지가 엎드리는 자세로 "상담을 마친 장면"을
+//   표현한다. scenario.ts의 choice ID·axis·집계 로직은 건드리지 않는다.
 //
 // [WebGL 가드] 요리사·수의사 공용 XrSceneGuard/XrScenePlaceholder를 그대로
 //   재사용한다(이 파일에서 수정하지 않음).
 // ====================================================
 
-import { useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import type { Mesh, MeshStandardMaterial, PerspectiveCamera } from "three";
 import type { Choice } from "./scenario";
@@ -44,17 +46,24 @@ import {
   SENIOR_ANCHOR,
   TABLE_CENTER,
   WALL_SIGN_ANCHOR,
+  computeChoicePinPixels,
   easeAlpha,
   easeScalar,
   fitVerticalFov,
   framingPointsForPositions,
   resolveScenePresentation,
+  sceneInteractionId,
+  type ChoicePinPixel,
   type NamedTargetKind,
   type Vec3,
   type VetScenePhase,
 } from "./sceneLayout";
+import { targetKindForChoice, resolveStage } from "./vetStoryboard";
 import { BaseHighlight, TapHitBox, useTapHover } from "./VetSceneInteractions";
 import { createVetLabelSprite } from "./vetLabelSprite";
+import SceneTargetPins from "./SceneTargetPins";
+import VetSceneHud from "./VetSceneHud";
+import WaitingPair from "./WaitingPair";
 import XrSceneGuard from "../XrSceneGuard";
 import XrScenePlaceholder from "../XrScenePlaceholder";
 
@@ -70,6 +79,10 @@ export interface VetSceneProps {
   onChoice: (choice: Choice) => void;
   /** 지점3 이후 기록판에 정리 표시(체크)를 보여준다 (기존 showChart와 동일 시점) */
   showChart: boolean;
+  /** reaction 단계에서 "방금 고른" choice.id — 자세·기록판 반응 계산에 쓴다(선택적). */
+  lastChoiceId?: string | null;
+  /** Canvas 위 DOM HUD에 보여줄 현재 단계 텍스트(선택적 — 없으면 HUD를 그리지 않는다). */
+  hud?: { stepLabel: string; speakerLabel: string; text: string };
   /** Canvas 런타임 오류 시 상위(XrVetClient)에 1회 알림 — 선택적, 하위호환 */
   onSceneError?: () => void;
 }
@@ -116,23 +129,12 @@ function CameraRig({
   return null;
 }
 
-/** 활성 타깃일 때 오브젝트 "자기 자신"의 재질에 주는 은은한 강조 발광 —
- *  별도 카드를 얹지 않고, 이미 그 오브젝트가 갖고 있는 표면 하나를
- *  살짝 빛나게 하는 방식이다. hovered면 더 밝아진다. */
-function useActiveGlow(active: boolean, hovered: boolean) {
-  const ref = useRef<MeshStandardMaterial>(null);
-  useFrame(({ clock }) => {
-    const material = ref.current;
-    if (!material) return;
-    if (!active) {
-      material.emissiveIntensity = 0;
-      return;
-    }
-    const base = hovered ? 0.55 : 0.3;
-    material.emissiveIntensity = base + Math.abs(Math.sin(clock.elapsedTime * 2.4)) * 0.25;
-  });
-  return ref;
-}
+// G2.2-R3-B: useActiveGlow(본체 재질의 emissiveIntensity를 active 여부로
+// 펄스시키던 훅)를 완전히 제거했다 — "본체 색이 단계마다 바뀐다"는 실제
+// 화면 지적의 원인이었다. 이제 본체 meshStandardMaterial은 모두 고정
+// 상수 props다(색이 phase·active와 무관). 선택 가능 상태는 BaseHighlight
+// (발밑 링, VetSceneInteractions.tsx)와 SceneTargetPins(Canvas 위 DOM
+// 핀, 이 파일 하단)만으로 표현한다.
 
 interface InteractiveProps {
   /** 이 지점에서 선택 가능한 타깃이면 true — hit box/발광/베이스 링을 켠다. */
@@ -142,21 +144,37 @@ interface InteractiveProps {
 
 // ---------- 상시 캐릭터/소품 ----------
 
-function Dog({ active, onSelect }: InteractiveProps) {
+interface DogProps extends InteractiveProps {
+  /** vetStoryboard.ts의 resolveStage()가 계산한 추가 yaw(라디안) — base(0.3)에 더한다. */
+  yawDelta: number;
+  /** 고개를 든 자세(관찰/reaction 강조) — 몸 전체를 살짝 들어 올리는 근사치다. */
+  headUp: boolean;
+  /** 결과 화면 전용 — 편안히 엎드린 자세. */
+  resting: boolean;
+}
+
+function Dog({ active, onSelect, yawDelta, headUp, resting }: DogProps) {
   const { hovered, setHovered } = useTapHover();
-  const glowRef = useActiveGlow(active, hovered);
+  const yaw = 0.3 + yawDelta;
+  const tiltX = headUp ? -0.08 : resting ? 0.05 : 0;
+  const posY = resting ? DOG_ANCHOR[1] - 0.1 : DOG_ANCHOR[1];
+  const bodyScaleY = resting ? 0.62 : 0.8;
   return (
-    <group position={DOG_ANCHOR} rotation={[0, 0.3, 0]} scale={hovered ? 1.05 : 1}>
+    <group
+      position={[DOG_ANCHOR[0], posY, DOG_ANCHOR[2]]}
+      rotation={[tiltX, yaw, 0]}
+      scale={hovered ? 1.05 : 1}
+    >
       {active && onSelect && (
         <>
           <TapHitBox size={[0.75, 0.6, 0.75]} onSelect={onSelect} onHoverChange={setHovered} />
           <BaseHighlight y={-0.2} hovered={hovered} innerRadius={0.24} outerRadius={0.3} color="#ffb26b" />
         </>
       )}
-      {/* 몸통 — 활성 타깃일 때 이 표면 자체가 은은하게 빛난다(별도 카드 없음) */}
-      <mesh scale={[1.3, 0.8, 1]}>
+      {/* 몸통 — 본체 색은 phase·active와 무관하게 항상 고정이다(G2.2-R3-B) */}
+      <mesh scale={[1.3, bodyScaleY, 1]}>
         <sphereGeometry args={[0.22, 16, 16]} />
-        <meshStandardMaterial ref={glowRef} color="#e8c9a0" emissive="#ffb26b" emissiveIntensity={0} />
+        <meshStandardMaterial color="#e8c9a0" />
       </mesh>
       {/* 배(밝은 무늬) */}
       <mesh position={[0, -0.12, 0.05]} scale={[1, 0.55, 0.75]}>
@@ -229,14 +247,18 @@ function personBase(skin: string, hair: string) {
 }
 
 // 이 두 캐릭터의 <group position={ANCHOR}>는 "발이 닿는 바닥" 좌표다
-// (sceneLayout.ts의 GUARDIAN_ANCHOR/SENIOR_ANCHOR가 y=0). resultPose가
-// true면(결과 화면) 서로를 향해 살짝 더 돌아서 "상담을 마무리하는" 자세를
-// 준다 — 회전 값만 살짝 바꿀 뿐 위치는 그대로다.
+// (sceneLayout.ts의 GUARDIAN_ANCHOR/SENIOR_ANCHOR가 y=0). yawDelta는
+// vetStoryboard.ts의 resolveStage()가 mode+phase+point(+방금 고른 대상)로
+// 계산한 값이다 — intro/결과/지점별로 자세가 달라지는 것은 이 값 하나로
+// 표현된다(base yaw는 고정, delta만 더한다).
 
-function Guardian({ active, onSelect, resultPose }: InteractiveProps & { resultPose: boolean }) {
+interface PersonProps extends InteractiveProps {
+  yawDelta: number;
+}
+
+function Guardian({ active, onSelect, yawDelta }: PersonProps) {
   const { hovered, setHovered } = useTapHover();
-  const glowRef = useActiveGlow(active, hovered);
-  const yaw = -0.5 + (resultPose ? 0.25 : 0);
+  const yaw = -0.5 + yawDelta;
   return (
     <group position={GUARDIAN_ANCHOR} rotation={[0, yaw, 0]}>
       {active && onSelect && (
@@ -248,7 +270,7 @@ function Guardian({ active, onSelect, resultPose }: InteractiveProps & { resultP
       {personBase("#e8b98c", "#5a4432")}
       <mesh position={[0, 0.85, 0]}>
         <cylinderGeometry args={[0.19, 0.22, 0.62, 14]} />
-        <meshStandardMaterial ref={glowRef} color="#ff8a73" emissive="#ffd9a0" emissiveIntensity={0} />
+        <meshStandardMaterial color="#ff8a73" />
       </mesh>
       <mesh position={[-0.22, 0.85, 0]} rotation={[0, 0, 0.35]}>
         <cylinderGeometry args={[0.045, 0.045, 0.5, 10]} />
@@ -266,10 +288,9 @@ function Guardian({ active, onSelect, resultPose }: InteractiveProps & { resultP
   );
 }
 
-function SeniorVet({ active, onSelect, resultPose }: InteractiveProps & { resultPose: boolean }) {
+function SeniorVet({ active, onSelect, yawDelta }: PersonProps) {
   const { hovered, setHovered } = useTapHover();
-  const glowRef = useActiveGlow(active, hovered);
-  const yaw = -2.3 + (resultPose ? -0.25 : 0);
+  const yaw = -2.3 + yawDelta;
   return (
     <group position={SENIOR_ANCHOR} rotation={[0, yaw, 0]}>
       {active && onSelect && (
@@ -282,7 +303,7 @@ function SeniorVet({ active, onSelect, resultPose }: InteractiveProps & { result
       {/* 흰 가운 */}
       <mesh position={[0, 0.82, 0]}>
         <cylinderGeometry args={[0.21, 0.25, 0.68, 14]} />
-        <meshStandardMaterial ref={glowRef} color="#ffffff" emissive="#7fd8c9" emissiveIntensity={0} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
       <mesh position={[0, 0.82, 0.19]}>
         <boxGeometry args={[0.06, 0.6, 0.02]} />
@@ -317,10 +338,18 @@ function SeniorVet({ active, onSelect, resultPose }: InteractiveProps & { result
   );
 }
 
-function ClipboardProp({ active, onSelect, showChart }: InteractiveProps & { showChart: boolean }) {
+interface ClipboardProps extends InteractiveProps {
+  /** 지점3 이후 상시 표시(기존 showChart와 동일 시점 — 유지). */
+  showChart: boolean;
+  /** reaction 단계에서 방금 기록판 관련 choice를 골랐을 때 잠깐 보여주는
+   *  "방금 기록됨" 신호 — showChart보다 이르게, 일시적으로 나타난다. */
+  justRecorded: boolean;
+}
+
+function ClipboardProp({ active, onSelect, showChart, justRecorded }: ClipboardProps) {
   const { hovered, setHovered } = useTapHover();
-  const glowRef = useActiveGlow(active, hovered);
   const checkRef = useRef<Mesh>(null);
+  const showCheck = showChart || justRecorded;
   useFrame(({ clock }) => {
     const mat = checkRef.current?.material as MeshStandardMaterial | undefined;
     if (mat) mat.emissiveIntensity = 0.4 + Math.abs(Math.sin(clock.elapsedTime * 2)) * 0.4;
@@ -332,13 +361,13 @@ function ClipboardProp({ active, onSelect, showChart }: InteractiveProps & { sho
       )}
       <mesh scale={hovered ? 1.06 : 1}>
         <boxGeometry args={[0.34, 0.44, 0.02]} />
-        <meshStandardMaterial ref={glowRef} color="#f7f3ea" emissive="#3f9c96" emissiveIntensity={0} />
+        <meshStandardMaterial color="#f7f3ea" />
       </mesh>
       <mesh position={[0, 0.2, 0.012]}>
         <boxGeometry args={[0.1, 0.03, 0.01]} />
         <meshStandardMaterial color="#8a8f8d" />
       </mesh>
-      {showChart && (
+      {showCheck && (
         <mesh ref={checkRef} position={[0, -0.02, 0.012]}>
           <boxGeometry args={[0.22, 0.24, 0.005]} />
           <meshStandardMaterial color="#3f9c96" emissive="#3f9c96" emissiveIntensity={0.4} transparent opacity={0.55} />
@@ -355,7 +384,6 @@ function ClipboardProp({ active, onSelect, showChart }: InteractiveProps & { sho
 
 function Cabinet({ active, onSelect }: InteractiveProps) {
   const { hovered, setHovered } = useTapHover();
-  const glowRef = useActiveGlow(active, hovered);
   const doorColors = ["#7fd8c9", "#ff8a73", "#ffd166"];
   return (
     <group position={CABINET_ANCHOR}>
@@ -364,7 +392,7 @@ function Cabinet({ active, onSelect }: InteractiveProps) {
       )}
       <mesh scale={hovered ? 1.03 : 1}>
         <boxGeometry args={[0.9, 1.1, 0.4]} />
-        <meshStandardMaterial ref={glowRef} color="#ffffff" emissive="#ffd166" emissiveIntensity={0} />
+        <meshStandardMaterial color="#ffffff" />
       </mesh>
       {doorColors.map((color, index) => (
         <mesh key={color} position={[-0.28 + index * 0.28, 0.55, 0.21]}>
@@ -382,7 +410,6 @@ function Cabinet({ active, onSelect }: InteractiveProps) {
 
 function Monitor({ active, onSelect }: InteractiveProps) {
   const { hovered, setHovered } = useTapHover();
-  const glowRef = useActiveGlow(active, hovered);
   return (
     <group position={MONITOR_ANCHOR}>
       {active && onSelect && (
@@ -392,9 +419,10 @@ function Monitor({ active, onSelect }: InteractiveProps) {
         <boxGeometry args={[0.5, 0.36, 0.03]} />
         <meshStandardMaterial color="#2b2f33" />
       </mesh>
+      {/* 화면 — 참고용 모니터라는 걸 나타내는 상시 은은한 밝기(active와 무관, 고정값) */}
       <mesh position={[0, 0, 0.018]}>
         <boxGeometry args={[0.44, 0.3, 0.005]} />
-        <meshStandardMaterial ref={glowRef} color="#7fd8c9" emissive="#3f9c96" emissiveIntensity={0.3} />
+        <meshStandardMaterial color="#7fd8c9" emissive="#3f9c96" emissiveIntensity={0.3} />
       </mesh>
       <mesh position={[0, -0.24, 0]}>
         <boxGeometry args={[0.06, 0.14, 0.06]} />
@@ -446,7 +474,6 @@ function ExamTable() {
  *  실제 선택 대상도 겸한다(공간 전체를 상징하는 기존 소품 재사용). */
 function PawSign({ active, onSelect }: InteractiveProps) {
   const { hovered, setHovered } = useTapHover();
-  const glowRef = useActiveGlow(active, hovered);
   const toeOffsets: Vec3[] = [
     [-0.09, 0.09, 0],
     [-0.03, 0.13, 0],
@@ -464,7 +491,7 @@ function PawSign({ active, onSelect }: InteractiveProps) {
       </mesh>
       <mesh position={[0, -0.03, 0.02]} scale={[1, 0.8, 1]}>
         <sphereGeometry args={[0.11, 16, 16]} />
-        <meshStandardMaterial ref={glowRef} color="#ff8a73" emissive="#ffd166" emissiveIntensity={0} />
+        <meshStandardMaterial color="#ff8a73" />
       </mesh>
       {toeOffsets.map((offset, index) => (
         <mesh key={index} position={[offset[0], offset[1] - 0.03, 0.02]}>
@@ -543,15 +570,29 @@ function buildActiveTargets(
   return map;
 }
 
+interface ExamRoomProps {
+  showChart: boolean;
+  active: ActiveTargets;
+  guardianYawDelta: number;
+  seniorYawDelta: number;
+  dogYawDelta: number;
+  dogHeadUp: boolean;
+  dogResting: boolean;
+  justRecorded: boolean;
+  waitingPairVisible: boolean;
+}
+
 function ExamRoom({
   showChart,
   active,
-  resultPose,
-}: {
-  showChart: boolean;
-  active: ActiveTargets;
-  resultPose: boolean;
-}) {
+  guardianYawDelta,
+  seniorYawDelta,
+  dogYawDelta,
+  dogHeadUp,
+  dogResting,
+  justRecorded,
+  waitingPairVisible,
+}: ExamRoomProps) {
   return (
     <group>
       {/* 바닥 — 밝은 아이보리(이전보다 축소해 빈 공간을 줄였다) */}
@@ -567,16 +608,52 @@ function ExamRoom({
       </mesh>
       <Baseboard />
       <ExamTable />
-      <Dog active={!!active.dog} onSelect={active.dog} />
-      <Guardian active={!!active.guardian} onSelect={active.guardian} resultPose={resultPose} />
-      <SeniorVet active={!!active.senior} onSelect={active.senior} resultPose={resultPose} />
-      <ClipboardProp active={!!active.clipboard} onSelect={active.clipboard} showChart={showChart} />
+      <Dog
+        active={!!active.dog}
+        onSelect={active.dog}
+        yawDelta={dogYawDelta}
+        headUp={dogHeadUp}
+        resting={dogResting}
+      />
+      <Guardian active={!!active.guardian} onSelect={active.guardian} yawDelta={guardianYawDelta} />
+      <SeniorVet active={!!active.senior} onSelect={active.senior} yawDelta={seniorYawDelta} />
+      <ClipboardProp
+        active={!!active.clipboard}
+        onSelect={active.clipboard}
+        showChart={showChart}
+        justRecorded={justRecorded}
+      />
       <Cabinet active={!!active.cabinet} onSelect={active.cabinet} />
       <Monitor active={!!active.monitor} onSelect={active.monitor} />
       <Scale />
       <PawSign active={!!active.pawSign} onSelect={active.pawSign} />
+      <WaitingPair visible={waitingPairVisible} />
     </group>
   );
+}
+
+/** Canvas 래퍼 크기를 추적한다 — 핀 좌표(computeChoicePinPixels)는 매
+ *  프레임이 아니라 이 크기가 실제로 바뀔 때만 다시 계산해야 하므로
+ *  useFrame이 아닌 ResizeObserver를 쓴다. jsdom 등 ResizeObserver가 없는
+ *  환경에서는 최초 1회 getBoundingClientRect만 사용하고 이후 갱신은
+ *  건너뛴다(안전한 성능 저하 — 이 훅을 쓰는 곳은 클라이언트 전용 Canvas
+ *  래퍼뿐이라 실제 브라우저에서는 항상 ResizeObserver를 쓴다). */
+function useElementSize<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null);
+  const [size, setSize] = useState({ width: 0, height: 0 });
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const measure = () => setSize({ width: el.clientWidth, height: el.clientHeight });
+    measure();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  return { ref, size };
 }
 
 export default function VetScene({
@@ -586,8 +663,12 @@ export default function VetScene({
   choices,
   onChoice,
   showChart,
+  lastChoiceId,
+  hud,
   onSceneError,
 }: VetSceneProps) {
+  const { ref: wrapperRef, size } = useElementSize<HTMLDivElement>();
+
   const resolvedTargets = useMemo(
     () => resolveScenePresentation(mode, phase, point, choices).targets,
     [mode, phase, point, choices],
@@ -597,6 +678,23 @@ export default function VetScene({
     [resolvedTargets, onChoice],
   );
 
+  const currentSceneId = sceneInteractionId(mode, point);
+  const lastChoiceKind = useMemo(
+    () => (lastChoiceId ? targetKindForChoice(currentSceneId, lastChoiceId) : null),
+    [currentSceneId, lastChoiceId],
+  );
+  const stage = useMemo(
+    () => resolveStage(mode, phase, point, lastChoiceKind),
+    [mode, phase, point, lastChoiceKind],
+  );
+
+  // 핀 좌표: mode/point/phase/choices/Canvas 크기가 바뀔 때만 재계산한다
+  // (useFrame 아님 — sceneLayout.ts의 순수 함수를 그대로 재사용).
+  const pins: ChoicePinPixel[] = useMemo(() => {
+    if (phase !== "choosing") return [];
+    return computeChoicePinPixels(currentSceneId, choices, size.width, size.height);
+  }, [phase, currentSceneId, choices, size.width, size.height]);
+
   return (
     <XrSceneGuard
       onSceneError={onSceneError}
@@ -604,7 +702,10 @@ export default function VetScene({
         <XrScenePlaceholder message="지금 화면에서는 그림 대신 글로 동물병원 체험을 이어가요." />
       }
     >
-      <div className="h-[62vh] w-full touch-none overflow-hidden rounded-xl bg-[#f5ede0]">
+      <div
+        ref={wrapperRef}
+        className="relative h-[300px] w-full touch-none overflow-hidden rounded-xl bg-[#f5ede0] sm:h-[360px] md:h-[420px]"
+      >
         <Canvas
           camera={{ position: [0, 1.6, 2.9], fov: DEFAULT_FOV }}
           dpr={[1, 2]}
@@ -614,9 +715,21 @@ export default function VetScene({
           <ambientLight intensity={1.0} />
           <directionalLight position={[2, 5, 3]} intensity={1.1} />
           <directionalLight position={[-1.5, 3, 1]} intensity={0.35} color="#ffe4c4" />
-          <ExamRoom showChart={showChart} active={activeTargets} resultPose={phase === "result"} />
+          <ExamRoom
+            showChart={showChart}
+            active={activeTargets}
+            guardianYawDelta={stage.pose.guardianYawDelta}
+            seniorYawDelta={stage.pose.seniorYawDelta}
+            dogYawDelta={stage.pose.dogYawDelta}
+            dogHeadUp={stage.pose.dogHeadUp}
+            dogResting={stage.dogResting}
+            justRecorded={stage.justRecorded}
+            waitingPairVisible={stage.pose.waitingPairVisible}
+          />
           {phase === "result" && <CompletionBadge />}
         </Canvas>
+        {hud && <VetSceneHud stepLabel={hud.stepLabel} speakerLabel={hud.speakerLabel} text={hud.text} />}
+        <SceneTargetPins pins={pins} />
       </div>
     </XrSceneGuard>
   );

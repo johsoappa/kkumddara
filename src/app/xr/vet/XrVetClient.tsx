@@ -1,7 +1,7 @@
 "use client";
 
 // ====================================================
-// XR 수의사 Client 래퍼 — v2 (나침반모드 + 새싹모드, G2.2-R2 씬 상호작용 개편)
+// XR 수의사 Client 래퍼 — v3 (나침반모드 + 새싹모드, G2.2-R3-B 상담 스토리 전면 구현)
 //
 //   - next/dynamic(ssr:false)으로 R3F 씬(VetScene)을 브라우저에서만 로드
 //   - useReducer로 모드별 선택 지점 진행 상태 관리
@@ -9,20 +9,27 @@
 //     · sprout(새싹): 3지점 → 성취 중심 완료 화면 (축 결과·피드백·고지 미노출)
 //   - 씬 조건부 언마운트 금지 — Canvas 1회 마운트 유지
 //
-// G2.2-R2 추가 — 요리사 G2.1-R1과 동일한 검증된 토글 패턴을 그대로
-// 이식했다(파일은 공유하지 않고 이 컴포넌트 안에서 다시 구현):
+// G2.2-R2 — 요리사 G2.1-R1과 동일한 검증된 토글 패턴을 그대로 이식했다
+// (파일은 공유하지 않고 이 컴포넌트 안에서 다시 구현):
 //   - webglOk: 마운트 시 1회 isWebglSupported()로 판정(useEffect 안에서
 //     track() 호출 없음 — 캡처빌리티 확인일 뿐 이벤트 아님).
 //   - uiMode("scene"|"html")로 1차 상호작용 표시를 전환한다. useScene이
 //     false인 동안(WebGL 미지원 · 사용자가 "글로 진행하기" 선택 · Canvas
-//     런타임 오류)에는 기존 텍스트 선택지가 그대로, 완전한 형태로 노출된다
-//     — 오늘과 동일한 텍스트 완주 흐름(키보드·스크린리더 사용자 포함).
+//     런타임 오류)에는 기존 텍스트 선택지가 그대로, 완전한 형태로 노출된다.
 //   - sceneUnavailable: VetScene의 onSceneError로 알려지는 Canvas 런타임
 //     오류 플래그. 한번 오류가 나면 그 세션에서는 계속 HTML 흐름으로 고정한다.
 //   - 씬 탭과 텍스트 버튼 클릭은 반드시 같은 handleChoice를 호출한다 —
 //     잠금(choiceLockRef)·analytics는 이 함수 한 곳에만 있으므로 어느
-//     경로로 선택해도 이벤트가 정확히 1회만 전송된다(중복 방지는 새 코드를
-//     추가한 게 아니라 기존 잠금을 씬 경로에도 그대로 통과시킨 것뿐이다).
+//     경로로 선택해도 이벤트가 정확히 1회만 전송된다.
+//
+// G2.2-R3-B 추가 — choice가 sceneTarget(실제 씬 오브젝트)인지 actionCard
+// (HTML 전용, 추상 행동)인지에 따라 버튼에 작은 배지(숫자 원/사각형 —
+// 플랫폼 이모지 아님, CSS 도형)를 붙이고, 씬의 SceneTargetPins와 같은
+// 순번을 쓴다. reaction 화면에는 기존 점 공통 reaction 문구 외에 방금
+// 고른 choice의 개별 피드백(vetStoryboard.CHOICE_FEEDBACK)을 더 보여주고,
+// Canvas 위에는 DOM HUD(VetSceneHud)를, 결과 화면에는 실제 history 순서를
+// 그대로 보여주는 ChoiceTimeline을 추가했다. handleChoice/choiceLockRef/
+// analytics 이벤트 이름·속성·전송 시점은 전혀 건드리지 않았다.
 //
 // 이벤트 규칙 (chef XR과 동일 명명 규칙 — xr_chef_* 이름은 재사용하지 않고
 // 수의사 전용 xr_vet_* 이벤트만 사용한다. analytics.ts 참고):
@@ -54,11 +61,14 @@ import {
   type ChoiceRecord,
   type Mode,
 } from "./scenario";
+import { sceneInteractionId } from "./sceneLayout";
+import { CHOICE_FEEDBACK, classifyChoice } from "./vetStoryboard";
+import ChoiceTimeline from "./ChoiceTimeline";
 
 const VetScene = dynamic(() => import("./VetScene"), {
   ssr: false,
   loading: () => (
-    <div className="flex h-[60vh] w-full items-center justify-center rounded-xl bg-gray-100 text-sm text-gray-500">
+    <div className="flex h-[300px] w-full items-center justify-center rounded-xl bg-gray-100 text-sm text-gray-500">
       진료실을 준비하고 있어요...
     </div>
   ),
@@ -74,7 +84,7 @@ interface State {
   phase: Phase;
   /** 현재 지점 번호 (choosing/reaction에서 유효) */
   currentPoint: number;
-  /** 선택 기록 — 지점 순서 보존 (C 규칙 역순 탐색의 전제) */
+  /** 선택 기록 — 지점 순서 보존 (C 규칙 역순 탐색의 전제, 결과 타임라인도 이 순서를 그대로 쓴다) */
   history: ChoiceRecord[];
   /** 마지막 지점 선택 완료 여부 — CONTINUE 시 결과/완료 화면으로 전환 */
   finished: boolean;
@@ -117,6 +127,33 @@ function reducer(state: State, action: Action): State {
   }
 }
 
+/** 씬 타깃 선택지 버튼 앞에 붙는 작은 원형 순번 배지 — SceneTargetPins의
+ *  핀과 같은 순번(choices 배열 인덱스+1)을 쓴다. 플랫폼 이모지가 아니라
+ *  CSS 도형이고, aria-hidden이라 버튼의 접근 가능한 이름에는 포함되지
+ *  않는다(정확한 choice.label만 이름으로 읽힌다). */
+function SceneTargetBadge({ ordinal }: { ordinal: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="flex h-6 w-6 flex-none items-center justify-center rounded-full border-2 border-teal-600 bg-white text-xs font-bold text-teal-700"
+    >
+      {ordinal}
+    </span>
+  );
+}
+
+/** actionCard(추상 행동, 씬에 대응 오브젝트 없음) 선택지 버튼 앞의 배지 —
+ *  원이 아니라 사각형으로 "이 선택은 장면이 아니라 카드로 고른다"는 것을
+ *  구분한다. 마찬가지로 aria-hidden, 이모지 아님. */
+function ActionCardBadge() {
+  return (
+    <span
+      aria-hidden="true"
+      className="h-6 w-6 flex-none rounded-[6px] border-2 border-gray-400 bg-white"
+    />
+  );
+}
+
 export default function XrVetClient({ mode }: { mode: Mode }) {
   const [state, dispatch] = useReducer(reducer, initialState);
   const [ctaClicked, setCtaClicked] = useState(false);
@@ -140,9 +177,35 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
   const scenarioVersion = SCENARIO_VERSIONS[mode];
   const lastPoint = points.length;
   const currentPointData = points[state.currentPoint - 1];
+  const currentSceneId = sceneInteractionId(mode, state.currentPoint);
+  const lastRecord = state.history[state.history.length - 1] ?? null;
+  const lastChoiceFeedback = lastRecord ? CHOICE_FEEDBACK[lastRecord.choiceId] : undefined;
 
   // 기록판: 지점3 선택 후 지점4부터 등장 (결과 화면에서도 유지 — currentPoint 보존)
   const showChart = state.phase !== "intro" && state.currentPoint >= 3;
+
+  const hud =
+    state.phase === "intro"
+      ? { stepLabel: "도입", speakerLabel: "보호자", text: INTRO.guardianLine }
+      : state.phase === "choosing" && currentPointData
+        ? {
+            stepLabel: `선택 ${state.currentPoint} / ${lastPoint}`,
+            speakerLabel: "상황",
+            text: currentPointData.situation ?? currentPointData.title,
+          }
+        : state.phase === "reaction" && currentPointData
+          ? {
+              stepLabel: `선택 ${state.currentPoint} / ${lastPoint}`,
+              speakerLabel: "선배 수의사",
+              text: currentPointData.reaction,
+            }
+          : state.phase === "result"
+            ? {
+                stepLabel: "완료",
+                speakerLabel: "상담 결과",
+                text: mode === "compass" ? "오늘 콩이의 첫 상담을 함께 마쳤어요." : SPROUT_COMPLETE.congrats,
+              }
+            : undefined;
 
   const handleChoice = (choice: Choice) => {
     if (choiceLockRef.current || state.phase !== "choosing") return;
@@ -219,17 +282,23 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
         choices={useScene && state.phase === "choosing" && currentPointData ? currentPointData.choices : []}
         onChoice={handleChoice}
         showChart={showChart}
+        lastChoiceId={lastRecord?.choiceId ?? null}
+        hud={hud}
         onSceneError={() => setSceneUnavailable(true)}
       />
 
       {state.phase === "intro" && (
         <section className="flex flex-col gap-4">
           <p className="text-base leading-relaxed text-gray-800">{INTRO.narration}</p>
+          <div className="rounded-xl bg-amber-50 p-4 text-sm text-gray-700">
+            <p className="font-semibold text-amber-700">보호자</p>
+            <p className="mt-2 leading-relaxed">{INTRO.guardianLine}</p>
+          </div>
           <div className="rounded-xl bg-teal-50 p-4 text-sm text-gray-700">
             <p className="font-semibold text-teal-700">선배 수의사</p>
             <p className="mt-2 leading-relaxed">{INTRO.senior}</p>
           </div>
-          <p className="text-base leading-relaxed text-gray-800">{INTRO.firstOrder}</p>
+          <p className="text-base leading-relaxed text-gray-800">{INTRO.mission}</p>
           <p className="text-xs leading-relaxed text-gray-500">{VET_SAFETY_NOTICE}</p>
           <button
             type="button"
@@ -253,36 +322,45 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
           )}
           {useScene && (
             <p className="text-sm font-medium text-gray-600">
-              장면 속 강아지·보호자·선배 수의사·도구를 직접 눌러서 선택해보세요. 아래 목록에서 골라도 똑같이 진행돼요.
+              장면 속 강아지·보호자·선배 수의사·도구를 직접 눌러서 선택해보세요. 원형 숫자가 있는
+              대상은 장면에서도 누를 수 있고, 사각형 표시는 아래 목록에서만 고를 수 있어요.
             </p>
           )}
-          {/* G2.2-R2-L2: 씬 쪽에는 더 이상 번호 카드가 없다 — 실제 오브젝트를
-              직접 누른다. 그래서 이 목록에도 번호를 붙이지 않는다(대응할
-              번호 자체가 씬에 없으므로). 글씨 크기·대비는 그대로 유지한다
-              (모바일에서 읽고 누르기 어렵다는 이전 검수 지적 반영, G2.2-R2-L).
-              씬을 쓸 수 없을 때(WebGL 미지원·오류·사용자 선택)는 지금처럼 완전한
-              형태로 노출한다 — 두 경로 모두 같은 handleChoice를 호출한다. */}
+          {/* G2.2-R3-B: sceneTarget choice에는 씬 핀과 같은 순번의 원형 배지를,
+              actionCard(추상 행동) choice에는 사각형 배지를 붙인다. 배지는
+              aria-hidden이라 버튼의 접근 가능한 이름은 choice.label 그대로다.
+              씬을 쓸 수 없을 때(WebGL 미지원·오류·사용자 선택)는 완전한 형태로
+              노출한다 — 두 경로 모두 같은 handleChoice를 호출한다. */}
           <div className="flex flex-col gap-2.5">
-            {currentPointData.choices.map((choice) => (
-              <button
-                key={choice.id}
-                type="button"
-                onClick={() => handleChoice(choice)}
-                className={
-                  useScene
-                    ? "min-h-[48px] w-full rounded-lg border-2 border-teal-300 bg-teal-50 px-4 text-base font-semibold text-teal-800 transition-colors active:bg-teal-100"
-                    : "min-h-[52px] w-full rounded-xl bg-teal-600 px-4 text-base font-semibold text-white transition-colors active:bg-teal-700"
-                }
-              >
-                {choice.label}
-              </button>
-            ))}
+            {currentPointData.choices.map((choice, index) => {
+              const classification = classifyChoice(currentSceneId, choice.id);
+              return (
+                <button
+                  key={choice.id}
+                  type="button"
+                  onClick={() => handleChoice(choice)}
+                  className={
+                    (useScene
+                      ? "flex min-h-[48px] w-full items-center gap-3 rounded-lg border-2 border-teal-300 bg-teal-50 px-4 text-base font-semibold text-teal-800 transition-colors active:bg-teal-100"
+                      : "flex min-h-[52px] w-full items-center gap-3 rounded-xl bg-teal-600 px-4 text-base font-semibold text-white transition-colors active:bg-teal-700")
+                  }
+                >
+                  {useScene &&
+                    (classification === "sceneTarget" ? (
+                      <SceneTargetBadge ordinal={index + 1} />
+                    ) : (
+                      <ActionCardBadge />
+                    ))}
+                  <span className="text-left">{choice.label}</span>
+                </button>
+              );
+            })}
           </div>
           {webglOk && !sceneUnavailable && (
             <button
               type="button"
               onClick={() => setUiMode((previous) => (previous === "scene" ? "html" : "scene"))}
-              className="self-start text-xs text-gray-500 underline"
+              className="inline-flex min-h-[44px] items-center self-start px-1 text-sm text-gray-600 underline"
             >
               {useScene ? "글로 진행하기" : "화면으로 진행하기"}
             </button>
@@ -296,6 +374,12 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
             <p className="font-semibold text-teal-700">선배 수의사</p>
             <p className="mt-2 leading-relaxed">{currentPointData.reaction}</p>
           </div>
+          {lastChoiceFeedback && (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-gray-700">
+              <p className="font-semibold text-amber-700">지금 한 일</p>
+              <p className="mt-2 leading-relaxed">{lastChoiceFeedback}</p>
+            </div>
+          )}
           <button
             type="button"
             onClick={handleContinue}
@@ -322,6 +406,11 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
             <p className="mt-2 text-sm leading-relaxed text-gray-700">
               {AXIS_FEEDBACK[state.resultAxis].body}
             </p>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-800">오늘 콩이와 함께한 상담 기록</p>
+            <ChoiceTimeline mode={mode} history={state.history} />
           </div>
 
           <p className="text-sm leading-relaxed text-gray-500">{RESULT_NOTICE}</p>
@@ -379,6 +468,11 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
             <p className="mt-2 text-sm leading-relaxed text-gray-700">
               {SPROUT_COMPLETE.summary}
             </p>
+          </div>
+
+          <div>
+            <p className="mb-2 text-sm font-semibold text-gray-800">오늘 콩이와 함께한 상담 기록</p>
+            <ChoiceTimeline mode={mode} history={state.history} />
           </div>
 
           <p className="text-xs leading-relaxed text-gray-500">{VET_SAFETY_NOTICE}</p>

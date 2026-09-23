@@ -37,6 +37,22 @@
 //   - 상호작용은 그 오브젝트를 감싸는 보이지 않는 hit-box + (필요한 경우)
 //     발밑/받침대 높이의 아주 작은 링으로만 표시한다(얼굴·몸통을 가리지
 //     않는 위치). VetScene.tsx의 각 캐릭터/소품 컴포넌트가 직접 담당한다.
+//
+// [G2.2-R3-B 추가 배경] 모니터가 "다른 방법을 생각해본다"류 choice
+// 6곳에 재사용되어 "행동 의미가 불분명하다"는 지적을 받았다. 이번 라운드는
+// 모든 choice가 실제 오브젝트를 가져야 한다는 전제를 버렸다 — 물리적으로
+// 대응할 대상이 없는 추상 행동(예: "다른 방법을 생각해본다")은 SCENE_TARGETS에
+// 아예 항목을 두지 않고 HTML 선택 카드(actionCard)로만 노출한다. 그 결과
+// SCENE_TARGETS[pointId]는 더 이상 choices와 길이가 항상 같지 않다 — 대신
+// 각 항목이 choiceId를 직접 들고 있어(resolveTargets가 인덱스가 아니라
+// choiceId로 매칭) 일부 choice가 "씬 타깃 없음"이어도 안전하다. 모니터는
+// 이제 나침반 3지점("두 상황을 비교해본다") 한 곳에서만 쓰인다.
+//
+// 화면 좌표(핀) 계산도 이 파일에 추가했다 — projectToNdc(기존)를 실제
+// 렌더에 처음 쓰지만, 매 프레임 다시 계산하지 않는다. 카메라 position/
+// lookAt이 고정이고 FOV는 point가 바뀔 때만 바뀌므로, "mode·point·phase·
+// FOV·Canvas 크기가 바뀔 때"만 컴포넌트 쪽에서 이 순수 함수들을 호출해
+// 화면 좌표를 재계산하면 된다(VetScene.tsx가 useMemo로 호출, useFrame 아님).
 // ====================================================
 
 import type { AxisId, Choice, CameraStage, Mode } from "./scenario";
@@ -84,6 +100,8 @@ export type NamedTargetKind =
   | "pawSign";
 
 export interface SceneTarget {
+  /** 이 타깃이 대응하는 choice.id — 더 이상 배열 인덱스로 choices와 짝짓지 않는다. */
+  choiceId: string;
   kind: NamedTargetKind;
   position: Vec3;
 }
@@ -92,6 +110,11 @@ export interface ResolvedTarget {
   target: SceneTarget;
   choice: Choice;
 }
+
+/** 물리적으로 대응할 씬 오브젝트가 없는 추상 행동 — HTML 선택 카드로만 고른다.
+ *  (G2.2-R3-B: "구체적인 장면 대상이 없는 추상 행동은 HTML 선택 카드로
+ *  선택하게 합니다" — 억지로 모니터 같은 소품에 반복 연결하지 않는다.) */
+export type ChoiceClassification = "sceneTarget" | "actionCard";
 
 // ---------- 캐릭터 루트 앵커(바닥 기준) ----------
 // VetScene의 <group position={...}>가 그대로 사용한다 — 이 좌표가 바로
@@ -148,85 +171,99 @@ export const MONITOR_ANCHOR: Vec3 = [-1.15, 1.35, -2.25];
 export const SCALE_ANCHOR: Vec3 = [-0.35, 0, -0.4];
 export const WALL_SIGN_ANCHOR: Vec3 = [0, 2.0, -2.35];
 
-// ---------- 지점별 씬 타깃 (choices[i] ↔ SCENE_TARGETS[id][i] 1:1) ----------
+/** 나침반 3지점("기록을 마치기 전에 다음 보호자와 동물이 도착했어요") 전용
+ *  배경 소품 — 문 옆에서 기다리는 다음 보호자 실루엣 + 이동장. 선택 대상이
+ *  아니다(상호작용 없음, TapHitBox 없음) — 이 지점의 3개 choice는 이미
+ *  pawSign/monitor/senior로 매핑돼 있다. 바닥 기준(y=0) 앵커. */
+export const WAITING_PAIR_ANCHOR: Vec3 = [1.5, 0, -2.0];
+
+// ---------- 지점별 씬 타깃 (choiceId로 매칭 — G2.2-R3-B) ----------
 //
-// 실제 매핑은 scenario.ts의 각 지점 choice 문구·순서를 그대로 따른다
-// (문구는 여기서 복제하지 않고 choices 배열 인덱스로만 대응시킨다 —
-// resolveTargets가 choices[i]와 짝지어 반환한다).
-//
-// G2.2-R2-L2: 더 이상 추상 아이콘이 없다 — "다른 방법을 생각해본다"류
-// choice는 모니터(참고 화면)를, "전체 상황을 살핀다"는 병원 사인(공간
-// 전체를 상징하는 기존 소품)을, "동물과 보호자를 함께 살펴본다"는 보호자
-// 본인을 가리키는 식으로 실제 오브젝트에 재배정했다. 같은 물리적 오브젝트
-// (예: 모니터)가 여러 지점에서 재사용되지만, 한 지점 안에서는 항상 서로
-// 다른 오브젝트만 등장한다(중복 kind 없음 — sceneLayout.test.ts가 검증).
+// G2.2-R3-B: 모든 choice가 실제 오브젝트를 가져야 한다는 전제를 버렸다.
+// "다른 방법을 생각해본다"류처럼 물리적으로 대응할 대상이 없는 추상
+// 행동은 이 표에 아예 항목을 두지 않는다 — 해당 choice는 CHOICE_CLASSIFICATION
+// (vetStoryboard.ts)에서 actionCard로 분류되고, HTML 선택 카드로만 고른다.
+// 그 결과 모니터는 나침반 3지점("두 상황의 상태와 순서를 비교한다") 한
+// 곳에서만 실제 타깃으로 남는다 — 반복 재사용으로 인한 의미 불분명 문제를
+// 근본적으로 없앴다. 병원 사인·선배 수의사·보호자·강아지·기록판·약장은
+// 이전과 동일하게 실제 오브젝트를 가리킨다.
 
 export const SCENE_TARGETS: Record<string, SceneTarget[]> = {
-  // p1_a 관찰부터 시작 → 강아지 / p1_b 다른 확인 순서를 생각 → 모니터(참고 화면)
-  // / p1_c 동물과 보호자를 함께 살펴본다 → 보호자
+  // p1_a 콩이 관찰 → 강아지 / p1_b 확인 순서 생각(추상, actionCard) /
+  // p1_c 보호자 이야기+콩이 모습 함께 → 보호자
   compass_p1: [
-    { kind: "dog", position: DOG_ANCHOR },
-    { kind: "monitor", position: MONITOR_ANCHOR },
-    { kind: "guardian", position: GUARDIAN_TARGET },
+    { choiceId: "p1_a", kind: "dog", position: DOG_ANCHOR },
+    { choiceId: "p1_c", kind: "guardian", position: GUARDIAN_TARGET },
   ],
-  // p2_a 선배에게 함께 들어달라 → 선배 수의사 / p2_b 순서대로 적어둔다 → 기록판
-  // / p2_c 다른 기록 방법 생각 → 모니터
+  // p2_a 선배에게 함께 들어달라 → 선배 수의사 / p2_b 시간순 기록 → 기록판 /
+  // p2_c 그림·표시로 기록(추상, actionCard)
   compass_p2: [
-    { kind: "senior", position: SENIOR_TARGET },
-    { kind: "clipboard", position: CLIPBOARD_ANCHOR },
-    { kind: "monitor", position: MONITOR_ANCHOR },
+    { choiceId: "p2_a", kind: "senior", position: SENIOR_TARGET },
+    { choiceId: "p2_b", kind: "clipboard", position: CLIPBOARD_ANCHOR },
   ],
   // p3_a 전체 상황 먼저 살핀다 → 병원 사인(공간 전체 상징) / p3_b 두 상황 비교 → 모니터
-  // / p3_c 선배와 역할 나눈다 → 선배 수의사
+  // (모니터가 실제 타깃으로 남는 유일한 지점) / p3_c 선배와 역할 나눈다 → 선배 수의사
   compass_p3: [
-    { kind: "pawSign", position: WALL_SIGN_ANCHOR },
-    { kind: "monitor", position: MONITOR_ANCHOR },
-    { kind: "senior", position: SENIOR_TARGET },
+    { choiceId: "p3_a", kind: "pawSign", position: WALL_SIGN_ANCHOR },
+    { choiceId: "p3_b", kind: "monitor", position: MONITOR_ANCHOR },
+    { choiceId: "p3_c", kind: "senior", position: SENIOR_TARGET },
   ],
-  // p4_a 바로 정리 시작 → 기록판 / p4_b 새로운 정리 방법 시도 → 모니터
-  // / p4_c 기록 전체 다시 살펴본다 → 약장(보관된 기록)
+  // p4_a 바로 정리 시작 → 기록판 / p4_b 표시카드로 새 방법(추상, actionCard) /
+  // p4_c 기록+콩이 상태 함께 다시 살핀다 → 약장(보관된 기록)
   compass_p4: [
-    { kind: "clipboard", position: CLIPBOARD_ANCHOR },
-    { kind: "monitor", position: MONITOR_ANCHOR },
-    { kind: "cabinet", position: CABINET_TARGET },
+    { choiceId: "p4_a", kind: "clipboard", position: CLIPBOARD_ANCHOR },
+    { choiceId: "p4_c", kind: "cabinet", position: CABINET_TARGET },
   ],
-  // p5_a 정리한 기록 다시 확인 → 기록판 / p5_b 안내 순서 다시 정리 → 모니터
-  // / p5_c 선배에게 확인받는다 → 선배 수의사
+  // p5_a 정리한 기록 다시 확인 → 기록판 / p5_b 설명 순서 정리(추상, actionCard) /
+  // p5_c 선배에게 확인받는다 → 선배 수의사
   compass_p5: [
-    { kind: "clipboard", position: CLIPBOARD_ANCHOR },
-    { kind: "monitor", position: MONITOR_ANCHOR },
-    { kind: "senior", position: SENIOR_TARGET },
+    { choiceId: "p5_a", kind: "clipboard", position: CLIPBOARD_ANCHOR },
+    { choiceId: "p5_c", kind: "senior", position: SENIOR_TARGET },
   ],
-  // s1_a 보호자 이야기 먼저 듣는다 → 보호자 / s1_b 동물 먼저 살펴본다 → 강아지
+  // s1_a 보호자 이야기 먼저 듣는다 → 보호자 / s1_b 콩이 움직임·자세 먼저 살핀다 → 강아지
   sprout_p1: [
-    { kind: "guardian", position: GUARDIAN_TARGET },
-    { kind: "dog", position: DOG_ANCHOR },
+    { choiceId: "s1_a", kind: "guardian", position: GUARDIAN_TARGET },
+    { choiceId: "s1_b", kind: "dog", position: DOG_ANCHOR },
   ],
-  // s2_a 선배에게 물어본다 → 선배 수의사 / s2_b 하나씩 적어본다 → 기록판
+  // s2_a 선배에게 봐 달라고 한다 → 선배 수의사 / s2_b 기록판에 하나씩 적는다 → 기록판
   sprout_p2: [
-    { kind: "senior", position: SENIOR_TARGET },
-    { kind: "clipboard", position: CLIPBOARD_ANCHOR },
+    { choiceId: "s2_a", kind: "senior", position: SENIOR_TARGET },
+    { choiceId: "s2_b", kind: "clipboard", position: CLIPBOARD_ANCHOR },
   ],
-  // s3_a 익숙한 방법으로 안내 → 보호자 / s3_b 새롭게 안내해본다 → 모니터
-  sprout_p3: [
-    { kind: "guardian", position: GUARDIAN_TARGET },
-    { kind: "monitor", position: MONITOR_ANCHOR },
-  ],
+  // s3_a 익숙한 말로 설명 → 보호자 / s3_b 그림 안내카드로 설명(추상, actionCard)
+  sprout_p3: [{ choiceId: "s3_a", kind: "guardian", position: GUARDIAN_TARGET }],
 };
 
-/** choices[i] ↔ SCENE_TARGETS[id][i]를 인덱스로 짝짓는다. 길이가 다르면(설정 오류) 짧은 쪽까지만 짝짓는다.
- *  G2.2-R2-L2: 장면 안에는 더 이상 문구·번호 라벨을 전혀 그리지 않는다 — 실제 오브젝트
- *  (강아지·보호자·선배 수의사·기록판·약장·모니터·병원 사인) 자체가 탭 대상이고, 정확한
- *  선택 문구는 Canvas 밖 HTML 선택지(XrVetClient.tsx)에서만 읽는다. */
+/** compass_p3에서만 대기 보호자·이동장 배경 소품이 프레임에 함께 들어오도록
+ *  카메라 FOV 계산에 포함시키는 추가 포인트(선택 대상은 아니다). */
+export const EXTRA_FRAMING_POINTS: Record<string, Vec3[]> = {
+  compass_p3: [WAITING_PAIR_ANCHOR],
+};
+
+/** choiceId로 SCENE_TARGETS[id]를 찾아 짝짓는다. choices 순서를 그대로 따르되,
+ *  대응하는 타깃이 없는 choice(actionCard)는 결과에서 빠진다 — 더 이상
+ *  "길이가 항상 같다"는 가정을 하지 않는다(G2.2-R3-B). 장면 안에는 여전히
+ *  문구·번호 라벨을 그리지 않는다 — 정확한 선택 문구는 Canvas 밖 HTML
+ *  선택지(XrVetClient.tsx)에서만 읽는다. */
 export function resolveTargets(id: string, choices: Choice[]): ResolvedTarget[] {
   const targets = SCENE_TARGETS[id];
   if (!targets) return [];
-  const length = Math.min(targets.length, choices.length);
+  const byChoiceId = new Map(targets.map((t) => [t.choiceId, t]));
   const resolved: ResolvedTarget[] = [];
-  for (let i = 0; i < length; i += 1) {
-    resolved.push({ target: targets[i], choice: choices[i] });
+  for (const choice of choices) {
+    const target = byChoiceId.get(choice.id);
+    if (target) resolved.push({ target, choice });
   }
   return resolved;
+}
+
+/** choices 중 SCENE_TARGETS에 대응 항목이 없는 것 — actionCard로 분류돼야
+ *  하는 choice들이다(vetStoryboard.ts의 CHOICE_CLASSIFICATION과 대조해
+ *  일관성을 테스트로 검증한다). */
+export function resolveActionCardChoices(id: string, choices: Choice[]): Choice[] {
+  const targets = SCENE_TARGETS[id];
+  const targetIds = new Set((targets ?? []).map((t) => t.choiceId));
+  return choices.filter((c) => !targetIds.has(c.id));
 }
 
 // ---------- 회귀 검증용: 지점별 point 배열과 choices 배열 ----------
@@ -411,10 +448,12 @@ function heroCamera(extraPoints: Vec3[]): { position: Vec3; lookAt: Vec3; points
 }
 
 /** 특정 지점(sceneInteractionId)의 카메라 — position/lookAt은 항상 HERO_CAMERA로
- *  고정이고, 그 지점의 타깃들만 "추가로 반드시 보여야 하는 점"에 더한다. */
+ *  고정이고, 그 지점의 타깃들(+배경 소품 프레이밍 포인트, 있다면)만
+ *  "추가로 반드시 보여야 하는 점"에 더한다. */
 export function cameraForPoint(id: string): { position: Vec3; lookAt: Vec3; points: Vec3[] } {
   const targets = SCENE_TARGETS[id] ?? [];
-  return heroCamera(targets.map((t) => t.position));
+  const extra = EXTRA_FRAMING_POINTS[id] ?? [];
+  return heroCamera([...targets.map((t) => t.position), ...extra]);
 }
 
 /** intro 화면 — 핵심 3인만 프레임에 담으면 된다(선택 타깃 없음). */
@@ -487,6 +526,139 @@ export function pairwiseMinDistance(points: Vec3[]): number {
     }
   }
   return Number.isFinite(min) ? min : Infinity;
+}
+
+// ---------- 화면 핀 좌표 (G2.2-R3-B) ----------
+//
+// 카메라 position/lookAt이 고정이고 FOV는 point가 바뀔 때만 바뀌므로, 씬
+// 타깃의 화면(pixel) 좌표도 "매 프레임"이 아니라 mode·point·phase·FOV·
+// Canvas 크기가 바뀔 때만 다시 계산하면 된다 — VetScene.tsx가 useMemo로
+// 이 함수들을 호출한다(useFrame 안에서 DOM을 직접 건드리지 않는다).
+
+/** NDC([-1,1]) → 실제 Canvas 픽셀 좌표. Y축은 화면 기준(위가 0)으로 뒤집는다. */
+export function ndcToPixel(
+  ndcX: number,
+  ndcY: number,
+  width: number,
+  height: number,
+): { x: number; y: number } {
+  return { x: ((ndcX + 1) / 2) * width, y: ((1 - ndcY) / 2) * height };
+}
+
+/** 특정 choice에 대해 자동 배치보다 우선 적용하는 화면 픽셀 보정값(lane).
+ *  대부분은 0이고, 화면이 좁을 때 자동 충돌 회피만으로 부족한 지점에만
+ *  값을 둔다(현재는 자동 회피로 충분해 비어 있다 — vetStoryboard.ts가
+ *  아니라 여기 두는 이유는 화면 좌표계 자체가 이 파일의 관심사이기 때문). */
+export const PIN_OFFSET_PX: Partial<Record<string, [number, number]>> = {};
+
+export interface PinLayoutInput {
+  choiceId: string;
+  x: number;
+  y: number;
+}
+
+export interface PinLayoutResult {
+  choiceId: string;
+  x: number;
+  y: number;
+}
+
+/** 핀 지름 32px(28~32px 사양의 상단) 기준 반지름 — 충돌 회피 최소 간격 계산에 쓴다.
+ *  SceneTargetPins.tsx의 h-8 w-8(32px) 배지와 반드시 같은 값을 유지해야 한다. */
+export const PIN_RADIUS_PX = 16;
+const PIN_MIN_GAP_PX = 40;
+
+/** 핀들이 서로 겹치지 않고 Canvas 경계를 벗어나지 않도록 클램프 + 반복
+ *  반발(pairwise repulsion)로 보정한다. 순수 함수 — DOM/Three 의존 없음,
+ *  단위 테스트로 임의의 width/height에서 "겹치지 않는다"를 검증할 수 있다. */
+export function resolvePinLayout(
+  pins: PinLayoutInput[],
+  width: number,
+  height: number,
+  options?: { radius?: number; minGap?: number },
+): PinLayoutResult[] {
+  const radius = options?.radius ?? PIN_RADIUS_PX;
+  const minGap = options?.minGap ?? PIN_MIN_GAP_PX;
+  const clamp = (v: number, max: number) => Math.min(max - radius, Math.max(radius, v));
+
+  const points = pins.map((p) => ({
+    choiceId: p.choiceId,
+    x: clamp(p.x, width),
+    y: clamp(p.y, height),
+  }));
+
+  for (let iter = 0; iter < 8; iter += 1) {
+    let moved = false;
+    for (let i = 0; i < points.length; i += 1) {
+      for (let j = i + 1; j < points.length; j += 1) {
+        const dx = points[j].x - points[i].x;
+        const dy = points[j].y - points[i].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < minGap) {
+          const push = (minGap - dist) / 2;
+          // 완전히 같은 좌표(dist===0)면 방향이 정의되지 않으므로 임의의
+          // 결정적 방향(가로)으로 갈라놓는다 — 인덱스 순서로 항상 동일하게.
+          const ux = dist > 1e-6 ? dx / dist : 1;
+          const uy = dist > 1e-6 ? dy / dist : 0;
+          points[i].x -= ux * push;
+          points[i].y -= uy * push;
+          points[j].x += ux * push;
+          points[j].y += uy * push;
+          moved = true;
+        }
+      }
+    }
+    for (const p of points) {
+      p.x = clamp(p.x, width);
+      p.y = clamp(p.y, height);
+    }
+    if (!moved) break;
+  }
+  return points;
+}
+
+export interface ChoicePinPixel {
+  choiceId: string;
+  /** choices 배열 안에서의 1-based 순번 — 핀에 그릴 작은 숫자로 쓴다. */
+  ordinal: number;
+  x: number;
+  y: number;
+}
+
+/** 이번 point의 sceneTarget choice들을 실제 Canvas 픽셀 좌표로 투영하고,
+ *  겹치지 않게 보정한 목록을 반환한다. width/height<=0(아직 레이아웃 전)
+ *  이면 빈 배열 — 호출부(VetScene.tsx)가 ResizeObserver 등으로 실제
+ *  Canvas 크기를 알게 됐을 때만 이 함수를 호출한다(매 프레임 아님). */
+export function computeChoicePinPixels(
+  id: string,
+  choices: Choice[],
+  width: number,
+  height: number,
+): ChoicePinPixel[] {
+  if (width <= 0 || height <= 0) return [];
+  const aspect = width / height;
+  const { position, lookAt, points: framingSource } = cameraForPoint(id);
+  const framingPoints = framingPointsForPositions(framingSource);
+  const fov = fitVerticalFov({ cameraPos: position, lookAt, points: framingPoints, aspect });
+
+  const resolved = resolveTargets(id, choices);
+  const raw: PinLayoutInput[] = [];
+  for (const { target, choice } of resolved) {
+    const ndc = projectToNdc(position, lookAt, fov, aspect, target.position);
+    if (!ndc) continue;
+    const px = ndcToPixel(ndc.ndcX, ndc.ndcY, width, height);
+    const offset = PIN_OFFSET_PX[choice.id] ?? [0, 0];
+    raw.push({ choiceId: choice.id, x: px.x + offset[0], y: px.y + offset[1] });
+  }
+
+  const laidOut = resolvePinLayout(raw, width, height);
+  const ordinalByChoiceId = new Map(choices.map((c, i) => [c.id, i + 1]));
+  return laidOut.map((p) => ({
+    choiceId: p.choiceId,
+    ordinal: ordinalByChoiceId.get(p.choiceId) ?? 0,
+    x: p.x,
+    y: p.y,
+  }));
 }
 
 export type { AxisId, CameraStage };
