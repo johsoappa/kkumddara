@@ -462,3 +462,52 @@ describe("G2.2-R3-C — p4_c는 약장이 아니라 강아지를 가리킨다(F3
     }
   });
 });
+
+describe("G2.2-R3-C1 — 모니터 핀·강아지 연결선", () => {
+  const CANVASES = [
+    { width: 288, height: 300 },
+    { width: 343, height: 300 },
+  ];
+
+  function projectPx(id: string, width: number, height: number, world: [number, number, number]) {
+    const aspect = width / height;
+    const { position, lookAt, points } = cameraForPoint(id);
+    const fov = fitVerticalFov({ cameraPos: position, lookAt, points: framingPointsForPositions(points), aspect });
+    const ndc = projectToNdc(position, lookAt, fov, aspect, world)!;
+    return { x: ((ndc.ndcX + 1) / 2) * width, y: ((1 - ndc.ndcY) / 2) * height };
+  }
+
+  it.each(CANVASES)("compass_p3의 모니터 핀(p3_b)은 들어 올린 기록판 외곽에서 6px 이상 떨어진다 (%o)", ({ width, height }) => {
+    const pins = computeChoicePinPixels("compass_p3", CHOICE_POINTS[2].choices, width, height);
+    const pin = pins.find((p) => p.choiceId === "p3_b")!;
+    // 들어 올린 기록판(1.18배)의 외곽을 월드 좌표 사각형 모서리 4점으로 투영해 화면 사각형을 구한다.
+    const [cx, cy, cz] = CLIPBOARD_ANCHOR;
+    const corners = ([-0.21, 0.21] as const).flatMap((dx) =>
+      ([-0.26, 0.26] as const).map((dy) => projectPx("compass_p3", width, height, [cx + dx, cy + 0.06 + dy, cz])),
+    );
+    const minX = Math.min(...corners.map((c) => c.x));
+    const maxX = Math.max(...corners.map((c) => c.x));
+    const minY = Math.min(...corners.map((c) => c.y));
+    const maxY = Math.max(...corners.map((c) => c.y));
+    const nearestX = Math.min(maxX, Math.max(minX, pin.x));
+    const nearestY = Math.min(maxY, Math.max(minY, pin.y));
+    const dist = Math.hypot(pin.x - nearestX, pin.y - nearestY);
+    expect(dist).toBeGreaterThanOrEqual(PIN_RADIUS_PX + 6);
+  });
+
+  it("강아지 연결선은 강아지 투영 중심보다 아래(앞발·진찰대 접점)에서 끝나 몸통을 가로지르지 않는다", () => {
+    for (const [id, choices] of [
+      ["sprout_p1", SPROUT_POINTS[0].choices],
+      ["compass_p1", CHOICE_POINTS[0].choices],
+      ["compass_p4", CHOICE_POINTS[3].choices],
+    ] as const) {
+      const dogChoice = { sprout_p1: "s1_b", compass_p1: "p1_a", compass_p4: "p4_c" }[id];
+      for (const { width, height } of CANVASES) {
+        const pin = computeChoicePinPixels(id, choices as never, width, height).find((p) => p.choiceId === dogChoice)!;
+        const dog = projectPx(id, width, height, DOG_ANCHOR);
+        expect(pin.lineY).toBeGreaterThan(dog.y + 15);
+        expect(pin.y).toBeGreaterThan(pin.lineY);
+      }
+    }
+  });
+});

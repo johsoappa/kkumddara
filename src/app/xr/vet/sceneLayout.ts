@@ -166,7 +166,7 @@ export const SENIOR_HEAD_TOP: Vec3 = [
  *  평소엔 배경 소품이지만, 특정 지점에서는 SCENE_TARGETS를 통해 그대로
  *  상호작용 대상이 된다(새 마커를 만들지 않고 기존 소품을 재사용). */
 export const TABLE_CENTER: Vec3 = [0, 0, -1.0];
-export const CLIPBOARD_ANCHOR: Vec3 = [-0.4, 0.82, -0.62];
+export const CLIPBOARD_ANCHOR: Vec3 = [-0.5, 0.82, -0.62];
 export const MONITOR_ANCHOR: Vec3 = [-1.15, 1.35, -2.25];
 export const SCALE_ANCHOR: Vec3 = [-0.35, 0, -0.4];
 export const WALL_SIGN_ANCHOR: Vec3 = [0.35, 1.55, -2.35];
@@ -566,7 +566,7 @@ export interface PinOffsetSet {
  *  않고 대상 "옆·아래"에 두고 짧은 연결선으로 잇는다. 강아지·기록판은 진찰대 앞면,
  *  인물은 몸 바깥쪽 어깨 옆, 모니터·병원 사인은 아래쪽 모서리 밖이다. */
 export const PIN_KIND_OFFSET: Record<NamedTargetKind, PinOffsetSet> = {
-  dog: { regular: [22, 46], compact: [18, 40] },
+  dog: { regular: [24, 54], compact: [20, 48] },
   clipboard: { regular: [-26, 46], compact: [-22, 40] },
   guardian: { regular: [-46, 10], compact: [-40, 10] },
   senior: { regular: [46, 10], compact: [40, 10] },
@@ -577,9 +577,17 @@ export const PIN_KIND_OFFSET: Record<NamedTargetKind, PinOffsetSet> = {
 
 /** choice 단위 예외 보정 — 같은 종류라도 그 지점의 실제 화면에서 다른 대상·
  *  HUD와 겹칠 때만 둔다(선언형 데이터, 매 프레임 계산 없음). */
+/** 연결선 끝점을 "대상 투영점 + px"로 직접 지정하는 종류(기본은 핀→대상 60% 지점). 강아지는 몸통을
+ *  가로지르지 않도록 선이 배 아래 앞발·진찰대 접점에서 끝난다(G2.2-R3-C1). */
+export const PIN_LINE_END_OFFSET: Partial<Record<NamedTargetKind, PinOffsetSet>> = {
+  dog: { regular: [16, 22], compact: [14, 20] },
+};
+
 export const PIN_CHOICE_OFFSET: Partial<Record<string, PinOffsetSet>> = {
   // 나침반3: 선배 오른쪽에는 대기 보호자가 서 있어 핀을 왼쪽 아래(테이블·바닥 쪽)로 둔다.
   p3_c: { regular: [-38, 44], compact: [-34, 40] },
+  // 나침반3: 모니터 오른쪽 아래는 기록판 모서리와 겹치므로 모니터 왼쪽(보호자 머리보다 바깥)으로 둔다.
+  p3_b: { regular: [-52, 0], compact: [-50, -8] },
   // 나침반5: 기록판이 보호자 쪽으로 돌아서 있어 왼쪽 아래 핀이 보호자 몸에 닿으므로 오른쪽 아래(진찰대 앞면)로 둔다.
   p5_a: { regular: [20, 50], compact: [16, 44] },
 };
@@ -684,6 +692,7 @@ export function computeChoicePinPixels(
   const resolved = resolveTargets(id, choices);
   const raw: PinLayoutInput[] = [];
   const targetPx = new Map<string, { x: number; y: number }>();
+  const lineEnd = new Map<string, [number, number] | null>();
   for (const { target, choice } of resolved) {
     const s = shift[target.kind] ?? [0, 0];
     const world: Vec3 = [target.position[0] + s[0], target.position[1], target.position[2] + s[1]];
@@ -693,6 +702,8 @@ export function computeChoicePinPixels(
     const set = PIN_CHOICE_OFFSET[choice.id] ?? PIN_KIND_OFFSET[target.kind];
     const offset = compact ? set.compact : set.regular;
     targetPx.set(choice.id, px);
+    const endSet = PIN_LINE_END_OFFSET[target.kind];
+    lineEnd.set(choice.id, endSet ? (compact ? endSet.compact : endSet.regular) : null);
     raw.push({ choiceId: choice.id, x: px.x + offset[0], y: px.y + offset[1] });
   }
 
@@ -702,14 +713,16 @@ export function computeChoicePinPixels(
   const ordinalByChoiceId = new Map(choices.map((c, i) => [c.id, i + 1]));
   return laidOut.map((p) => {
     const t = targetPx.get(p.choiceId) ?? { x: p.x, y: p.y };
+    const end = lineEnd.get(p.choiceId) ?? null;
     return {
       choiceId: p.choiceId,
       ordinal: ordinalByChoiceId.get(p.choiceId) ?? 0,
       x: p.x,
       y: p.y,
-      // 핀 중심에서 대상 쪽으로 60%만 이어 대상 가장자리에서 끝낸다.
-      lineX: p.x + (t.x - p.x) * 0.6,
-      lineY: p.y + (t.y - p.y) * 0.6,
+      // 기본: 핀 중심에서 대상 쪽으로 60%만 이어 대상 가장자리에서 끝낸다. 종류별 끝점이
+      // 지정된 경우(강아지)에는 그 위치에서 끝낸다.
+      lineX: end ? t.x + end[0] : p.x + (t.x - p.x) * 0.6,
+      lineY: end ? t.y + end[1] : p.y + (t.y - p.y) * 0.6,
     };
   });
 }

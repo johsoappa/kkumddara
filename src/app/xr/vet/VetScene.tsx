@@ -369,7 +369,7 @@ interface ClipboardProps extends InteractiveProps {
   yaw: number;
 }
 
-const ROW_COLORS = ["#3f9c96", "#ff8a73", "#e8b23c", "#7fb8ae"];
+const ROW_COLORS = ["#0f766e", "#e2563f", "#c98a00", "#3b6ea8"];
 
 function ClipboardProp({ active, onSelect, showChart, rows, lifted, yaw }: ClipboardProps) {
   const { hovered, setHovered } = useTapHover();
@@ -377,9 +377,9 @@ function ClipboardProp({ active, onSelect, showChart, rows, lifted, yaw }: Clipb
   const tiltX = lifted ? -0.8 : -Math.PI / 2.6;
   return (
     <group
-      position={[CLIPBOARD_ANCHOR[0], CLIPBOARD_ANCHOR[1] + (lifted ? 0.12 : 0), CLIPBOARD_ANCHOR[2] + (lifted ? 0.03 : 0)]}
+      position={[CLIPBOARD_ANCHOR[0], CLIPBOARD_ANCHOR[1] + (lifted ? 0.06 : 0), CLIPBOARD_ANCHOR[2] + (lifted ? 0.03 : 0)]}
       rotation={[tiltX, yaw, 0.05]}
-      scale={1.4}
+      scale={lifted ? 1.18 : 1}
     >
       {active && onSelect && (
         <TapHitBox size={[0.44, 0.54, 0.15]} onSelect={onSelect} onHoverChange={setHovered} />
@@ -395,7 +395,7 @@ function ClipboardProp({ active, onSelect, showChart, rows, lifted, yaw }: Clipb
       {/* 기록 줄 — 고른 행동에 따라 개수가 실제로 늘어난다(식욕·활동·모습·순서 기록) */}
       {Array.from({ length: shownRows }).map((_, i) => (
         <mesh key={i} position={[0, 0.11 - i * 0.075, 0.014]}>
-          <boxGeometry args={[0.24, 0.035, 0.008]} />
+          <boxGeometry args={[0.26, 0.042, 0.008]} />
           <meshStandardMaterial color={ROW_COLORS[i % ROW_COLORS.length]} />
         </mesh>
       ))}
@@ -720,7 +720,7 @@ function ExamRoom({ showChart, active, pose, dogResting }: ExamRoomProps) {
       <Monitor active={!!active.monitor} onSelect={active.monitor} />
       <Scale />
       <PawSign active={!!active.pawSign} onSelect={active.pawSign} />
-      <WaitingPair visible={pose.waitingPairVisible} />
+      <WaitingPair visible={pose.waitingPairVisible} far={pose.waitingPairFar} />
     </group>
   );
 }

@@ -131,6 +131,7 @@ describe("resolveStage — mode+phase+point(+직전 선택)가 장면 상태를 
     expect(typeof stage.pose.dogHeadUp).toBe("boolean");
     expect(typeof stage.pose.dogLow).toBe("boolean");
     expect(typeof stage.pose.waitingPairVisible).toBe("boolean");
+    expect(typeof stage.pose.waitingPairFar).toBe("boolean");
     expect(["none", "guide", "tabs"]).toContain(stage.pose.card);
   }
 
@@ -158,11 +159,17 @@ describe("resolveStage — mode+phase+point(+직전 선택)가 장면 상태를 
     }
   });
 
-  it("나침반 3지점(choosing/reaction)에서만 대기 보호자가 등장한다", () => {
+  it("대기 보호자는 나침반 3단계에 등장하고 4단계에는 더 뒤로 물러나며(far), 그 외 단계에는 없다", () => {
     expect(resolveStage("compass", "choosing", 3, null).pose.waitingPairVisible).toBe(true);
+    expect(resolveStage("compass", "choosing", 3, null).pose.waitingPairFar).toBe(false);
     expect(resolveStage("compass", "reaction", 3, "senior", "p3_c").pose.waitingPairVisible).toBe(true);
-    for (const point of [1, 2, 4, 5]) {
+    expect(resolveStage("compass", "choosing", 4, null).pose.waitingPairVisible).toBe(true);
+    expect(resolveStage("compass", "choosing", 4, null).pose.waitingPairFar).toBe(true);
+    for (const point of [1, 2, 5]) {
       expect(resolveStage("compass", "choosing", point, null).pose.waitingPairVisible).toBe(false);
+    }
+    for (const point of [1, 2, 3]) {
+      expect(resolveStage("sprout", "choosing", point, null).pose.waitingPairVisible).toBe(false);
     }
     expect(resolveStage("compass", "intro", 1, null).pose.waitingPairVisible).toBe(false);
     expect(resolveStage("compass", "result", 1, null).pose.waitingPairVisible).toBe(false);
@@ -232,7 +239,7 @@ describe("resolveStage — mode+phase+point(+직전 선택)가 장면 상태를 
     const { pose } = resolveStage("compass", "result", 5, null);
     expect(pose.guardianYaw).toBeGreaterThan(0.8);
     expect(pose.seniorYaw).toBeLessThan(-0.8);
-    expect(pose.guardianOffset[0]).toBeGreaterThan(0);
+    expect(pose.guardianOffset[0]).toBeGreaterThanOrEqual(0);
     expect(pose.seniorOffset[0]).toBeLessThan(0);
   });
 });

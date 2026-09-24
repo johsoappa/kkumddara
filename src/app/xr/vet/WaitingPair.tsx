@@ -14,10 +14,14 @@
 
 import { WAITING_PAIR_ANCHOR } from "./sceneLayout";
 
-export default function WaitingPair({ visible }: { visible: boolean }) {
+export default function WaitingPair({ visible, far = false }: { visible: boolean; far?: boolean }) {
   if (!visible) return null;
+  // far(4단계): 문 쪽 더 뒤로 물러나 작아진다 — 갑자기 사라지지 않고 주목 대상에서 벗어난다.
+  const position: [number, number, number] = far
+    ? [WAITING_PAIR_ANCHOR[0] + 0.3, 0, WAITING_PAIR_ANCHOR[2] - 0.45]
+    : WAITING_PAIR_ANCHOR;
   return (
-    <group position={WAITING_PAIR_ANCHOR} rotation={[0, -0.5, 0]} scale={0.85}>
+    <group position={position} rotation={[0, -0.5, 0]} scale={far ? 0.55 : 0.85}>
       {/* 다음 보호자 */}
       <mesh position={[0, 1.15, 0]}>
         <sphereGeometry args={[0.16, 14, 14]} />

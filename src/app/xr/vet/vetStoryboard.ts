@@ -129,6 +129,8 @@ export interface StagePose {
   clipboardYaw: number;
   card: StageCard;
   waitingPairVisible: boolean;
+  /** 4단계: 대기 그룹이 더 뒤쪽·작게 물러나 주목 대상에서 벗어난다(퇴장 전환). */
+  waitingPairFar: boolean;
 }
 
 const BASE_POSE: StagePose = {
@@ -146,6 +148,7 @@ const BASE_POSE: StagePose = {
   clipboardYaw: 0,
   card: "none",
   waitingPairVisible: false,
+  waitingPairFar: false,
 };
 
 function pose(overrides: Partial<StagePose>): StagePose {
@@ -161,17 +164,16 @@ export const INTRO_POSE: StagePose = pose({
   dogLow: true,
 });
 
-/** result — 두 사람이 서로를 향해 다가서 마주보고, 기록판은 완료(4줄)·보호자 쪽을 향함. */
+/** result — 두 사람이 서로를 향해 마주보고(선배만 다가서고 보호자 자리는 유지해 기록판이 보호자 얼굴을 가리지 않게 함), 기록판은 완료(4줄)·보호자 쪽을 향함. */
 export const RESULT_POSE: StagePose = pose({
-  guardianYaw: 1.15,
-  guardianArm: 0.5,
-  guardianOffset: [0.25, 0],
-  seniorYaw: -1.15,
-  seniorOffset: [-0.25, 0],
+  guardianYaw: 1.3,
+  guardianArm: 0.2,
+  seniorYaw: -1.3,
+  seniorOffset: [-0.4, 0],
   dogYaw: 0.3,
   clipboardRows: 4,
   clipboardLifted: true,
-  clipboardYaw: -0.7,
+  clipboardYaw: -0.45,
   card: "guide",
 });
 
@@ -202,16 +204,18 @@ export const COMPASS_POINT_POSE: Record<number, StagePose> = {
     clipboardRows: 3,
     clipboardLifted: true,
     card: "tabs",
+    waitingPairVisible: true,
+    waitingPairFar: true,
   }),
   5: pose({
     guardianYaw: 1.15,
     guardianArm: 0.5,
-    guardianOffset: [0.2, 0],
+    guardianOffset: [0, 0],
     seniorYaw: -1.15,
     seniorOffset: [-0.25, 0],
     clipboardRows: 4,
     clipboardLifted: true,
-    clipboardYaw: -0.7,
+    clipboardYaw: -0.45,
     card: "guide",
   }),
 };
@@ -228,12 +232,12 @@ export const SPROUT_POINT_POSE: Record<number, StagePose> = {
   3: pose({
     guardianYaw: 1.15,
     guardianArm: 0.5,
-    guardianOffset: [0.2, 0],
+    guardianOffset: [0, 0],
     seniorYaw: -1.15,
     seniorOffset: [-0.25, 0],
     clipboardRows: 2,
     clipboardLifted: true,
-    clipboardYaw: -0.7,
+    clipboardYaw: -0.45,
     card: "guide",
   }),
 };
