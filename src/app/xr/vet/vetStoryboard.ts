@@ -12,7 +12,7 @@
 //     공통 reaction과 별도로 노출 — "선택했더니 실제로 뭔가 남는다"는
 //     느낌을 준다)
 //   - mode·point별 결과 타임라인 카테고리 라벨
-//   - mode·phase·point(+직전 선택 kind)별 인물·강아지 포즈 델타(선언형)
+//   - mode·phase·point(+직전 선택)별 장면 상태(인물·강아지·기록판·카드·대기 보호자, 선언형)
 //
 // React/Three.js 인스턴스에는 의존하지 않는다(순수 데이터 + 순수 함수) —
 // scenario.ts/sceneLayout.ts와 동일한 설계 원칙을 따른다.
@@ -103,99 +103,176 @@ export function pointCategory(mode: Mode, point: number): string {
   return table[point] ?? `${point}단계`;
 }
 
-// ---------- 인물·강아지 포즈(선언형, mode+point+phase 기반) ----------
+// ---------- 장면 상태(선언형, mode+point+phase 기반) ----------
 //
-// "본체 색이나 발밑 링만 바뀌는 화면은 완료로 인정하지 않습니다" — 각
-// point는 이전 point와 비교해 최소 2개 요소(인물 자세, 강아지 행동,
-// 소품 상태, 등장 요소, 카메라 구도 중)가 달라야 한다. 이 표가 인물
-// 자세·강아지 행동·등장 요소(대기 보호자) 3가지를 구조적으로 보장한다.
-// 값은 라디안 델타(기존 VetScene.tsx의 base yaw에 더해진다).
+// G2.2-R3-C: 이전(R3-B)에는 인물 yaw에 0.2~0.4rad 델타만 더해 단계 변화가
+// 눈에 띄지 않았다(인물이 얼굴 없는 원기둥이라 회전 자체가 보이지 않기도 했다).
+// 이제 모든 필드는 실제 렌더에 쓰인다: 인물 방향(yaw, 절대값)·이동(offset)·
+// 팔 제스처(arm)·강아지 자세(yaw/headUp/low)·기록판(줄 수·들어올림·방향)·
+// 안내 카드 종류·대기 보호자 등장. HUD 문구는 이 상태에 포함하지 않는다.
+// 단위: yaw=라디안(0=정면), offset=[dx,dz] 월드 좌표, arm=어깨 앞으로 든 각도(라디안).
+
+export type StageCard = "none" | "guide" | "tabs";
 
 export interface StagePose {
-  guardianYawDelta: number;
-  seniorYawDelta: number;
-  dogYawDelta: number;
+  guardianYaw: number;
+  guardianArm: number;
+  guardianOffset: [number, number];
+  seniorYaw: number;
+  seniorArm: number;
+  seniorOffset: [number, number];
+  dogYaw: number;
   dogHeadUp: boolean;
+  dogLow: boolean;
+  clipboardRows: number;
+  clipboardLifted: boolean;
+  clipboardYaw: number;
+  card: StageCard;
   waitingPairVisible: boolean;
 }
 
-const NEUTRAL_POSE: StagePose = {
-  guardianYawDelta: 0,
-  seniorYawDelta: 0,
-  dogYawDelta: 0,
+const BASE_POSE: StagePose = {
+  guardianYaw: 0.5,
+  guardianArm: 0,
+  guardianOffset: [0, 0],
+  seniorYaw: -0.5,
+  seniorArm: 0,
+  seniorOffset: [0, 0],
+  dogYaw: 0.3,
   dogHeadUp: false,
+  dogLow: false,
+  clipboardRows: 0,
+  clipboardLifted: false,
+  clipboardYaw: 0,
+  card: "none",
   waitingPairVisible: false,
 };
 
-/** intro — 보호자·콩이가 막 진료실에 들어온 방향(문 쪽을 향해 살짝 더 돈 자세),
- *  콩이는 평소보다 조용한 자세(고개 숙임). */
-export const INTRO_POSE: StagePose = {
-  ...NEUTRAL_POSE,
-  guardianYawDelta: -0.3,
-  dogYawDelta: -0.2,
-};
+function pose(overrides: Partial<StagePose>): StagePose {
+  return { ...BASE_POSE, ...overrides };
+}
 
-/** result — 보호자·선배가 서로를 향해 살짝 돌아서는 상담 마무리 자세.
- *  콩이는 엎드린 안정 자세(dogSit은 VetScene.tsx가 phase==="result"로 직접 판정). */
-export const RESULT_POSE: StagePose = {
-  ...NEUTRAL_POSE,
-  guardianYawDelta: 0.25,
-  seniorYawDelta: -0.25,
-};
+/** intro — 보호자·콩이가 막 들어온 방향, 콩이는 고개를 낮춘 조용한 자세. */
+export const INTRO_POSE: StagePose = pose({
+  guardianYaw: 0.9,
+  guardianOffset: [-0.3, 0.1],
+  seniorYaw: -0.6,
+  dogYaw: -0.4,
+  dogLow: true,
+});
+
+/** result — 두 사람이 서로를 향해 다가서 마주보고, 기록판은 완료(4줄)·보호자 쪽을 향함. */
+export const RESULT_POSE: StagePose = pose({
+  guardianYaw: 1.15,
+  guardianArm: 0.5,
+  guardianOffset: [0.25, 0],
+  seniorYaw: -1.15,
+  seniorOffset: [-0.25, 0],
+  dogYaw: 0.3,
+  clipboardRows: 4,
+  clipboardLifted: true,
+  clipboardYaw: -0.7,
+  card: "guide",
+});
 
 export const COMPASS_POINT_POSE: Record<number, StagePose> = {
-  1: { ...NEUTRAL_POSE, dogYawDelta: 0.15, dogHeadUp: true },
-  2: { ...NEUTRAL_POSE, seniorYawDelta: 0.3 },
-  3: { ...NEUTRAL_POSE, guardianYawDelta: 0.2, seniorYawDelta: 0.35, waitingPairVisible: true },
-  4: { ...NEUTRAL_POSE },
-  5: { ...NEUTRAL_POSE, guardianYawDelta: 0.25, seniorYawDelta: -0.2 },
+  1: pose({ guardianYaw: 0.9, dogYaw: 0.8, dogHeadUp: true }),
+  2: pose({
+    guardianYaw: 0.6,
+    guardianArm: 0.5,
+    seniorYaw: -1.25,
+    seniorArm: 0.9,
+    seniorOffset: [-0.3, 0.1],
+    clipboardRows: 1,
+    clipboardLifted: true,
+  }),
+  3: pose({
+    guardianYaw: 0.3,
+    seniorYaw: 1.2,
+    seniorOffset: [-0.2, 0],
+    clipboardRows: 2,
+    clipboardLifted: true,
+    waitingPairVisible: true,
+  }),
+  4: pose({
+    guardianYaw: 0.9,
+    seniorYaw: -1.0,
+    seniorArm: 0.7,
+    seniorOffset: [-0.25, 0],
+    clipboardRows: 3,
+    clipboardLifted: true,
+    card: "tabs",
+  }),
+  5: pose({
+    guardianYaw: 1.15,
+    guardianArm: 0.5,
+    guardianOffset: [0.2, 0],
+    seniorYaw: -1.15,
+    seniorOffset: [-0.25, 0],
+    clipboardRows: 4,
+    clipboardLifted: true,
+    clipboardYaw: -0.7,
+    card: "guide",
+  }),
 };
 
 export const SPROUT_POINT_POSE: Record<number, StagePose> = {
-  1: { ...NEUTRAL_POSE, dogYawDelta: 0.15, dogHeadUp: true },
-  2: { ...NEUTRAL_POSE, seniorYawDelta: 0.3 },
-  3: { ...NEUTRAL_POSE, guardianYawDelta: 0.25, seniorYawDelta: -0.2 },
+  1: pose({ guardianYaw: 0.9, dogLow: true }),
+  2: pose({
+    guardianYaw: 0.6,
+    seniorYaw: -1.25,
+    seniorArm: 0.9,
+    seniorOffset: [-0.3, 0.1],
+    clipboardLifted: true,
+  }),
+  3: pose({
+    guardianYaw: 1.15,
+    guardianArm: 0.5,
+    guardianOffset: [0.2, 0],
+    seniorYaw: -1.15,
+    seniorOffset: [-0.25, 0],
+    clipboardRows: 2,
+    clipboardLifted: true,
+    clipboardYaw: -0.7,
+    card: "guide",
+  }),
 };
 
-/** reaction 단계에서 "방금 고른 대상"에 얹는 추가 포즈(가산). 실제 물리
- *  오브젝트가 없는 actionCard 선택(targetKind===null)은 오버레이 없이
- *  point 기본 포즈만 유지한다. */
+/** reaction 단계에서 "방금 고른 대상"에 얹는 추가 반응(덮어쓰기). 실제 물리 오브젝트가
+ *  없는 actionCard 선택(targetKind===null)은 오버레이 없이 point 기본 상태를 유지한다. */
 export const REACTION_KIND_OVERLAY: Partial<Record<NamedTargetKind, Partial<StagePose>>> = {
-  dog: { dogYawDelta: 0.35, dogHeadUp: true },
-  guardian: { guardianYawDelta: 0.4 },
-  senior: { seniorYawDelta: 0.4 },
+  dog: { dogYaw: 0.95, dogHeadUp: true, dogLow: false },
+  guardian: { guardianYaw: 0, guardianArm: 0.9 },
+  senior: { seniorYaw: -1.3, seniorArm: 0.9, seniorOffset: [-0.35, 0.15] },
+  clipboard: { clipboardLifted: true },
+  pawSign: { seniorYaw: 0.9, guardianYaw: 0.1 },
+  monitor: { seniorYaw: 0.7, guardianYaw: 0.2 },
 };
-
-function addPose(base: StagePose, overlay: Partial<StagePose>): StagePose {
-  return {
-    guardianYawDelta: base.guardianYawDelta + (overlay.guardianYawDelta ?? 0),
-    seniorYawDelta: base.seniorYawDelta + (overlay.seniorYawDelta ?? 0),
-    dogYawDelta: base.dogYawDelta + (overlay.dogYawDelta ?? 0),
-    dogHeadUp: base.dogHeadUp || !!overlay.dogHeadUp,
-    waitingPairVisible: base.waitingPairVisible,
-  };
-}
 
 export interface ResolvedStage {
   pose: StagePose;
-  /** clipboard가 "방금 기록됨" 표시를 잠깐 보여줘야 하는가(reaction 단계 + 방금
-   *  고른 대상이 기록판일 때만) — showChart(지점3 이후 상시 표시)와는 별개의
-   *  일시적 신호다. */
+  /** reaction 단계에서 방금 기록판 관련 choice를 골라 기록 줄이 추가되는 순간. */
   justRecorded: boolean;
   /** 강아지가 편안히 엎드린 자세(결과 화면 전용). */
   dogResting: boolean;
 }
 
+/** 방금 고른 choice가 "기록"을 남기는 행동인가 — 기록판을 직접 골랐거나(clipboard),
+ *  기록과 콩이 상태를 함께 다시 살피는 p4_c. */
+function isRecordingChoice(kind: NamedTargetKind | null, choiceId: string | null | undefined): boolean {
+  return kind === "clipboard" || choiceId === "p4_c";
+}
+
 /**
- * mode + phase + point (+ reaction 단계에서는 방금 고른 choice의 targetKind)
- * 기반으로 이번에 보여줄 포즈/소품 상태를 계산하는 단일 진입점. VetScene.tsx가
- * 이 결과를 각 캐릭터 컴포넌트의 base yaw에 더해 적용한다.
+ * mode + phase + point (+ reaction 단계에서는 방금 고른 choice)로 이번에 보여줄 장면
+ * 상태를 계산하는 단일 진입점. VetScene.tsx가 이 결과를 그대로 렌더에 사용한다.
  */
 export function resolveStage(
   mode: Mode,
   phase: "intro" | "choosing" | "reaction" | "result",
   point: number,
   lastChoiceKind: NamedTargetKind | null,
+  lastChoiceId?: string | null,
 ): ResolvedStage {
   if (phase === "intro") {
     return { pose: INTRO_POSE, justRecorded: false, dogResting: false };
@@ -204,14 +281,16 @@ export function resolveStage(
     return { pose: RESULT_POSE, justRecorded: false, dogResting: true };
   }
   const table = mode === "compass" ? COMPASS_POINT_POSE : SPROUT_POINT_POSE;
-  const base = table[point] ?? NEUTRAL_POSE;
-  if (phase === "reaction" && lastChoiceKind) {
-    const overlay = REACTION_KIND_OVERLAY[lastChoiceKind] ?? {};
-    return {
-      pose: addPose(base, overlay),
-      justRecorded: lastChoiceKind === "clipboard",
-      dogResting: false,
-    };
+  const base = table[point] ?? BASE_POSE;
+  if (phase === "reaction" && (lastChoiceKind || lastChoiceId)) {
+    const overlay = lastChoiceKind ? (REACTION_KIND_OVERLAY[lastChoiceKind] ?? {}) : {};
+    const recording = isRecordingChoice(lastChoiceKind, lastChoiceId);
+    const merged: StagePose = { ...base, ...overlay };
+    if (recording) {
+      merged.clipboardRows = Math.min(4, base.clipboardRows + 2);
+      merged.clipboardLifted = true;
+    }
+    return { pose: merged, justRecorded: recording, dogResting: false };
   }
   return { pose: base, justRecorded: false, dogResting: false };
 }

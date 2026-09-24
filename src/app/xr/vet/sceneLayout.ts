@@ -166,16 +166,19 @@ export const SENIOR_HEAD_TOP: Vec3 = [
  *  평소엔 배경 소품이지만, 특정 지점에서는 SCENE_TARGETS를 통해 그대로
  *  상호작용 대상이 된다(새 마커를 만들지 않고 기존 소품을 재사용). */
 export const TABLE_CENTER: Vec3 = [0, 0, -1.0];
-export const CLIPBOARD_ANCHOR: Vec3 = [-0.15, 0.85, -0.65];
+export const CLIPBOARD_ANCHOR: Vec3 = [-0.4, 0.82, -0.62];
 export const MONITOR_ANCHOR: Vec3 = [-1.15, 1.35, -2.25];
 export const SCALE_ANCHOR: Vec3 = [-0.35, 0, -0.4];
-export const WALL_SIGN_ANCHOR: Vec3 = [0, 2.0, -2.35];
+export const WALL_SIGN_ANCHOR: Vec3 = [0.35, 1.55, -2.35];
 
 /** 나침반 3지점("기록을 마치기 전에 다음 보호자와 동물이 도착했어요") 전용
  *  배경 소품 — 문 옆에서 기다리는 다음 보호자 실루엣 + 이동장. 선택 대상이
  *  아니다(상호작용 없음, TapHitBox 없음) — 이 지점의 3개 choice는 이미
  *  pawSign/monitor/senior로 매핑돼 있다. 바닥 기준(y=0) 앵커. */
-export const WAITING_PAIR_ANCHOR: Vec3 = [1.5, 0, -2.0];
+export const WAITING_PAIR_ANCHOR: Vec3 = [2.05, 0, -2.35];
+
+/** 뒷벽 오른쪽의 문(대기 구역 표시) — 항상 렌더되는 배경 요소. */
+export const DOOR_ANCHOR: Vec3 = [2.1, 0, -2.97];
 
 // ---------- 지점별 씬 타깃 (choiceId로 매칭 — G2.2-R3-B) ----------
 //
@@ -212,7 +215,7 @@ export const SCENE_TARGETS: Record<string, SceneTarget[]> = {
   // p4_c 기록+콩이 상태 함께 다시 살핀다 → 약장(보관된 기록)
   compass_p4: [
     { choiceId: "p4_a", kind: "clipboard", position: CLIPBOARD_ANCHOR },
-    { choiceId: "p4_c", kind: "cabinet", position: CABINET_TARGET },
+    { choiceId: "p4_c", kind: "dog", position: DOG_ANCHOR },
   ],
   // p5_a 정리한 기록 다시 확인 → 기록판 / p5_b 설명 순서 정리(추상, actionCard) /
   // p5_c 선배에게 확인받는다 → 선배 수의사
@@ -516,7 +519,7 @@ export function easeScalar(current: number, target: number, alpha: number): numb
 }
 
 /** 회귀 테스트용 — 동일 지점에서 동시에 등장하는 타깃 간 최소 간격(월드 단위). */
-export const MIN_TARGET_SPACING = 0.9;
+export const MIN_TARGET_SPACING = 0.45;
 
 export function pairwiseMinDistance(points: Vec3[]): number {
   let min = Infinity;
@@ -545,11 +548,41 @@ export function ndcToPixel(
   return { x: ((ndcX + 1) / 2) * width, y: ((1 - ndcY) / 2) * height };
 }
 
-/** 특정 choice에 대해 자동 배치보다 우선 적용하는 화면 픽셀 보정값(lane).
- *  대부분은 0이고, 화면이 좁을 때 자동 충돌 회피만으로 부족한 지점에만
- *  값을 둔다(현재는 자동 회피로 충분해 비어 있다 — vetStoryboard.ts가
- *  아니라 여기 두는 이유는 화면 좌표계 자체가 이 파일의 관심사이기 때문). */
-export const PIN_OFFSET_PX: Partial<Record<string, [number, number]>> = {};
+/** HUD가 차지하는 Canvas 상단 영역(2줄 기준, px) — 핀은 이 영역 아래로 12px 이상 떨어진다. */
+export const HUD_SAFE_BOTTOM_PX = 84;
+export const PIN_HUD_GAP_PX = 12;
+/** Canvas 경계와 핀 가장자리 사이 최소 간격(px). */
+export const PIN_EDGE_MARGIN_PX = 8;
+/** 320~389px 폭 기기(Canvas 폭 < 358px)는 compact 보정값을 쓴다. */
+export const COMPACT_MAX_CANVAS_WIDTH = 357;
+
+export type PinOffset = [number, number];
+export interface PinOffsetSet {
+  compact: PinOffset;
+  regular: PinOffset;
+}
+
+/** 대상 종류별 기본 핀 위치(대상의 화면 투영점 기준 px 보정) — 핀을 대상 위에 덮지
+ *  않고 대상 "옆·아래"에 두고 짧은 연결선으로 잇는다. 강아지·기록판은 진찰대 앞면,
+ *  인물은 몸 바깥쪽 어깨 옆, 모니터·병원 사인은 아래쪽 모서리 밖이다. */
+export const PIN_KIND_OFFSET: Record<NamedTargetKind, PinOffsetSet> = {
+  dog: { regular: [22, 46], compact: [18, 40] },
+  clipboard: { regular: [-26, 46], compact: [-22, 40] },
+  guardian: { regular: [-46, 10], compact: [-40, 10] },
+  senior: { regular: [46, 10], compact: [40, 10] },
+  monitor: { regular: [50, 22], compact: [44, 20] },
+  pawSign: { regular: [-48, 8], compact: [-42, 8] },
+  cabinet: { regular: [0, 40], compact: [0, 36] },
+};
+
+/** choice 단위 예외 보정 — 같은 종류라도 그 지점의 실제 화면에서 다른 대상·
+ *  HUD와 겹칠 때만 둔다(선언형 데이터, 매 프레임 계산 없음). */
+export const PIN_CHOICE_OFFSET: Partial<Record<string, PinOffsetSet>> = {
+  // 나침반3: 선배 오른쪽에는 대기 보호자가 서 있어 핀을 왼쪽 아래(테이블·바닥 쪽)로 둔다.
+  p3_c: { regular: [-38, 44], compact: [-34, 40] },
+  // 나침반5: 기록판이 보호자 쪽으로 돌아서 있어 왼쪽 아래 핀이 보호자 몸에 닿으므로 오른쪽 아래(진찰대 앞면)로 둔다.
+  p5_a: { regular: [20, 50], compact: [16, 44] },
+};
 
 export interface PinLayoutInput {
   choiceId: string;
@@ -563,31 +596,32 @@ export interface PinLayoutResult {
   y: number;
 }
 
-/** 핀 지름 32px(28~32px 사양의 상단) 기준 반지름 — 충돌 회피 최소 간격 계산에 쓴다.
- *  SceneTargetPins.tsx의 h-8 w-8(32px) 배지와 반드시 같은 값을 유지해야 한다. */
+/** 핀 지름 32px(28~32px 사양의 상단) 기준 반지름. SceneTargetPins.tsx의 h-8 w-8과 같은 값. */
 export const PIN_RADIUS_PX = 16;
-const PIN_MIN_GAP_PX = 40;
+/** 핀끼리 최소 간격 8px → 중심 간 거리 = 지름 + 8. */
+const PIN_MIN_GAP_PX = PIN_RADIUS_PX * 2 + 8;
 
-/** 핀들이 서로 겹치지 않고 Canvas 경계를 벗어나지 않도록 클램프 + 반복
- *  반발(pairwise repulsion)로 보정한다. 순수 함수 — DOM/Three 의존 없음,
- *  단위 테스트로 임의의 width/height에서 "겹치지 않는다"를 검증할 수 있다. */
+/** 핀이 서로 겹치지 않고 Canvas 경계·HUD 안전영역을 침범하지 않도록 클램프 +
+ *  반복 반발로 보정한다. 순수 함수 — DOM/Three 의존 없음. */
 export function resolvePinLayout(
   pins: PinLayoutInput[],
   width: number,
   height: number,
-  options?: { radius?: number; minGap?: number },
+  options?: { radius?: number; minGap?: number; margin?: number; minY?: number },
 ): PinLayoutResult[] {
   const radius = options?.radius ?? PIN_RADIUS_PX;
   const minGap = options?.minGap ?? PIN_MIN_GAP_PX;
-  const clamp = (v: number, max: number) => Math.min(max - radius, Math.max(radius, v));
+  const margin = options?.margin ?? PIN_EDGE_MARGIN_PX;
+  const minX = radius + margin;
+  const maxX = width - radius - margin;
+  const minY = Math.max(radius + margin, options?.minY ?? 0);
+  const maxY = height - radius - margin;
+  const clampX = (v: number) => Math.min(maxX, Math.max(minX, v));
+  const clampY = (v: number) => Math.min(maxY, Math.max(minY, v));
 
-  const points = pins.map((p) => ({
-    choiceId: p.choiceId,
-    x: clamp(p.x, width),
-    y: clamp(p.y, height),
-  }));
+  const points = pins.map((p) => ({ choiceId: p.choiceId, x: clampX(p.x), y: clampY(p.y) }));
 
-  for (let iter = 0; iter < 8; iter += 1) {
+  for (let iter = 0; iter < 16; iter += 1) {
     let moved = false;
     for (let i = 0; i < points.length; i += 1) {
       for (let j = i + 1; j < points.length; j += 1) {
@@ -595,9 +629,8 @@ export function resolvePinLayout(
         const dy = points[j].y - points[i].y;
         const dist = Math.sqrt(dx * dx + dy * dy);
         if (dist < minGap) {
-          const push = (minGap - dist) / 2;
-          // 완전히 같은 좌표(dist===0)면 방향이 정의되지 않으므로 임의의
-          // 결정적 방향(가로)으로 갈라놓는다 — 인덱스 순서로 항상 동일하게.
+          const push = (minGap - dist) / 2 + 0.5;
+          // 완전히 같은 좌표(dist===0)면 방향이 정의되지 않으므로 결정적 방향(가로)으로 갈라놓는다.
           const ux = dist > 1e-6 ? dx / dist : 1;
           const uy = dist > 1e-6 ? dy / dist : 0;
           points[i].x -= ux * push;
@@ -609,8 +642,8 @@ export function resolvePinLayout(
       }
     }
     for (const p of points) {
-      p.x = clamp(p.x, width);
-      p.y = clamp(p.y, height);
+      p.x = clampX(p.x);
+      p.y = clampY(p.y);
     }
     if (!moved) break;
   }
@@ -623,42 +656,62 @@ export interface ChoicePinPixel {
   ordinal: number;
   x: number;
   y: number;
+  /** 연결선이 닿는 대상 쪽 끝점(대상 투영점과 핀 사이, 대상 가장자리 근처). */
+  lineX: number;
+  lineY: number;
 }
 
-/** 이번 point의 sceneTarget choice들을 실제 Canvas 픽셀 좌표로 투영하고,
- *  겹치지 않게 보정한 목록을 반환한다. width/height<=0(아직 레이아웃 전)
- *  이면 빈 배열 — 호출부(VetScene.tsx)가 ResizeObserver 등으로 실제
- *  Canvas 크기를 알게 됐을 때만 이 함수를 호출한다(매 프레임 아님). */
+/** 캐릭터가 자세 연출로 옮겨 서 있을 때 핀 계산에도 같은 이동을 반영하기 위한 값. */
+export type TargetShift = Partial<Record<NamedTargetKind, [number, number]>>;
+
+/** 이번 point의 sceneTarget choice들을 실제 Canvas 픽셀 좌표로 투영하고, 대상 옆으로
+ *  옮긴 뒤 서로·경계·HUD와 겹치지 않게 보정한 목록을 반환한다. width/height<=0이면
+ *  빈 배열. mode·point·phase·Canvas 크기가 바뀔 때만 호출한다(매 프레임 아님). */
 export function computeChoicePinPixels(
   id: string,
   choices: Choice[],
   width: number,
   height: number,
+  shift: TargetShift = {},
 ): ChoicePinPixel[] {
   if (width <= 0 || height <= 0) return [];
   const aspect = width / height;
+  const compact = width <= COMPACT_MAX_CANVAS_WIDTH;
   const { position, lookAt, points: framingSource } = cameraForPoint(id);
   const framingPoints = framingPointsForPositions(framingSource);
   const fov = fitVerticalFov({ cameraPos: position, lookAt, points: framingPoints, aspect });
 
   const resolved = resolveTargets(id, choices);
   const raw: PinLayoutInput[] = [];
+  const targetPx = new Map<string, { x: number; y: number }>();
   for (const { target, choice } of resolved) {
-    const ndc = projectToNdc(position, lookAt, fov, aspect, target.position);
+    const s = shift[target.kind] ?? [0, 0];
+    const world: Vec3 = [target.position[0] + s[0], target.position[1], target.position[2] + s[1]];
+    const ndc = projectToNdc(position, lookAt, fov, aspect, world);
     if (!ndc) continue;
     const px = ndcToPixel(ndc.ndcX, ndc.ndcY, width, height);
-    const offset = PIN_OFFSET_PX[choice.id] ?? [0, 0];
+    const set = PIN_CHOICE_OFFSET[choice.id] ?? PIN_KIND_OFFSET[target.kind];
+    const offset = compact ? set.compact : set.regular;
+    targetPx.set(choice.id, px);
     raw.push({ choiceId: choice.id, x: px.x + offset[0], y: px.y + offset[1] });
   }
 
-  const laidOut = resolvePinLayout(raw, width, height);
+  const laidOut = resolvePinLayout(raw, width, height, {
+    minY: HUD_SAFE_BOTTOM_PX + PIN_HUD_GAP_PX + PIN_RADIUS_PX,
+  });
   const ordinalByChoiceId = new Map(choices.map((c, i) => [c.id, i + 1]));
-  return laidOut.map((p) => ({
-    choiceId: p.choiceId,
-    ordinal: ordinalByChoiceId.get(p.choiceId) ?? 0,
-    x: p.x,
-    y: p.y,
-  }));
+  return laidOut.map((p) => {
+    const t = targetPx.get(p.choiceId) ?? { x: p.x, y: p.y };
+    return {
+      choiceId: p.choiceId,
+      ordinal: ordinalByChoiceId.get(p.choiceId) ?? 0,
+      x: p.x,
+      y: p.y,
+      // 핀 중심에서 대상 쪽으로 60%만 이어 대상 가장자리에서 끝낸다.
+      lineX: p.x + (t.x - p.x) * 0.6,
+      lineY: p.y + (t.y - p.y) * 0.6,
+    };
+  });
 }
 
 export type { AxisId, CameraStage };

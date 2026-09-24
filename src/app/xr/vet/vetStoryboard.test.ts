@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { CHOICE_POINTS, SPROUT_POINTS, type Mode } from "./scenario";
-import { isFiniteVec3, sceneInteractionId } from "./sceneLayout";
+import { sceneInteractionId } from "./sceneLayout";
 import {
   CHOICE_FEEDBACK,
   DOG_NAME,
@@ -109,99 +109,139 @@ describe("pointCategory — 결과 타임라인 카테고리 라벨", () => {
   });
 });
 
-describe("resolveStage — mode+phase+point(+직전 선택)가 자세/소품 상태를 결정론적으로 계산한다", () => {
-  it("intro/result 포즈는 항상 유효한 숫자값이다(NaN/undefined 없음)", () => {
+describe("resolveStage — mode+phase+point(+직전 선택)가 장면 상태를 결정론적으로 계산한다", () => {
+  const NUMERIC_KEYS = [
+    "guardianYaw",
+    "guardianArm",
+    "seniorYaw",
+    "seniorArm",
+    "dogYaw",
+    "clipboardRows",
+    "clipboardYaw",
+  ] as const;
+
+  function assertFinite(stage: ReturnType<typeof resolveStage>) {
+    for (const key of NUMERIC_KEYS) {
+      expect(Number.isFinite(stage.pose[key]), key).toBe(true);
+    }
+    for (const offset of [stage.pose.guardianOffset, stage.pose.seniorOffset]) {
+      expect(offset).toHaveLength(2);
+      expect(offset.every((n) => Number.isFinite(n))).toBe(true);
+    }
+    expect(typeof stage.pose.dogHeadUp).toBe("boolean");
+    expect(typeof stage.pose.dogLow).toBe("boolean");
+    expect(typeof stage.pose.waitingPairVisible).toBe("boolean");
+    expect(["none", "guide", "tabs"]).toContain(stage.pose.card);
+  }
+
+  it("intro/result 상태는 항상 유효한 값이고, 결과에서만 강아지가 엎드린다", () => {
     const intro = resolveStage("compass", "intro", 1, null);
     const result = resolveStage("compass", "result", 1, null);
-    for (const stage of [intro, result]) {
-      expect(Number.isFinite(stage.pose.guardianYawDelta)).toBe(true);
-      expect(Number.isFinite(stage.pose.seniorYawDelta)).toBe(true);
-      expect(Number.isFinite(stage.pose.dogYawDelta)).toBe(true);
-    }
+    assertFinite(intro);
+    assertFinite(result);
     expect(result.dogResting).toBe(true);
     expect(intro.dogResting).toBe(false);
+    expect(intro.pose.dogLow).toBe(true);
+    expect(result.pose.card).toBe("guide");
+    expect(result.pose.clipboardRows).toBe(4);
   });
 
-  it.each(MODES)("%s 모드의 모든 point에서 resolveStage가 유효한 값을 반환한다(choosing/reaction 전 구간)", (mode) => {
+  it.each(MODES)("%s 모드의 모든 point·모든 choice에서 choosing/reaction 상태가 유효하다", (mode) => {
     const points = mode === "compass" ? CHOICE_POINTS : SPROUT_POINTS;
     for (const point of points) {
       for (const choice of point.choices) {
         const id = sceneInteractionId(mode, point.point);
         const kind = targetKindForChoice(id, choice.id);
-        const choosing = resolveStage(mode, "choosing", point.point, null);
-        const reaction = resolveStage(mode, "reaction", point.point, kind);
-        for (const stage of [choosing, reaction]) {
-          expect(Number.isFinite(stage.pose.guardianYawDelta)).toBe(true);
-          expect(Number.isFinite(stage.pose.seniorYawDelta)).toBe(true);
-          expect(Number.isFinite(stage.pose.dogYawDelta)).toBe(true);
-          expect(typeof stage.pose.dogHeadUp).toBe("boolean");
-          expect(typeof stage.pose.waitingPairVisible).toBe("boolean");
-        }
+        assertFinite(resolveStage(mode, "choosing", point.point, null));
+        assertFinite(resolveStage(mode, "reaction", point.point, kind, choice.id));
       }
     }
   });
 
-  it("나침반 3지점의 choosing/reaction 단계에서만 waitingPairVisible이 true다(다른 지점·인트로·결과에서는 false)", () => {
+  it("나침반 3지점(choosing/reaction)에서만 대기 보호자가 등장한다", () => {
     expect(resolveStage("compass", "choosing", 3, null).pose.waitingPairVisible).toBe(true);
-    expect(resolveStage("compass", "reaction", 3, "senior").pose.waitingPairVisible).toBe(true);
-    expect(resolveStage("compass", "choosing", 1, null).pose.waitingPairVisible).toBe(false);
-    expect(resolveStage("compass", "choosing", 2, null).pose.waitingPairVisible).toBe(false);
+    expect(resolveStage("compass", "reaction", 3, "senior", "p3_c").pose.waitingPairVisible).toBe(true);
+    for (const point of [1, 2, 4, 5]) {
+      expect(resolveStage("compass", "choosing", point, null).pose.waitingPairVisible).toBe(false);
+    }
     expect(resolveStage("compass", "intro", 1, null).pose.waitingPairVisible).toBe(false);
     expect(resolveStage("compass", "result", 1, null).pose.waitingPairVisible).toBe(false);
   });
 
-  it("reaction 단계에서 방금 고른 대상이 clipboard이면 justRecorded가 true다(그 외에는 false)", () => {
-    expect(resolveStage("compass", "reaction", 2, "clipboard").justRecorded).toBe(true);
-    expect(resolveStage("compass", "reaction", 2, "senior").justRecorded).toBe(false);
-    expect(resolveStage("compass", "reaction", 2, null).justRecorded).toBe(false);
+  it("기록판을 고르면 기록 줄이 실제로 2줄 늘고 justRecorded가 true다(다른 대상이면 그대로)", () => {
+    const base = resolveStage("compass", "choosing", 2, null).pose.clipboardRows;
+    const recorded = resolveStage("compass", "reaction", 2, "clipboard", "p2_b");
+    expect(recorded.justRecorded).toBe(true);
+    expect(recorded.pose.clipboardRows).toBe(Math.min(4, base + 2));
+    const other = resolveStage("compass", "reaction", 2, "senior", "p2_a");
+    expect(other.justRecorded).toBe(false);
+    expect(other.pose.clipboardRows).toBe(base);
   });
 
-  it("reaction 단계에서 방금 고른 대상이 dog이면 dogHeadUp이 true가 된다(가산 오버레이 확인)", () => {
-    // 지점4는 base pose에서 dogHeadUp:false지만, dog를 방금 골랐다면(실제로는
-    // 지점4에 dog 타깃이 없어도 함수 자체의 오버레이 동작만 순수하게 검증)
-    // true로 가산되어야 한다.
-    const withDogOverlay = resolveStage("compass", "reaction", 4, "dog");
-    expect(withDogOverlay.pose.dogHeadUp).toBe(true);
+  it("p4_c(기록과 콩이 상태를 함께 다시 살핀다)는 강아지 고개 들기 + 기록판 확인 표시를 함께 보여준다", () => {
+    const stage = resolveStage("compass", "reaction", 4, "dog", "p4_c");
+    expect(stage.pose.dogHeadUp).toBe(true);
+    expect(stage.justRecorded).toBe(true);
+    expect(stage.pose.clipboardRows).toBeGreaterThan(resolveStage("compass", "choosing", 4, null).pose.clipboardRows);
   });
 
-  it("각 point 기본 포즈(choosing)는 최소 2개 요소가 이전 point와 달라야 한다(카드/링만 바뀌는 화면 금지)", () => {
-    function poseSignature(mode: Mode, point: number) {
-      const s = resolveStage(mode, "choosing", point, null);
-      return [s.pose.guardianYawDelta, s.pose.seniorYawDelta, s.pose.dogYawDelta, s.pose.dogHeadUp, s.pose.waitingPairVisible];
+  it("reaction에서 방금 고른 대상별로 실제 상태가 달라진다(보호자→몸 방향·팔, 선배→이동·팔, 강아지→고개)", () => {
+    const base = resolveStage("sprout", "choosing", 1, null).pose;
+    const guardian = resolveStage("sprout", "reaction", 1, "guardian", "s1_a").pose;
+    const dog = resolveStage("sprout", "reaction", 1, "dog", "s1_b").pose;
+    expect(guardian.guardianYaw).not.toBe(base.guardianYaw);
+    expect(guardian.guardianArm).toBeGreaterThan(base.guardianArm);
+    expect(dog.dogHeadUp).toBe(true);
+    expect(dog.dogLow).toBe(false);
+    const seniorBase = resolveStage("sprout", "choosing", 2, null).pose;
+    const senior = resolveStage("sprout", "reaction", 2, "senior", "s2_a").pose;
+    expect(senior.seniorOffset).not.toEqual(seniorBase.seniorOffset);
+  });
+
+  // HUD 문구는 이 상태에 포함되지 않는다 — 단계 전환마다 장면 상태 키가 2개 이상 실제로 달라져야 한다.
+  function diffKeys(a: ReturnType<typeof resolveStage>, b: ReturnType<typeof resolveStage>): string[] {
+    const keys = Object.keys(a.pose) as (keyof typeof a.pose)[];
+    const changed: string[] = keys.filter((k) => JSON.stringify(a.pose[k]) !== JSON.stringify(b.pose[k])) as string[];
+    if (a.dogResting !== b.dogResting) changed.push("dogResting");
+    return changed;
+  }
+
+  it("새싹 1→2, 2→3, 3→결과 전환마다 HUD 이외의 장면 상태가 최소 2개 이상 달라진다", () => {
+    const s = (p: number) => resolveStage("sprout", "choosing", p, null);
+    const result = resolveStage("sprout", "result", 3, null);
+    expect(diffKeys(s(1), s(2)).length).toBeGreaterThanOrEqual(2);
+    expect(diffKeys(s(2), s(3)).length).toBeGreaterThanOrEqual(2);
+    expect(diffKeys(s(3), result).length).toBeGreaterThanOrEqual(2);
+  });
+
+  it("나침반 1→2, 2→3, 3→4, 4→5, 5→결과 전환마다 HUD 이외의 장면 상태가 최소 2개 이상 달라진다", () => {
+    const s = (p: number) => resolveStage("compass", "choosing", p, null);
+    const result = resolveStage("compass", "result", 5, null);
+    for (const [a, b] of [
+      [s(1), s(2)],
+      [s(2), s(3)],
+      [s(3), s(4)],
+      [s(4), s(5)],
+      [s(5), result],
+    ] as const) {
+      expect(diffKeys(a, b).length).toBeGreaterThanOrEqual(2);
     }
-    for (const mode of MODES) {
-      const points = mode === "compass" ? CHOICE_POINTS : SPROUT_POINTS;
-      for (let i = 1; i < points.length; i += 1) {
-        const prev = poseSignature(mode, points[i - 1].point);
-        const curr = poseSignature(mode, points[i].point);
-        const diffCount = prev.filter((v, idx) => v !== curr[idx]).length;
-        expect(
-          diffCount,
-          `${mode} point ${points[i - 1].point}→${points[i].point}: 포즈 요소가 ${diffCount}개만 달라짐`,
-        ).toBeGreaterThanOrEqual(1);
-      }
-    }
+  });
+
+  it("결과 상태에서는 두 사람이 서로 마주보는 방향(보호자 +yaw / 선배 -yaw)이고 서로 다가선다", () => {
+    const { pose } = resolveStage("compass", "result", 5, null);
+    expect(pose.guardianYaw).toBeGreaterThan(0.8);
+    expect(pose.seniorYaw).toBeLessThan(-0.8);
+    expect(pose.guardianOffset[0]).toBeGreaterThan(0);
+    expect(pose.seniorOffset[0]).toBeLessThan(0);
   });
 });
 
 describe("actionCardChoiceIds — HTML 카드로만 선택하는 추상 행동 목록", () => {
-  it("compass에는 5개(p1_b/p2_c/p4_b/p5_b + 1), sprout에는 1개(s3_b)가 있다", () => {
+  it("compass에는 4개(p1_b/p2_c/p4_b/p5_b), sprout에는 1개(s3_b)가 있다", () => {
     const compassCards = actionCardChoiceIds("compass");
     const sproutCards = actionCardChoiceIds("sprout");
     expect(compassCards.sort()).toEqual(["p1_b", "p2_c", "p4_b", "p5_b"].sort());
     expect(sproutCards).toEqual(["s3_b"]);
-  });
-});
-
-describe("좌표 관련 순수 함수 결과는 항상 유효한 Vec3다(isFiniteVec3 재확인)", () => {
-  it("resolveStage의 yaw delta들은 항상 유한한 숫자다(별도 predicate로 총체성 재확인)", () => {
-    for (const mode of MODES) {
-      for (const phase of ["intro", "choosing", "reaction", "result"] as const) {
-        const stage = resolveStage(mode, phase, 1, null);
-        expect(isFiniteVec3([stage.pose.guardianYawDelta, stage.pose.seniorYawDelta, stage.pose.dogYawDelta])).toBe(
-          true,
-        );
-      }
-    }
   });
 });

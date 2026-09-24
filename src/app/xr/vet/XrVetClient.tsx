@@ -199,13 +199,7 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
               speakerLabel: "선배 수의사",
               text: currentPointData.reaction,
             }
-          : state.phase === "result"
-            ? {
-                stepLabel: "완료",
-                speakerLabel: "상담 결과",
-                text: mode === "compass" ? "오늘 콩이의 첫 상담을 함께 마쳤어요." : SPROUT_COMPLETE.congrats,
-              }
-            : undefined;
+          : undefined; // 결과 화면에서는 HUD를 그리지 않는다(완료 배지와 겹침 방지, G2.2-R3-C)
 
   const handleChoice = (choice: Choice) => {
     if (choiceLockRef.current || state.phase !== "choosing") return;

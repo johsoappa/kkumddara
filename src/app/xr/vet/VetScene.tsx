@@ -38,6 +38,7 @@ import type { Choice } from "./scenario";
 import {
   CABINET_ANCHOR,
   CLIPBOARD_ANCHOR,
+  DOOR_ANCHOR,
   DOG_ANCHOR,
   GUARDIAN_ANCHOR,
   MONITOR_ANCHOR,
@@ -58,7 +59,7 @@ import {
   type Vec3,
   type VetScenePhase,
 } from "./sceneLayout";
-import { targetKindForChoice, resolveStage } from "./vetStoryboard";
+import { targetKindForChoice, resolveStage, type StagePose } from "./vetStoryboard";
 import { BaseHighlight, TapHitBox, useTapHover } from "./VetSceneInteractions";
 import { createVetLabelSprite } from "./vetLabelSprite";
 import SceneTargetPins from "./SceneTargetPins";
@@ -137,7 +138,7 @@ function CameraRig({
 // 핀, 이 파일 하단)만으로 표현한다.
 
 interface InteractiveProps {
-  /** 이 지점에서 선택 가능한 타깃이면 true — hit box/발광/베이스 링을 켠다. */
+  /** 이 지점에서 선택 가능한 타깃이면 true — hit box/발밑 링을 켠다(본체 재질은 절대 바꾸지 않는다). */
   active: boolean;
   onSelect?: () => void;
 }
@@ -145,19 +146,20 @@ interface InteractiveProps {
 // ---------- 상시 캐릭터/소품 ----------
 
 interface DogProps extends InteractiveProps {
-  /** vetStoryboard.ts의 resolveStage()가 계산한 추가 yaw(라디안) — base(0.3)에 더한다. */
-  yawDelta: number;
+  /** vetStoryboard.ts의 resolveStage()가 계산한 절대 yaw(라디안). */
+  yaw: number;
   /** 고개를 든 자세(관찰/reaction 강조) — 몸 전체를 살짝 들어 올리는 근사치다. */
   headUp: boolean;
+  /** 고개를 낮춘 조용한 자세(intro·새싹1). */
+  low: boolean;
   /** 결과 화면 전용 — 편안히 엎드린 자세. */
   resting: boolean;
 }
 
-function Dog({ active, onSelect, yawDelta, headUp, resting }: DogProps) {
+function Dog({ active, onSelect, yaw, headUp, low, resting }: DogProps) {
   const { hovered, setHovered } = useTapHover();
-  const yaw = 0.3 + yawDelta;
-  const tiltX = headUp ? -0.08 : resting ? 0.05 : 0;
-  const posY = resting ? DOG_ANCHOR[1] - 0.1 : DOG_ANCHOR[1];
+  const tiltX = headUp ? -0.12 : low ? 0.16 : resting ? 0.05 : 0;
+  const posY = resting ? DOG_ANCHOR[1] - 0.1 : low ? DOG_ANCHOR[1] - 0.03 : DOG_ANCHOR[1];
   const bodyScaleY = resting ? 0.62 : 0.8;
   return (
     <group
@@ -231,6 +233,8 @@ function Dog({ active, onSelect, yawDelta, headUp, resting }: DogProps) {
   );
 }
 
+/** 머리(피부·머리카락) + 얼굴(눈·코). 얼굴이 있어야 인물이 어느 쪽을 보는지(정면/테이블/서로)
+ *  화면에서 구분된다(G2.2-R3-C — 이전에는 얼굴이 없어 회전이 보이지 않았다). 앞은 +z. */
 function personBase(skin: string, hair: string) {
   return (
     <>
@@ -238,29 +242,53 @@ function personBase(skin: string, hair: string) {
         <sphereGeometry args={[0.16, 16, 16]} />
         <meshStandardMaterial color={skin} />
       </mesh>
-      <mesh position={[0, 1.26, 0]} scale={[1, 0.65, 1]}>
+      <mesh position={[0, 1.26, -0.02]} scale={[1, 0.65, 1]}>
         <sphereGeometry args={[0.15, 14, 14]} />
         <meshStandardMaterial color={hair} />
+      </mesh>
+      <mesh position={[-0.055, 1.17, 0.145]}>
+        <sphereGeometry args={[0.02, 8, 8]} />
+        <meshStandardMaterial color="#2a2320" />
+      </mesh>
+      <mesh position={[0.055, 1.17, 0.145]}>
+        <sphereGeometry args={[0.02, 8, 8]} />
+        <meshStandardMaterial color="#2a2320" />
+      </mesh>
+      <mesh position={[0, 1.125, 0.16]}>
+        <sphereGeometry args={[0.022, 8, 8]} />
+        <meshStandardMaterial color="#d9a273" />
       </mesh>
     </>
   );
 }
 
-// 이 두 캐릭터의 <group position={ANCHOR}>는 "발이 닿는 바닥" 좌표다
-// (sceneLayout.ts의 GUARDIAN_ANCHOR/SENIOR_ANCHOR가 y=0). yawDelta는
-// vetStoryboard.ts의 resolveStage()가 mode+phase+point(+방금 고른 대상)로
-// 계산한 값이다 — intro/결과/지점별로 자세가 달라지는 것은 이 값 하나로
-// 표현된다(base yaw는 고정, delta만 더한다).
-
-interface PersonProps extends InteractiveProps {
-  yawDelta: number;
+/** 어깨(y=1.1)를 축으로 팔이 앞(+z)으로 들리는 제스처. reach=0이면 원래 자세. */
+function Arm({ side, reach, color, radius }: { side: 1 | -1; reach: number; color: string; radius: number }) {
+  return (
+    <group position={[side * 0.22, 1.1, 0]} rotation={[-reach, 0, -side * 0.35]}>
+      <mesh position={[0, -0.25, 0]}>
+        <cylinderGeometry args={[radius, radius, 0.5, 10]} />
+        <meshStandardMaterial color={color} />
+      </mesh>
+    </group>
+  );
 }
 
-function Guardian({ active, onSelect, yawDelta }: PersonProps) {
+// 이 두 캐릭터의 <group position={ANCHOR}>는 "발이 닿는 바닥" 좌표다
+// (sceneLayout.ts의 GUARDIAN_ANCHOR/SENIOR_ANCHOR가 y=0). yaw·offset·arm은
+// vetStoryboard.ts의 resolveStage()가 mode+phase+point(+방금 고른 대상)로
+// 계산한 값이다 — 단계별로 방향·위치·팔 제스처가 실제로 달라진다.
+
+interface PersonProps extends InteractiveProps {
+  yaw: number;
+  arm: number;
+  offset: [number, number];
+}
+
+function Guardian({ active, onSelect, yaw, arm, offset }: PersonProps) {
   const { hovered, setHovered } = useTapHover();
-  const yaw = -0.5 + yawDelta;
   return (
-    <group position={GUARDIAN_ANCHOR} rotation={[0, yaw, 0]}>
+    <group position={[GUARDIAN_ANCHOR[0] + offset[0], 0, GUARDIAN_ANCHOR[2] + offset[1]]} rotation={[0, yaw, 0]}>
       {active && onSelect && (
         <>
           <TapHitBox size={[0.7, 1.5, 0.7]} centerY={0.75} onSelect={onSelect} onHoverChange={setHovered} />
@@ -272,14 +300,8 @@ function Guardian({ active, onSelect, yawDelta }: PersonProps) {
         <cylinderGeometry args={[0.19, 0.22, 0.62, 14]} />
         <meshStandardMaterial color="#ff8a73" />
       </mesh>
-      <mesh position={[-0.22, 0.85, 0]} rotation={[0, 0, 0.35]}>
-        <cylinderGeometry args={[0.045, 0.045, 0.5, 10]} />
-        <meshStandardMaterial color="#ff8a73" />
-      </mesh>
-      <mesh position={[0.22, 0.85, 0]} rotation={[0, 0, -0.35]}>
-        <cylinderGeometry args={[0.045, 0.045, 0.5, 10]} />
-        <meshStandardMaterial color="#ff8a73" />
-      </mesh>
+      <Arm side={-1} reach={arm} color="#ff8a73" radius={0.045} />
+      <Arm side={1} reach={arm} color="#ff8a73" radius={0.045} />
       <mesh position={[0, 0.42, 0]}>
         <cylinderGeometry args={[0.2, 0.19, 0.5, 14]} />
         <meshStandardMaterial color="#4a5568" />
@@ -288,11 +310,10 @@ function Guardian({ active, onSelect, yawDelta }: PersonProps) {
   );
 }
 
-function SeniorVet({ active, onSelect, yawDelta }: PersonProps) {
+function SeniorVet({ active, onSelect, yaw, arm, offset }: PersonProps) {
   const { hovered, setHovered } = useTapHover();
-  const yaw = -2.3 + yawDelta;
   return (
-    <group position={SENIOR_ANCHOR} rotation={[0, yaw, 0]}>
+    <group position={[SENIOR_ANCHOR[0] + offset[0], 0, SENIOR_ANCHOR[2] + offset[1]]} rotation={[0, yaw, 0]}>
       {active && onSelect && (
         <>
           <TapHitBox size={[0.7, 1.5, 0.7]} centerY={0.75} onSelect={onSelect} onHoverChange={setHovered} />
@@ -305,18 +326,17 @@ function SeniorVet({ active, onSelect, yawDelta }: PersonProps) {
         <cylinderGeometry args={[0.21, 0.25, 0.68, 14]} />
         <meshStandardMaterial color="#ffffff" />
       </mesh>
-      <mesh position={[0, 0.82, 0.19]}>
+      {/* 가운 앞 여밈·깃(청록) — 밝은 벽 앞에서도 가운 윤곽이 읽히도록 */}
+      <mesh position={[0, 0.82, 0.235]}>
         <boxGeometry args={[0.06, 0.6, 0.02]} />
-        <meshStandardMaterial color="#cfe3df" />
+        <meshStandardMaterial color="#7fb8ae" />
       </mesh>
-      <mesh position={[-0.24, 0.85, 0]} rotation={[0, 0, 0.35]}>
-        <cylinderGeometry args={[0.048, 0.048, 0.52, 10]} />
-        <meshStandardMaterial color="#ffffff" />
+      <mesh position={[0, 1.08, 0.18]}>
+        <boxGeometry args={[0.26, 0.05, 0.05]} />
+        <meshStandardMaterial color="#7fb8ae" />
       </mesh>
-      <mesh position={[0.24, 0.85, 0]} rotation={[0, 0, -0.35]}>
-        <cylinderGeometry args={[0.048, 0.048, 0.52, 10]} />
-        <meshStandardMaterial color="#ffffff" />
-      </mesh>
+      <Arm side={-1} reach={arm} color="#ffffff" radius={0.048} />
+      <Arm side={1} reach={arm} color="#ffffff" radius={0.048} />
       <mesh position={[0, 0.4, 0]}>
         <cylinderGeometry args={[0.21, 0.2, 0.48, 14]} />
         <meshStandardMaterial color="#3f4a52" />
@@ -339,23 +359,28 @@ function SeniorVet({ active, onSelect, yawDelta }: PersonProps) {
 }
 
 interface ClipboardProps extends InteractiveProps {
-  /** 지점3 이후 상시 표시(기존 showChart와 동일 시점 — 유지). */
+  /** 지점3 이후 상시 표시(기존 showChart와 동일 시점 — 최소 1줄 보장). */
   showChart: boolean;
-  /** reaction 단계에서 방금 기록판 관련 choice를 골랐을 때 잠깐 보여주는
-   *  "방금 기록됨" 신호 — showChart보다 이르게, 일시적으로 나타난다. */
-  justRecorded: boolean;
+  /** 기록된 관찰 줄 수(0~4) — 선택에 따라 실제로 누적된다. */
+  rows: number;
+  /** 들어 올려 세운 상태(기록 중). */
+  lifted: boolean;
+  /** 보호자 쪽으로 돌린 각도(라디안). */
+  yaw: number;
 }
 
-function ClipboardProp({ active, onSelect, showChart, justRecorded }: ClipboardProps) {
+const ROW_COLORS = ["#3f9c96", "#ff8a73", "#e8b23c", "#7fb8ae"];
+
+function ClipboardProp({ active, onSelect, showChart, rows, lifted, yaw }: ClipboardProps) {
   const { hovered, setHovered } = useTapHover();
-  const checkRef = useRef<Mesh>(null);
-  const showCheck = showChart || justRecorded;
-  useFrame(({ clock }) => {
-    const mat = checkRef.current?.material as MeshStandardMaterial | undefined;
-    if (mat) mat.emissiveIntensity = 0.4 + Math.abs(Math.sin(clock.elapsedTime * 2)) * 0.4;
-  });
+  const shownRows = Math.max(rows, showChart ? 1 : 0);
+  const tiltX = lifted ? -0.8 : -Math.PI / 2.6;
   return (
-    <group position={CLIPBOARD_ANCHOR} rotation={[-Math.PI / 2.6, 0, 0.05]}>
+    <group
+      position={[CLIPBOARD_ANCHOR[0], CLIPBOARD_ANCHOR[1] + (lifted ? 0.12 : 0), CLIPBOARD_ANCHOR[2] + (lifted ? 0.03 : 0)]}
+      rotation={[tiltX, yaw, 0.05]}
+      scale={1.4}
+    >
       {active && onSelect && (
         <TapHitBox size={[0.44, 0.54, 0.15]} onSelect={onSelect} onHoverChange={setHovered} />
       )}
@@ -367,17 +392,54 @@ function ClipboardProp({ active, onSelect, showChart, justRecorded }: ClipboardP
         <boxGeometry args={[0.1, 0.03, 0.01]} />
         <meshStandardMaterial color="#8a8f8d" />
       </mesh>
-      {showCheck && (
-        <mesh ref={checkRef} position={[0, -0.02, 0.012]}>
-          <boxGeometry args={[0.22, 0.24, 0.005]} />
-          <meshStandardMaterial color="#3f9c96" emissive="#3f9c96" emissiveIntensity={0.4} transparent opacity={0.55} />
+      {/* 기록 줄 — 고른 행동에 따라 개수가 실제로 늘어난다(식욕·활동·모습·순서 기록) */}
+      {Array.from({ length: shownRows }).map((_, i) => (
+        <mesh key={i} position={[0, 0.11 - i * 0.075, 0.014]}>
+          <boxGeometry args={[0.24, 0.035, 0.008]} />
+          <meshStandardMaterial color={ROW_COLORS[i % ROW_COLORS.length]} />
         </mesh>
-      )}
+      ))}
       {/* 연필 */}
       <mesh position={[0.16, -0.18, 0.03]} rotation={[0, 0, -0.5]}>
         <cylinderGeometry args={[0.012, 0.012, 0.22, 8]} />
         <meshStandardMaterial color="#e8b23c" />
       </mesh>
+    </group>
+  );
+}
+
+/** 안내 카드(그림 안내카드 / 정리 표시카드) — 새싹3·나침반4·5·결과에서 진찰대 위에 놓인다. */
+function AidCard({ kind }: { kind: "none" | "guide" | "tabs" }) {
+  if (kind === "none") return null;
+  if (kind === "tabs") {
+    const tabColors = ["#7fd8c9", "#ff8a73", "#ffd166"];
+    return (
+      <group position={[0.3, 0.76, -0.64]} rotation={[-1.0, -0.3, 0]}>
+        {tabColors.map((color, i) => (
+          <mesh key={color} position={[i * 0.11, 0, i * 0.005]} rotation={[0, 0, (i - 1) * 0.12]}>
+            <boxGeometry args={[0.1, 0.15, 0.015]} />
+            <meshStandardMaterial color={color} />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
+  return (
+    <group position={[0.34, 0.76, -0.64]} rotation={[-1.0, -0.6, 0]}>
+      <mesh>
+        <boxGeometry args={[0.26, 0.19, 0.015]} />
+        <meshStandardMaterial color="#ffffff" />
+      </mesh>
+      <mesh position={[0, -0.02, 0.012]} rotation={[Math.PI / 2, 0, 0]}>
+        <cylinderGeometry args={[0.045, 0.045, 0.006, 16]} />
+        <meshStandardMaterial color="#ff8a73" />
+      </mesh>
+      {[-0.06, -0.02, 0.02, 0.06].map((x) => (
+        <mesh key={x} position={[x, 0.045, 0.012]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.016, 0.016, 0.006, 12]} />
+          <meshStandardMaterial color="#ff8a73" />
+        </mesh>
+      ))}
     </group>
   );
 }
@@ -528,24 +590,53 @@ function CompletionBadge() {
   );
 }
 
-/** 진찰대 밑 러그 — 바닥이 그대로 이어지지 않고 "여기가 진료 공간의
- *  중심"이라고 읽히도록 하는 넓고 옅은 색 패치(회색 빈 공간 완화). */
+/** 진찰대 밑 러그 — "여기가 진료 공간의 중심"이라고 읽히는 옅은 민트색 패치. */
 function Rug() {
   return (
     <mesh position={[0, 0.005, -1.0]} rotation={[-Math.PI / 2, 0, 0]}>
       <circleGeometry args={[1.35, 32]} />
-      <meshStandardMaterial color="#e3d9c4" />
+      <meshStandardMaterial color="#d8e8e3" />
     </mesh>
   );
 }
 
-/** 벽 아래 걸레받이 띠 — 바닥과 벽이 각지게 만나는 대신 하나의 방으로 읽히게 한다. */
+/** 벽 아래 걸레받이 띠 + 밝은 민트 벽 하단 띠(웨인스코팅) — 바닥과 벽이 하나의 방으로 읽히게 한다. */
 function Baseboard() {
   return (
-    <mesh position={[0, 0.06, -2.98]}>
-      <boxGeometry args={[7, 0.12, 0.04]} />
-      <meshStandardMaterial color="#cfe3df" />
-    </mesh>
+    <>
+      <mesh position={[0, 0.06, -2.98]}>
+        <boxGeometry args={[9, 0.12, 0.04]} />
+        <meshStandardMaterial color="#9fd6c9" />
+      </mesh>
+      <mesh position={[0, 0.45, -2.995]}>
+        <boxGeometry args={[9, 0.7, 0.01]} />
+        <meshStandardMaterial color="#d3ebe4" />
+      </mesh>
+    </>
+  );
+}
+
+/** 뒷벽 오른쪽의 문 — 대기 보호자가 서 있는 "대기 구역"으로 읽히는 배경 요소. */
+function Door() {
+  return (
+    <group position={DOOR_ANCHOR}>
+      <mesh position={[0, 1.0, 0]}>
+        <boxGeometry args={[1.0, 2.0, 0.05]} />
+        <meshStandardMaterial color="#7fc7b8" />
+      </mesh>
+      <mesh position={[0, 0.95, 0.03]}>
+        <boxGeometry args={[0.84, 1.9, 0.03]} />
+        <meshStandardMaterial color="#f1dfbb" />
+      </mesh>
+      <mesh position={[0, 1.45, 0.05]}>
+        <boxGeometry args={[0.3, 0.42, 0.01]} />
+        <meshStandardMaterial color="#cfe8f2" />
+      </mesh>
+      <mesh position={[-0.3, 0.95, 0.06]}>
+        <sphereGeometry args={[0.04, 10, 10]} />
+        <meshStandardMaterial color="#e0b14a" />
+      </mesh>
+    </group>
   );
 }
 
@@ -573,61 +664,63 @@ function buildActiveTargets(
 interface ExamRoomProps {
   showChart: boolean;
   active: ActiveTargets;
-  guardianYawDelta: number;
-  seniorYawDelta: number;
-  dogYawDelta: number;
-  dogHeadUp: boolean;
+  pose: StagePose;
   dogResting: boolean;
-  justRecorded: boolean;
-  waitingPairVisible: boolean;
 }
 
-function ExamRoom({
-  showChart,
-  active,
-  guardianYawDelta,
-  seniorYawDelta,
-  dogYawDelta,
-  dogHeadUp,
-  dogResting,
-  justRecorded,
-  waitingPairVisible,
-}: ExamRoomProps) {
+function ExamRoom({ showChart, active, pose, dogResting }: ExamRoomProps) {
   return (
     <group>
-      {/* 바닥 — 밝은 아이보리(이전보다 축소해 빈 공간을 줄였다) */}
+      {/* 바닥 — 밝은 베이지 */}
       <mesh position={[0, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[7, 6]} />
-        <meshStandardMaterial color="#f5ede0" />
+        <planeGeometry args={[9, 6]} />
+        <meshStandardMaterial color="#e7e0d4" />
       </mesh>
       <Rug />
-      {/* 뒷벽 — 화이트(이전보다 축소) */}
+      {/* 뒷벽 — 따뜻한 아이보리 */}
       <mesh position={[0, 1.8, -3]}>
-        <planeGeometry args={[7, 3.7]} />
-        <meshStandardMaterial color="#f7f3ea" />
+        <planeGeometry args={[9, 3.7]} />
+        <meshStandardMaterial color="#f4efe4" />
       </mesh>
       <Baseboard />
+      <Door />
       <ExamTable />
+      <AidCard kind={pose.card} />
       <Dog
         active={!!active.dog}
         onSelect={active.dog}
-        yawDelta={dogYawDelta}
-        headUp={dogHeadUp}
+        yaw={pose.dogYaw}
+        headUp={pose.dogHeadUp}
+        low={pose.dogLow}
         resting={dogResting}
       />
-      <Guardian active={!!active.guardian} onSelect={active.guardian} yawDelta={guardianYawDelta} />
-      <SeniorVet active={!!active.senior} onSelect={active.senior} yawDelta={seniorYawDelta} />
+      <Guardian
+        active={!!active.guardian}
+        onSelect={active.guardian}
+        yaw={pose.guardianYaw}
+        arm={pose.guardianArm}
+        offset={pose.guardianOffset}
+      />
+      <SeniorVet
+        active={!!active.senior}
+        onSelect={active.senior}
+        yaw={pose.seniorYaw}
+        arm={pose.seniorArm}
+        offset={pose.seniorOffset}
+      />
       <ClipboardProp
         active={!!active.clipboard}
         onSelect={active.clipboard}
         showChart={showChart}
-        justRecorded={justRecorded}
+        rows={pose.clipboardRows}
+        lifted={pose.clipboardLifted}
+        yaw={pose.clipboardYaw}
       />
       <Cabinet active={!!active.cabinet} onSelect={active.cabinet} />
       <Monitor active={!!active.monitor} onSelect={active.monitor} />
       <Scale />
       <PawSign active={!!active.pawSign} onSelect={active.pawSign} />
-      <WaitingPair visible={waitingPairVisible} />
+      <WaitingPair visible={pose.waitingPairVisible} />
     </group>
   );
 }
@@ -635,9 +728,7 @@ function ExamRoom({
 /** Canvas 래퍼 크기를 추적한다 — 핀 좌표(computeChoicePinPixels)는 매
  *  프레임이 아니라 이 크기가 실제로 바뀔 때만 다시 계산해야 하므로
  *  useFrame이 아닌 ResizeObserver를 쓴다. jsdom 등 ResizeObserver가 없는
- *  환경에서는 최초 1회 getBoundingClientRect만 사용하고 이후 갱신은
- *  건너뛴다(안전한 성능 저하 — 이 훅을 쓰는 곳은 클라이언트 전용 Canvas
- *  래퍼뿐이라 실제 브라우저에서는 항상 ResizeObserver를 쓴다). */
+ *  환경에서는 최초 1회 크기만 사용한다. */
 function useElementSize<T extends HTMLElement>() {
   const ref = useRef<T | null>(null);
   const [size, setSize] = useState({ width: 0, height: 0 });
@@ -684,16 +775,22 @@ export default function VetScene({
     [currentSceneId, lastChoiceId],
   );
   const stage = useMemo(
-    () => resolveStage(mode, phase, point, lastChoiceKind),
-    [mode, phase, point, lastChoiceKind],
+    () => resolveStage(mode, phase, point, lastChoiceKind, lastChoiceId),
+    [mode, phase, point, lastChoiceKind, lastChoiceId],
   );
 
   // 핀 좌표: mode/point/phase/choices/Canvas 크기가 바뀔 때만 재계산한다
-  // (useFrame 아님 — sceneLayout.ts의 순수 함수를 그대로 재사용).
+  // (useFrame 아님 — sceneLayout.ts의 순수 함수를 그대로 재사용). 인물이 자세
+  // 연출로 옮겨 서 있으면 핀 계산에도 같은 이동을 반영한다.
+  const guardianShift = stage.pose.guardianOffset;
+  const seniorShift = stage.pose.seniorOffset;
   const pins: ChoicePinPixel[] = useMemo(() => {
     if (phase !== "choosing") return [];
-    return computeChoicePinPixels(currentSceneId, choices, size.width, size.height);
-  }, [phase, currentSceneId, choices, size.width, size.height]);
+    return computeChoicePinPixels(currentSceneId, choices, size.width, size.height, {
+      guardian: guardianShift,
+      senior: seniorShift,
+    });
+  }, [phase, currentSceneId, choices, size.width, size.height, guardianShift, seniorShift]);
 
   return (
     <XrSceneGuard
@@ -704,31 +801,31 @@ export default function VetScene({
     >
       <div
         ref={wrapperRef}
-        className="relative h-[300px] w-full touch-none overflow-hidden rounded-xl bg-[#f5ede0] sm:h-[360px] md:h-[420px]"
+        className="relative h-[300px] w-full touch-none overflow-hidden rounded-xl bg-[#f4efe4] sm:h-[360px] md:h-[420px]"
       >
+        {/* flat: 기본 ACES 톤매핑이 벽·바닥을 회색으로 눌러 밝은 진료실 톤(G2.2-R3-C)을 해쳐서, 작성한 색이 그대로 나오도록 톤매핑만 끈다(조명/재질은 단계·active와 무관). */}
         <Canvas
+          flat
           camera={{ position: [0, 1.6, 2.9], fov: DEFAULT_FOV }}
           dpr={[1, 2]}
           gl={{ antialias: true, powerPreference: "low-power" }}
         >
           <CameraRig mode={mode} phase={phase} point={point} />
           <ambientLight intensity={1.0} />
-          <directionalLight position={[2, 5, 3]} intensity={1.1} />
+          <hemisphereLight args={["#ffffff", "#f2e6d0", 0.5]} />
+          <directionalLight position={[2, 5, 3]} intensity={0.9} />
           <directionalLight position={[-1.5, 3, 1]} intensity={0.35} color="#ffe4c4" />
           <ExamRoom
             showChart={showChart}
             active={activeTargets}
-            guardianYawDelta={stage.pose.guardianYawDelta}
-            seniorYawDelta={stage.pose.seniorYawDelta}
-            dogYawDelta={stage.pose.dogYawDelta}
-            dogHeadUp={stage.pose.dogHeadUp}
+            pose={stage.pose}
             dogResting={stage.dogResting}
-            justRecorded={stage.justRecorded}
-            waitingPairVisible={stage.pose.waitingPairVisible}
           />
           {phase === "result" && <CompletionBadge />}
         </Canvas>
-        {hud && <VetSceneHud stepLabel={hud.stepLabel} speakerLabel={hud.speakerLabel} text={hud.text} />}
+        {hud && phase !== "result" && (
+          <VetSceneHud stepLabel={hud.stepLabel} speakerLabel={hud.speakerLabel} text={hud.text} />
+        )}
         <SceneTargetPins pins={pins} />
       </div>
     </XrSceneGuard>

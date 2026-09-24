@@ -14,6 +14,9 @@ import {
   MIN_TARGET_SPACING,
   MODE_POINT_CHOICES,
   MONITOR_ANCHOR,
+  HUD_SAFE_BOTTOM_PX,
+  PIN_EDGE_MARGIN_PX,
+  PIN_HUD_GAP_PX,
   PIN_RADIUS_PX,
   RESULT_BADGE_POINT,
   SCALE_ANCHOR,
@@ -382,6 +385,8 @@ describe("computeChoicePinPixels / resolvePinLayout — 화면 핀 충돌·경�
     { width: 288, height: 300 }, // 320px 폭 기기, 좌우 패딩 제외
     { width: 343, height: 300 }, // 375px 폭 기기
     { width: 343, height: 360 },
+    { width: 358, height: 300 }, // 390px 폭 기기(regular 경계)
+    { width: 398, height: 300 }, // 430px 폭 기기
     { width: 700, height: 420 }, // 데스크톱 대표값
   ];
 
@@ -391,12 +396,14 @@ describe("computeChoicePinPixels / resolvePinLayout — 화면 핀 충돌·경�
       const id = sceneInteractionId(mode, point.point);
       for (const { width, height } of CANVAS_SIZES) {
         const pins = computeChoicePinPixels(id, point.choices, width, height);
-        // 경계 안: 반지름만큼 여유를 둔 [radius, size-radius] 범위
+        // 경계 안: 반지름 + 경계 여유 8px, 그리고 HUD 안전영역(84px)+12px 아래
+        const edge = PIN_RADIUS_PX + PIN_EDGE_MARGIN_PX;
+        const minY = Math.max(edge, HUD_SAFE_BOTTOM_PX + PIN_HUD_GAP_PX + PIN_RADIUS_PX);
         for (const pin of pins) {
-          expect(pin.x).toBeGreaterThanOrEqual(PIN_RADIUS_PX - 0.01);
-          expect(pin.x).toBeLessThanOrEqual(width - PIN_RADIUS_PX + 0.01);
-          expect(pin.y).toBeGreaterThanOrEqual(PIN_RADIUS_PX - 0.01);
-          expect(pin.y).toBeLessThanOrEqual(height - PIN_RADIUS_PX + 0.01);
+          expect(pin.x).toBeGreaterThanOrEqual(edge - 0.01);
+          expect(pin.x).toBeLessThanOrEqual(width - edge + 0.01);
+          expect(pin.y).toBeGreaterThanOrEqual(minY - 0.01);
+          expect(pin.y).toBeLessThanOrEqual(height - edge + 0.01);
         }
         // 서로 겹치지 않음: 중심 간 거리가 지름(2*radius) 이상
         for (let i = 0; i < pins.length; i += 1) {
@@ -407,7 +414,7 @@ describe("computeChoicePinPixels / resolvePinLayout — 화면 핀 충돌·경�
             expect(
               dist,
               `${id} @ ${width}x${height}: 핀 ${pins[i].choiceId}/${pins[j].choiceId}이 겹칩니다(거리 ${dist.toFixed(1)}px)`,
-            ).toBeGreaterThanOrEqual(PIN_RADIUS_PX * 2 - 1);
+            ).toBeGreaterThanOrEqual(PIN_RADIUS_PX * 2 + 8 - 0.5);
           }
         }
       }
@@ -439,5 +446,19 @@ describe("computeChoicePinPixels / resolvePinLayout — 화면 핀 충돌·경�
     const dx = laidOut[0].x - laidOut[1].x;
     const dy = laidOut[0].y - laidOut[1].y;
     expect(Math.sqrt(dx * dx + dy * dy)).toBeGreaterThan(0);
+  });
+});
+
+describe("G2.2-R3-C — p4_c는 약장이 아니라 강아지를 가리킨다(F3)", () => {
+  it("compass_p4의 p4_c 타깃은 dog이고, 어떤 지점의 선택 타깃에도 cabinet이 없다", () => {
+    const p4c = SCENE_TARGETS.compass_p4.find((t_) => t_.choiceId === "p4_c");
+    expect(p4c?.kind).toBe("dog");
+    const p4a = SCENE_TARGETS.compass_p4.find((t_) => t_.choiceId === "p4_a");
+    expect(p4a?.kind).toBe("clipboard");
+    for (const targets of Object.values(SCENE_TARGETS)) {
+      for (const target of targets) {
+        expect(target.kind).not.toBe("cabinet");
+      }
+    }
   });
 });
