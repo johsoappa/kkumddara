@@ -64,6 +64,7 @@ import {
 import { sceneInteractionId } from "./sceneLayout";
 import { CHOICE_FEEDBACK, classifyChoice } from "./vetStoryboard";
 import ChoiceTimeline from "./ChoiceTimeline";
+import { R4_ACTION_COPY, isR4ActionChoice } from "./r4Prototype";
 
 const VetScene = dynamic(() => import("./VetScene"), {
   ssr: false,
@@ -154,7 +155,9 @@ function ActionCardBadge() {
   );
 }
 
-export default function XrVetClient({ mode }: { mode: Mode }) {
+export default function XrVetClient({ mode, r4 = false }: { mode: Mode; r4?: boolean }) {
+  // R4-A 프로토타입: ?mode=sprout&r4=1 에서만 활성화(로컬 전용, analytics 구조 변경 없음)
+  const r4Enabled = r4 && mode === "sprout";
   const [state, dispatch] = useReducer(reducer, initialState);
   const [ctaClicked, setCtaClicked] = useState(false);
   // 리렌더 전 연타로 인한 이벤트 중복 전송 방지 잠금
@@ -172,6 +175,12 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
   }, []);
 
   const useScene = webglOk && uiMode === "scene" && !sceneUnavailable;
+
+  // R4: 선택 → 직접 조작(action) → 완료 시 기존 handleChoice 한 번. 조작 전에는 analytics를 보내지 않는다.
+  const [pendingChoice, setPendingChoice] = useState<Choice | null>(null);
+  const pendingRef = useRef<Choice | null>(null);
+  const [announce, setAnnounce] = useState("");
+  const r4Active = r4Enabled && useScene;
 
   const points = MODE_POINTS[mode];
   const scenarioVersion = SCENARIO_VERSIONS[mode];
@@ -238,6 +247,34 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
     dispatch({ type: "CHOOSE", record, isLast, resultAxis });
   };
 
+  const handlePick = (choice: Choice) => {
+    if (r4Active && state.phase === "choosing" && isR4ActionChoice(mode, state.currentPoint, choice.id)) {
+      if (pendingRef.current || choiceLockRef.current) return; // action 중 중복 선택 차단
+      pendingRef.current = choice;
+      setPendingChoice(choice);
+      setAnnounce(`조작 시작: ${R4_ACTION_COPY[choice.id].title}`);
+      return;
+    }
+    handleChoice(choice);
+  };
+
+  const completeAction = () => {
+    const choice = pendingRef.current;
+    if (!choice) return; // 더블 완료 방지
+    pendingRef.current = null;
+    setPendingChoice(null);
+    if (isR4ActionChoice(mode, state.currentPoint, choice.id)) {
+      setAnnounce(R4_ACTION_COPY[choice.id].doneAnnouncement);
+    }
+    handleChoice(choice);
+  };
+
+  const cancelAction = () => {
+    pendingRef.current = null;
+    setPendingChoice(null);
+    setAnnounce("조작을 취소했어요. 다시 선택해 주세요.");
+  };
+
   const handleContinue = () => {
     choiceLockRef.current = false;
     dispatch({ type: "CONTINUE" });
@@ -273,13 +310,31 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
         mode={mode}
         phase={state.phase}
         point={state.currentPoint}
-        choices={useScene && state.phase === "choosing" && currentPointData ? currentPointData.choices : []}
-        onChoice={handleChoice}
+        choices={
+          useScene && state.phase === "choosing" && currentPointData && !pendingChoice
+            ? currentPointData.choices
+            : []
+        }
+        onChoice={handlePick}
         showChart={showChart}
         lastChoiceId={lastRecord?.choiceId ?? null}
         hud={hud}
         onSceneError={() => setSceneUnavailable(true)}
+        r4={
+          r4Active
+            ? {
+                actionChoiceId:
+                  pendingChoice && isR4ActionChoice(mode, state.currentPoint, pendingChoice.id)
+                    ? pendingChoice.id
+                    : null,
+                onActionComplete: completeAction,
+              }
+            : undefined
+        }
       />
+      <p className="sr-only" aria-live="polite">
+        {announce}
+      </p>
 
       {state.phase === "intro" && (
         <section className="flex flex-col gap-4">
@@ -325,14 +380,42 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
               aria-hidden이라 버튼의 접근 가능한 이름은 choice.label 그대로다.
               씬을 쓸 수 없을 때(WebGL 미지원·오류·사용자 선택)는 완전한 형태로
               노출한다 — 두 경로 모두 같은 handleChoice를 호출한다. */}
-          <div className="flex flex-col gap-2.5">
+          {pendingChoice && isR4ActionChoice(mode, state.currentPoint, pendingChoice.id) && (
+            <div
+              role="group"
+              aria-label="직접 조작"
+              className="flex flex-col gap-3 rounded-xl border-2 border-teal-300 bg-teal-50 p-4"
+            >
+              <p className="text-base font-semibold text-teal-900">{R4_ACTION_COPY[pendingChoice.id].title}</p>
+              <p className="text-sm leading-relaxed text-gray-700">{R4_ACTION_COPY[pendingChoice.id].instruction}</p>
+              <button
+                type="button"
+                onClick={completeAction}
+                className="min-h-[48px] w-full rounded-lg bg-teal-600 px-4 text-base font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
+              >
+                {R4_ACTION_COPY[pendingChoice.id].altLabel}
+              </button>
+              <button
+                type="button"
+                onClick={cancelAction}
+                className="inline-flex min-h-[44px] items-center self-start px-1 text-sm text-gray-600 underline"
+              >
+                다른 선택 고르기
+              </button>
+            </div>
+          )}
+          <div
+            className="flex flex-col gap-2.5"
+            hidden={!!pendingChoice}
+            style={pendingChoice ? { display: "none" } : undefined}
+          >
             {currentPointData.choices.map((choice, index) => {
               const classification = classifyChoice(currentSceneId, choice.id);
               return (
                 <button
                   key={choice.id}
                   type="button"
-                  onClick={() => handleChoice(choice)}
+                  onClick={() => handlePick(choice)}
                   className={
                     (useScene
                       ? "flex min-h-[48px] w-full items-center gap-3 rounded-lg border-2 border-teal-300 bg-teal-50 px-4 text-base font-semibold text-teal-800 transition-colors active:bg-teal-100"
@@ -353,7 +436,11 @@ export default function XrVetClient({ mode }: { mode: Mode }) {
           {webglOk && !sceneUnavailable && (
             <button
               type="button"
-              onClick={() => setUiMode((previous) => (previous === "scene" ? "html" : "scene"))}
+              onClick={() => {
+                pendingRef.current = null; // 글로 진행하기: 진행 중이던 조작은 버리고 기존 선택형 흐름으로
+                setPendingChoice(null);
+                setUiMode((previous) => (previous === "scene" ? "html" : "scene"));
+              }}
               className="inline-flex min-h-[44px] items-center self-start px-1 text-sm text-gray-600 underline"
             >
               {useScene ? "글로 진행하기" : "화면으로 진행하기"}

@@ -25,9 +25,14 @@
 // analytics는 이 파일에 전혀 없다(포인터 1회 = handleChoice 1회).
 // ====================================================
 
-import { useRef, useState } from "react";
+import { createContext, useContext, useRef, useState } from "react";
 import { useFrame, type ThreeEvent } from "@react-three/fiber";
 import type { MeshStandardMaterial } from "three";
+
+/** R4 프로토타입: "release"이면 오브젝트 선택을 pointerdown이 아니라 pointerup(이동 6px 미만)에서 실행한다.
+ *  드래그 후 손을 놓았을 때 오브젝트가 선택되는 것을 막는다. 기본("down")은 R3와 동일. */
+export const TapModeContext = createContext<"down" | "release">("down");
+const TAP_MAX_MOVE_PX = 6;
 
 function setCursor(value: string) {
   if (typeof document !== "undefined") {
@@ -47,6 +52,8 @@ export interface TapHitBoxProps {
 /** 오브젝트 자신의 group 안에 넣는 보이지 않는 클릭 영역. 오브젝트 형태를 전혀
  *  바꾸지 않는다 — 그 위에 덧그리는 카드가 없다. */
 export function TapHitBox({ size, centerY = 0, onSelect, onHoverChange }: TapHitBoxProps) {
+  const tapMode = useContext(TapModeContext);
+  const downAt = useRef<{ x: number; y: number } | null>(null);
   return (
     <mesh
       visible={false}
@@ -63,7 +70,19 @@ export function TapHitBox({ size, centerY = 0, onSelect, onHoverChange }: TapHit
       }}
       onPointerDown={(event: ThreeEvent<PointerEvent>) => {
         event.stopPropagation();
+        if (tapMode === "release") {
+          downAt.current = { x: event.clientX, y: event.clientY };
+          return;
+        }
         onSelect();
+      }}
+      onPointerUp={(event: ThreeEvent<PointerEvent>) => {
+        if (tapMode !== "release") return;
+        event.stopPropagation();
+        const start = downAt.current;
+        downAt.current = null;
+        if (!start) return;
+        if (Math.hypot(event.clientX - start.x, event.clientY - start.y) < TAP_MAX_MOVE_PX) onSelect();
       }}
     >
       <boxGeometry args={size} />

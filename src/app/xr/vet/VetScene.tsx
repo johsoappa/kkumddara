@@ -60,9 +60,12 @@ import {
   type VetScenePhase,
 } from "./sceneLayout";
 import { targetKindForChoice, resolveStage, type StagePose } from "./vetStoryboard";
-import { BaseHighlight, TapHitBox, useTapHover } from "./VetSceneInteractions";
+import { BaseHighlight, TapHitBox, TapModeContext, useTapHover } from "./VetSceneInteractions";
 import { createVetLabelSprite } from "./vetLabelSprite";
 import SceneTargetPins from "./SceneTargetPins";
+import R4ActionLayer from "./R4ActionLayer";
+import VetHumanoid from "./VetHumanoid";
+import { orbitPosition, r4ClipboardRows, r4PoseNames, type R4ActionChoiceId, type R4PoseNames } from "./r4Prototype";
 import VetSceneHud from "./VetSceneHud";
 import WaitingPair from "./WaitingPair";
 import XrSceneGuard from "../XrSceneGuard";
@@ -86,6 +89,12 @@ export interface VetSceneProps {
   hud?: { stepLabel: string; speakerLabel: string; text: string };
   /** Canvas 런타임 오류 시 상위(XrVetClient)에 1회 알림 — 선택적, 하위호환 */
   onSceneError?: () => void;
+  /** R4 프로토타입(?r4=1) 전용 — 없으면 R3 장면 그대로. */
+  r4?: {
+    /** 진행 중인 직접 조작(없으면 null) */
+    actionChoiceId: R4ActionChoiceId | null;
+    onActionComplete: () => void;
+  };
 }
 
 const CAMERA_EASE_HALF_LIFE = 0.3;
@@ -98,14 +107,17 @@ function CameraRig({
   mode,
   phase,
   point,
+  orbitTargetRef,
 }: {
   mode: "compass" | "sprout";
   phase: VetScenePhase;
   point: number;
+  orbitTargetRef?: { current: number };
 }) {
   const camera = useThree((state) => state.camera) as PerspectiveCamera;
   const size = useThree((state) => state.size);
   const fovRef = useRef(DEFAULT_FOV);
+  const orbitYaw = useRef(0);
 
   useFrame((_, delta) => {
     const target = resolveScenePresentation(mode, phase, point, []).camera;
@@ -121,7 +133,12 @@ function CameraRig({
     });
     fovRef.current = easeScalar(fovRef.current, neededFov, alpha);
 
-    camera.position.set(target.position[0], target.position[1], target.position[2]);
+    let position = target.position;
+    if (orbitTargetRef) {
+      orbitYaw.current = easeScalar(orbitYaw.current, orbitTargetRef.current, easeAlpha(delta, 0.1));
+      position = orbitPosition(target.position, target.lookAt, orbitYaw.current);
+    }
+    camera.position.set(position[0], position[1], position[2]);
     camera.lookAt(target.lookAt[0], target.lookAt[1], target.lookAt[2]);
     camera.fov = fovRef.current;
     camera.updateProjectionMatrix();
@@ -666,9 +683,11 @@ interface ExamRoomProps {
   active: ActiveTargets;
   pose: StagePose;
   dogResting: boolean;
+  /** R4: 있으면 보호자·선배를 관절 리그(VetHumanoid)로 그린다. */
+  humanoidPoses?: R4PoseNames;
 }
 
-function ExamRoom({ showChart, active, pose, dogResting }: ExamRoomProps) {
+function ExamRoom({ showChart, active, pose, dogResting, humanoidPoses }: ExamRoomProps) {
   return (
     <group>
       {/* 바닥 — 밝은 베이지 */}
@@ -694,20 +713,43 @@ function ExamRoom({ showChart, active, pose, dogResting }: ExamRoomProps) {
         low={pose.dogLow}
         resting={dogResting}
       />
-      <Guardian
-        active={!!active.guardian}
-        onSelect={active.guardian}
-        yaw={pose.guardianYaw}
-        arm={pose.guardianArm}
-        offset={pose.guardianOffset}
-      />
-      <SeniorVet
-        active={!!active.senior}
-        onSelect={active.senior}
-        yaw={pose.seniorYaw}
-        arm={pose.seniorArm}
-        offset={pose.seniorOffset}
-      />
+      {humanoidPoses ? (
+        <>
+          <VetHumanoid
+            role="guardian"
+            poseName={humanoidPoses.guardian}
+            position={[GUARDIAN_ANCHOR[0] + pose.guardianOffset[0], 0, GUARDIAN_ANCHOR[2] + pose.guardianOffset[1]]}
+            yaw={pose.guardianYaw}
+            active={!!active.guardian}
+            onSelect={active.guardian}
+          />
+          <VetHumanoid
+            role="senior"
+            poseName={humanoidPoses.senior}
+            position={[SENIOR_ANCHOR[0] + pose.seniorOffset[0], 0, SENIOR_ANCHOR[2] + pose.seniorOffset[1]]}
+            yaw={pose.seniorYaw}
+            active={!!active.senior}
+            onSelect={active.senior}
+          />
+        </>
+      ) : (
+        <>
+          <Guardian
+            active={!!active.guardian}
+            onSelect={active.guardian}
+            yaw={pose.guardianYaw}
+            arm={pose.guardianArm}
+            offset={pose.guardianOffset}
+          />
+          <SeniorVet
+            active={!!active.senior}
+            onSelect={active.senior}
+            yaw={pose.seniorYaw}
+            arm={pose.seniorArm}
+            offset={pose.seniorOffset}
+          />
+        </>
+      )}
       <ClipboardProp
         active={!!active.clipboard}
         onSelect={active.clipboard}
@@ -757,8 +799,12 @@ export default function VetScene({
   lastChoiceId,
   hud,
   onSceneError,
+  r4,
 }: VetSceneProps) {
   const { ref: wrapperRef, size } = useElementSize<HTMLDivElement>();
+  const orbitTargetRef = useRef(0);
+  const [orbited, setOrbited] = useState(false);
+  const r4ActionActive = !!r4?.actionChoiceId;
 
   const resolvedTargets = useMemo(
     () => resolveScenePresentation(mode, phase, point, choices).targets,
@@ -774,10 +820,23 @@ export default function VetScene({
     () => (lastChoiceId ? targetKindForChoice(currentSceneId, lastChoiceId) : null),
     [currentSceneId, lastChoiceId],
   );
-  const stage = useMemo(
+  const baseStage = useMemo(
     () => resolveStage(mode, phase, point, lastChoiceKind, lastChoiceId),
     [mode, phase, point, lastChoiceKind, lastChoiceId],
   );
+  const r4Enabled = !!r4;
+  const r4PoseChoice = r4?.actionChoiceId ?? (phase === "reaction" ? (lastChoiceId ?? null) : null);
+  const humanoidPoses = useMemo(
+    () => (r4Enabled ? r4PoseNames(phase, point, r4PoseChoice) : undefined),
+    [r4Enabled, phase, point, r4PoseChoice],
+  );
+  // R4: 새싹1 reaction에서 기록판에 듣기 기록 1줄 / 관찰 표시 2개가 실제로 추가된다.
+  const stage = useMemo(() => {
+    if (!r4Enabled) return baseStage;
+    const rows = r4ClipboardRows(phase, point, lastChoiceId ?? null);
+    if (rows === null) return baseStage;
+    return { ...baseStage, pose: { ...baseStage.pose, clipboardRows: rows, clipboardLifted: true } };
+  }, [r4Enabled, baseStage, phase, point, lastChoiceId]);
 
   // 핀 좌표: mode/point/phase/choices/Canvas 크기가 바뀔 때만 재계산한다
   // (useFrame 아님 — sceneLayout.ts의 순수 함수를 그대로 재사용). 인물이 자세
@@ -785,12 +844,12 @@ export default function VetScene({
   const guardianShift = stage.pose.guardianOffset;
   const seniorShift = stage.pose.seniorOffset;
   const pins: ChoicePinPixel[] = useMemo(() => {
-    if (phase !== "choosing") return [];
+    if (phase !== "choosing" || orbited) return [];
     return computeChoicePinPixels(currentSceneId, choices, size.width, size.height, {
       guardian: guardianShift,
       senior: seniorShift,
     });
-  }, [phase, currentSceneId, choices, size.width, size.height, guardianShift, seniorShift]);
+  }, [phase, orbited, currentSceneId, choices, size.width, size.height, guardianShift, seniorShift]);
 
   return (
     <XrSceneGuard
@@ -801,7 +860,9 @@ export default function VetScene({
     >
       <div
         ref={wrapperRef}
-        className="relative h-[300px] w-full touch-none overflow-hidden rounded-xl bg-[#f4efe4] sm:h-[360px] md:h-[420px]"
+        className={`relative h-[300px] w-full overflow-hidden rounded-xl bg-[#f4efe4] sm:h-[360px] md:h-[420px] ${
+          r4Enabled ? `select-none ${r4ActionActive ? "touch-none" : "touch-pan-y"}` : "touch-none"
+        }`}
       >
         {/* flat: 기본 ACES 톤매핑이 벽·바닥을 회색으로 눌러 밝은 진료실 톤(G2.2-R3-C)을 해쳐서, 작성한 색이 그대로 나오도록 톤매핑만 끈다(조명/재질은 단계·active와 무관). */}
         <Canvas
@@ -810,23 +871,46 @@ export default function VetScene({
           dpr={[1, 2]}
           gl={{ antialias: true, powerPreference: "low-power" }}
         >
-          <CameraRig mode={mode} phase={phase} point={point} />
+          <CameraRig mode={mode} phase={phase} point={point} orbitTargetRef={r4Enabled ? orbitTargetRef : undefined} />
           <ambientLight intensity={1.0} />
           <hemisphereLight args={["#ffffff", "#f2e6d0", 0.5]} />
           <directionalLight position={[2, 5, 3]} intensity={0.9} />
           <directionalLight position={[-1.5, 3, 1]} intensity={0.35} color="#ffe4c4" />
-          <ExamRoom
-            showChart={showChart}
-            active={activeTargets}
-            pose={stage.pose}
-            dogResting={stage.dogResting}
-          />
+          <TapModeContext.Provider value={r4Enabled ? "release" : "down"}>
+            <ExamRoom
+              showChart={showChart}
+              active={activeTargets}
+              pose={stage.pose}
+              dogResting={stage.dogResting}
+              humanoidPoses={humanoidPoses}
+            />
+          </TapModeContext.Provider>
+          {r4 && (
+            <R4ActionLayer
+              actionChoiceId={r4.actionChoiceId}
+              onActionComplete={r4.onActionComplete}
+              orbitTargetRef={orbitTargetRef}
+              onOrbited={setOrbited}
+            />
+          )}
           {phase === "result" && <CompletionBadge />}
         </Canvas>
         {hud && phase !== "result" && (
           <VetSceneHud stepLabel={hud.stepLabel} speakerLabel={hud.speakerLabel} text={hud.text} />
         )}
         <SceneTargetPins pins={pins} />
+        {r4Enabled && orbited && (
+          <button
+            type="button"
+            onClick={() => {
+              orbitTargetRef.current = 0;
+              setOrbited(false);
+            }}
+            className="absolute bottom-2 right-2 z-20 min-h-[44px] rounded-lg bg-white/90 px-3 text-sm font-semibold text-teal-800 shadow focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-700"
+          >
+            처음 시점
+          </button>
+        )}
       </div>
     </XrSceneGuard>
   );
