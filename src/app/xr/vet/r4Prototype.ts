@@ -53,11 +53,23 @@ export const RECORD_TARGET: Vec3 = [-0.5, 0.98, BUBBLE_PLANE_Z];
 
 /** s1_b: 관찰 링은 콩이 깊이(z=-0.85) 평면에서 움직인다. */
 export const OBSERVE_PLANE_Z = -0.85;
-export const OBSERVE_HOME: Vec3 = [-0.6, 0.95, OBSERVE_PLANE_Z];
+/** 관찰 링 출발 위치 — 콩이 위쪽. 예전 위치(-0.6,0.95)는 머리로 가는 직선이 몸통 판정 영역을 지나가 머리 재진입 드래그만으로 몸통이 통과될 수 있었다. */
+export const OBSERVE_HOME: Vec3 = [0.05, 1.4, OBSERVE_PLANE_Z];
+/**
+ * G2.2-R4-A1-C1: 머리·몸통 판정 영역이 겹치지 않는다.
+ * 이전: 머리 [0.27,1.02] / 몸통 [0.0,0.8] → 중심 거리 0.348, 반경 0.3+0.3=0.6 → 크게 겹쳐
+ *       머리 통과 직후 포인터를 조금만 움직여도 몸통이 통과됐다.
+ * 이후: 머리 [0.40,1.02] / 몸통 [-0.22,0.80] → 중심 거리 0.658, 반경 0.29+0.29=0.58 → 여백 0.078.
+ * 링에 그려지는 위치·반경도 이 상수를 그대로 쓴다(R4ActionLayer) — 표시와 판정이 일치한다.
+ */
 export const OBSERVE_WAYPOINTS: [Vec3, Vec3] = [
-  [0.27, 1.02, OBSERVE_PLANE_Z], // 콩이 머리 쪽
-  [0.0, 0.8, OBSERVE_PLANE_Z], // 콩이 몸통·다리 쪽
+  [0.4, 1.02, OBSERVE_PLANE_Z], // 콩이 머리 쪽
+  [-0.22, 0.8, OBSERVE_PLANE_Z], // 콩이 몸통·다리 쪽
 ];
+/** 관찰 지점 판정 반경(월드) — 화면 지름 약 45px 이상으로 44px 터치 영역을 넘는다. */
+export const OBSERVE_TARGET_RADIUS = 0.29;
+/** 머리·몸통 판정 영역 사이 최소 안전 여백(월드). */
+export const OBSERVE_SAFETY_MARGIN = 0.05;
 
 /** 목표 판정 반경(월드) — 화면상 약 40~55px 지름으로 44px 터치 영역을 넘게 잡는다. */
 export const TARGET_RADIUS = 0.3;
@@ -70,26 +82,77 @@ export function isNearTarget(point: Vec3, target: Vec3, radius = TARGET_RADIUS):
   return distanceXY(point, target) <= radius;
 }
 
-/** 관찰 링이 지나간 지점 기록 — 머리 → 몸통 순서로만 진행된다. */
+/** 관찰 링이 지나간 지점 기록 — 머리 진입 → 머리 영역 이탈 → 몸통 진입 순서로만 진행된다. */
 export interface ObserveProgress {
   head: boolean;
+  /** 머리 진입 후 링이 머리 판정 영역을 실제로 벗어났는가 */
+  leftHead: boolean;
   body: boolean;
 }
 
-export const OBSERVE_INITIAL: ObserveProgress = { head: false, body: false };
+export const OBSERVE_INITIAL: ObserveProgress = { head: false, leftHead: false, body: false };
+
+export function observeStep(progress: ObserveProgress): 0 | 1 | 2 {
+  return progress.body ? 2 : progress.head ? 1 : 0;
+}
 
 export function advanceObserve(progress: ObserveProgress, point: Vec3): ObserveProgress {
+  const inHead = isNearTarget(point, OBSERVE_WAYPOINTS[0], OBSERVE_TARGET_RADIUS);
+  const inBody = isNearTarget(point, OBSERVE_WAYPOINTS[1], OBSERVE_TARGET_RADIUS);
+  if (progress.body) return progress;
   if (!progress.head) {
-    return isNearTarget(point, OBSERVE_WAYPOINTS[0]) ? { head: true, body: false } : progress;
+    // 몸통을 먼저 지나가도 진행되지 않는다
+    return inHead ? { head: true, leftHead: false, body: false } : progress;
   }
-  if (!progress.body && isNearTarget(point, OBSERVE_WAYPOINTS[1])) {
-    return { head: true, body: true };
+  let next = progress;
+  if (!next.leftHead) {
+    // 머리 위치에 머물거나 머리 안에서 흔드는 것으로는 다음 단계로 넘어갈 수 없다
+    if (inHead) return progress;
+    next = { ...next, leftHead: true };
   }
-  return progress;
+  if (inBody) return { head: true, leftHead: true, body: true };
+  return next;
 }
 
 export function isObserveComplete(progress: ObserveProgress): boolean {
-  return progress.head && progress.body;
+  return progress.head && progress.leftHead && progress.body;
+}
+
+export interface ObserveGesture {
+  move: (point: Vec3) => ObserveProgress;
+  readonly progress: ObserveProgress;
+  readonly done: boolean;
+}
+
+/** 실제 pointer 입력 순서를 그대로 흘려보내는 관찰 제스처 — 단계 변화 때만 onProgress, 완료는 정확히 한 번만 onComplete. */
+export function createObserveGesture(handlers: {
+  onProgress?: (step: 1 | 2) => void;
+  onComplete: () => void;
+}): ObserveGesture {
+  let progress = OBSERVE_INITIAL;
+  let done = false;
+  return {
+    move(point) {
+      if (done) return progress;
+      const next = advanceObserve(progress, point);
+      if (next === progress) return progress;
+      const before = observeStep(progress);
+      progress = next;
+      const after = observeStep(progress);
+      if (after !== before && after > 0) handlers.onProgress?.(after as 1 | 2);
+      if (isObserveComplete(progress)) {
+        done = true;
+        handlers.onComplete();
+      }
+      return progress;
+    },
+    get progress() {
+      return progress;
+    },
+    get done() {
+      return done;
+    },
+  };
 }
 
 // ---------- 탭·드래그 구분 ----------

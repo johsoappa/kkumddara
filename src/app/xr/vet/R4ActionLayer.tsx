@@ -24,14 +24,14 @@ import {
   OBSERVE_HOME,
   OBSERVE_INITIAL,
   OBSERVE_PLANE_Z,
+  OBSERVE_TARGET_RADIUS,
   OBSERVE_WAYPOINTS,
   ORBIT_RAD_PER_PX,
   RECORD_TARGET,
-  advanceObserve,
+  createObserveGesture,
   classifyPointerGesture,
   clampOrbitYaw,
   isNearTarget,
-  isObserveComplete,
   type ObserveProgress,
   type R4ActionChoiceId,
 } from "./r4Prototype";
@@ -193,8 +193,22 @@ function ObserveAction({ onComplete, tokenActive, onObserveProgress }: DragProps
   const dragging = useRef(false);
   const done = useRef(false);
   const goal = useRef<Vec3>(OBSERVE_HOME);
-  const progress = useRef<ObserveProgress>(OBSERVE_INITIAL);
   const [visited, setVisited] = useState<ObserveProgress>(OBSERVE_INITIAL);
+  const onProgressRef = useRef(onObserveProgress);
+  onProgressRef.current = onObserveProgress;
+  const onCompleteRef = useRef(onComplete);
+  onCompleteRef.current = onComplete;
+  const gesture = useRef(
+    createObserveGesture({
+      onProgress: (step) => onProgressRef.current?.(step),
+      onComplete: () => {
+        done.current = true;
+        dragging.current = false;
+        tokenActive.current = false;
+        onCompleteRef.current();
+      },
+    }),
+  );
   const hit = usePlaneHit(OBSERVE_PLANE_Z);
 
   useFrame((_, delta) => {
@@ -210,18 +224,9 @@ function ObserveAction({ onComplete, tokenActive, onObserveProgress }: DragProps
     const p = hit(event);
     if (!p || !group.current) return;
     group.current.position.set(p[0], p[1], OBSERVE_PLANE_Z);
-    const next = advanceObserve(progress.current, p);
-    if (next !== progress.current) {
-      progress.current = next;
-      setVisited(next);
-      onObserveProgress?.(next.body ? 2 : 1);
-      if (isObserveComplete(next)) {
-        done.current = true;
-        dragging.current = false;
-        tokenActive.current = false;
-        onComplete();
-      }
-    }
+    const before = gesture.current.progress;
+    const next = gesture.current.move(p);
+    if (next !== before) setVisited(next);
   };
 
   const end = (event: ThreeEvent<PointerEvent>) => {
@@ -233,8 +238,8 @@ function ObserveAction({ onComplete, tokenActive, onObserveProgress }: DragProps
 
   return (
     <>
-      <TargetRing position={OBSERVE_WAYPOINTS[0]} radius={0.26} visible={!visited.head} />
-      <TargetRing position={OBSERVE_WAYPOINTS[1]} radius={0.26} visible={visited.head && !visited.body} />
+      <TargetRing position={OBSERVE_WAYPOINTS[0]} radius={OBSERVE_TARGET_RADIUS} visible={!visited.head} />
+      <TargetRing position={OBSERVE_WAYPOINTS[1]} radius={OBSERVE_TARGET_RADIUS} visible={visited.head && !visited.body} />
       {visited.head && (
         <mesh position={[OBSERVE_WAYPOINTS[0][0], OBSERVE_WAYPOINTS[0][1], OBSERVE_PLANE_Z]} renderOrder={19}>
           <circleGeometry args={[0.07, 16]} />

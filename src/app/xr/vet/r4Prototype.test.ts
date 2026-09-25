@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { SPROUT_POINTS } from "./scenario";
 import {
   HUMANOID_POSES,
@@ -110,10 +112,10 @@ describe("r4Prototype — 조작 대상·판정", () => {
     // 몸통을 먼저 지나도 진행되지 않는다
     expect(advanceObserve(OBSERVE_INITIAL, body)).toEqual(OBSERVE_INITIAL);
     const afterHead = advanceObserve(OBSERVE_INITIAL, head);
-    expect(afterHead).toEqual({ head: true, body: false });
+    expect(afterHead).toEqual({ head: true, leftHead: false, body: false });
     expect(isObserveComplete(afterHead)).toBe(false);
     const done = advanceObserve(afterHead, body);
-    expect(done).toEqual({ head: true, body: true });
+    expect(done).toEqual({ head: true, leftHead: true, body: true });
     expect(isObserveComplete(done)).toBe(true);
     // 완료 후에는 변하지 않는다
     expect(advanceObserve(done, head)).toEqual(done);
@@ -217,5 +219,156 @@ describe("R4-A1 — 콩이 자세와 관찰 반응", () => {
     expect(r4SeniorOffset("choosing", 1)).toBeNull();
     expect(r4SeniorOffset("choosing", 3)).toBeNull();
     expect(r4SeniorOffset("intro", 2)).toBeNull();
+  });
+});
+
+// ---------- G2.2-R4-A1-C1: 관찰 동작 순차 판정 ----------
+import {
+  OBSERVE_HOME,
+  OBSERVE_SAFETY_MARGIN,
+  OBSERVE_TARGET_RADIUS,
+  createObserveGesture,
+  distanceXY,
+  observeStep,
+} from "./r4Prototype";
+import { vi } from "vitest";
+import type { Vec3 } from "./sceneLayout";
+
+describe("R4-A1-C1 — 머리·몸통 판정 영역 분리", () => {
+  const [head, body] = OBSERVE_WAYPOINTS;
+
+  it("머리·몸통 판정 영역이 겹치지 않고 안전 여백(0.05) 이상 떨어져 있다", () => {
+    const dist = distanceXY(head, body);
+    expect(dist).toBeGreaterThan(OBSERVE_TARGET_RADIUS * 2 + OBSERVE_SAFETY_MARGIN);
+    expect(OBSERVE_SAFETY_MARGIN).toBeGreaterThanOrEqual(0.05);
+    // 수정 후 수치: 중심 거리 0.658, 반경 합 0.58, 여백 0.078
+    expect(dist).toBeCloseTo(0.658, 2);
+    expect(dist - OBSERVE_TARGET_RADIUS * 2).toBeGreaterThanOrEqual(OBSERVE_SAFETY_MARGIN);
+  });
+
+  it("두 판정 반경은 모바일 44px 터치 영역을 넘는 크기다(약 78px/월드단위)", () => {
+    expect(2 * OBSERVE_TARGET_RADIUS * 78).toBeGreaterThanOrEqual(44);
+  });
+
+  it("한 좌표가 머리와 몸통 판정을 동시에 만족할 수 없다(두 영역이 서로소)", () => {
+    for (let t = 0; t <= 1; t += 0.01) {
+      const p: Vec3 = [head[0] + (body[0] - head[0]) * t, head[1] + (body[1] - head[1]) * t, head[2]];
+      expect(isNearTarget(p, head, OBSERVE_TARGET_RADIUS) && isNearTarget(p, body, OBSERVE_TARGET_RADIUS)).toBe(false);
+    }
+  });
+
+  it("표시 링 위치 = 판정 좌표(OBSERVE_WAYPOINTS 상수를 R4ActionLayer가 그대로 사용)", () => {
+    const layer = readFileSync(join(__dirname, "R4ActionLayer.tsx"), "utf8");
+    expect(layer).toContain("OBSERVE_WAYPOINTS[0]");
+    expect(layer).toContain("OBSERVE_WAYPOINTS[1]");
+    expect(layer).toContain("radius={OBSERVE_TARGET_RADIUS}");
+  });
+});
+
+describe("R4-A1-C1 — 출발 위치와 머리로 가는 경로", () => {
+  it("출발 위치는 머리·몸통 판정 영역 밖이고, 출발→머리 직선 경로는 몸통 판정 영역을 지나지 않는다", () => {
+    const [head, body] = OBSERVE_WAYPOINTS;
+    expect(isNearTarget(OBSERVE_HOME, head, OBSERVE_TARGET_RADIUS)).toBe(false);
+    expect(isNearTarget(OBSERVE_HOME, body, OBSERVE_TARGET_RADIUS)).toBe(false);
+    for (let t = 0; t <= 1; t += 0.01) {
+      const p: Vec3 = [OBSERVE_HOME[0] + (head[0] - OBSERVE_HOME[0]) * t, OBSERVE_HOME[1] + (head[1] - OBSERVE_HOME[1]) * t, head[2]];
+      expect(isNearTarget(p, body, OBSERVE_TARGET_RADIUS)).toBe(false);
+    }
+  });
+});
+
+describe("R4-A1-C1 — 실제 pointer 입력 순서 재현", () => {
+  const [head, body] = OBSERVE_WAYPOINTS;
+  const HOME: Vec3 = OBSERVE_HOME;
+  function nearHead(dx = 0.02, dy = 0.02): Vec3 {
+    return [head[0] + dx, head[1] + dy, head[2]];
+  }
+  function setup() {
+    const onProgress = vi.fn();
+    const onComplete = vi.fn();
+    return { gesture: createObserveGesture({ onProgress, onComplete }), onProgress, onComplete };
+  }
+
+  it("1) 몸통을 먼저 통과하면 진행도 0을 유지한다", () => {
+    const { gesture, onComplete } = setup();
+    gesture.move(HOME);
+    gesture.move(body);
+    gesture.move([body[0] + 0.02, body[1], body[2]]);
+    expect(observeStep(gesture.progress)).toBe(0);
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("2) 머리에 진입하면 진행도 1이고 중간 반응(onProgress 1)만 발생한다", () => {
+    const { gesture, onProgress, onComplete } = setup();
+    gesture.move(HOME);
+    gesture.move(nearHead());
+    expect(observeStep(gesture.progress)).toBe(1);
+    expect(onProgress).toHaveBeenCalledTimes(1);
+    expect(onProgress).toHaveBeenCalledWith(1);
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("3) 머리 좌표를 반복 입력해도 진행도 1을 유지한다", () => {
+    const { gesture, onComplete } = setup();
+    for (let i = 0; i < 30; i++) gesture.move(head);
+    expect(observeStep(gesture.progress)).toBe(1);
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("4·5) 머리 위치에서 작은 이동·흔들기를 해도 진행도 1을 유지하고 완료되지 않는다", () => {
+    const { gesture, onComplete } = setup();
+    gesture.move(head);
+    for (let i = 0; i < 60; i++) {
+      const a = (i / 60) * Math.PI * 8;
+      gesture.move([head[0] + Math.cos(a) * 0.15, head[1] + Math.sin(a) * 0.15, head[2]]);
+    }
+    expect(observeStep(gesture.progress)).toBe(1);
+    expect(gesture.progress.leftHead).toBe(false);
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("머리 영역 경계 안쪽 끝까지 움직여도(반경 0.29) 완료되지 않는다", () => {
+    const { gesture, onComplete } = setup();
+    gesture.move(head);
+    gesture.move([head[0] - 0.28, head[1], head[2]]); // 몸통 방향 경계 안쪽(반경 0.29)
+    expect(observeStep(gesture.progress)).toBe(1);
+    expect(onComplete).not.toHaveBeenCalled();
+  });
+
+  it("6·7) 머리에서 몸통까지 실제로 이동하면 진행도 2, 완료 콜백이 정확히 한 번 호출된다", () => {
+    const { gesture, onProgress, onComplete } = setup();
+    gesture.move(HOME);
+    gesture.move(nearHead());
+    // 머리 → 몸통 직선 이동(드래그)
+    for (let t = 0; t <= 1.0001; t += 0.1) {
+      gesture.move([head[0] + (body[0] - head[0]) * t, head[1] + (body[1] - head[1]) * t, head[2]]);
+    }
+    expect(observeStep(gesture.progress)).toBe(2);
+    expect(gesture.progress).toEqual({ head: true, leftHead: true, body: true });
+    expect(onProgress.mock.calls.map((c) => c[0])).toEqual([1, 2]);
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(gesture.done).toBe(true);
+  });
+
+  it("8) 완료 후 추가 pointer 이벤트·더블 입력에도 콜백이 중복 호출되지 않는다", () => {
+    const { gesture, onProgress, onComplete } = setup();
+    gesture.move(head);
+    gesture.move(body);
+    for (let i = 0; i < 10; i++) {
+      gesture.move(body);
+      gesture.move(head);
+      gesture.move(body);
+    }
+    expect(onComplete).toHaveBeenCalledTimes(1);
+    expect(onProgress).toHaveBeenCalledTimes(2);
+  });
+
+  it("머리 진입 이벤트 하나로 몸통까지 통과하지 않는다(같은 pointer 위치로 연속 통과 불가)", () => {
+    const { gesture, onComplete } = setup();
+    // 같은 좌표를 두 번 보내도(머리) 몸통 단계로 넘어가지 않는다
+    gesture.move(head);
+    gesture.move(head);
+    expect(observeStep(gesture.progress)).toBe(1);
+    expect(onComplete).not.toHaveBeenCalled();
   });
 });
