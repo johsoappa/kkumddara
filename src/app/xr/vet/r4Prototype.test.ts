@@ -166,3 +166,56 @@ describe("r4PoseNames / r4ClipboardRows — 단계별 포즈·기록판", () => 
     expect(r4ClipboardRows("reaction", 2, "s2_b")).toBeNull();
   });
 });
+
+// ---------- G2.2-R4-A1: 콩이 자세·관찰 반응 / 새싹2 겹침 ----------
+import { DOG_POSES, lerpDogPose, r4DogPoseName, r4SeniorOffset, type DogPoseName } from "./r4Prototype";
+
+describe("R4-A1 — 콩이 자세와 관찰 반응", () => {
+  const names = Object.keys(DOG_POSES) as DogPoseName[];
+
+  it("모든 자세 값이 유한하고, resting은 다리를 접고 고개를 숙이며 observing은 귀·꼬리·앞발이 최대다", () => {
+    for (const n of names) {
+      expect(Object.values(DOG_POSES[n]).every((v) => Number.isFinite(v))).toBe(true);
+    }
+    expect(DOG_POSES.resting.legFold).toBe(1);
+    expect(DOG_POSES.resting.headPitch).toBeGreaterThan(0.2);
+    expect(DOG_POSES.observing.earPerk).toBe(1);
+    expect(DOG_POSES.observing.tailWag).toBe(1);
+    expect(DOG_POSES.observing.pawLift).toBe(1);
+    expect(DOG_POSES.alert.legFold).toBe(0);
+  });
+
+  it("세 자세는 서로 관절 값 3개 이상이 다르다", () => {
+    const keys = Object.keys(DOG_POSES.resting) as (keyof typeof DOG_POSES.resting)[];
+    for (const [a, b] of [["resting", "alert"], ["alert", "observing"], ["resting", "observing"]] as const) {
+      const diff = keys.filter((k) => Math.abs(DOG_POSES[a][k] - DOG_POSES[b][k]) > 0.1);
+      expect(diff.length, `${a}→${b}`).toBeGreaterThanOrEqual(3);
+    }
+  });
+
+  it("lerpDogPose는 양 끝에서 원래 자세와 같고 t를 제한한다", () => {
+    expect(lerpDogPose(DOG_POSES.resting, DOG_POSES.alert, 0)).toEqual(DOG_POSES.resting);
+    expect(lerpDogPose(DOG_POSES.resting, DOG_POSES.alert, 9)).toEqual(DOG_POSES.alert);
+  });
+
+  it("s1_b 관찰 진행 중: 링이 머리를 지나면 alert, 몸통까지 지나면 observing, 시작 전엔 resting", () => {
+    expect(r4DogPoseName("choosing", 1, "s1_b", 0)).toBe("resting");
+    expect(r4DogPoseName("choosing", 1, "s1_b", 1)).toBe("alert");
+    expect(r4DogPoseName("choosing", 1, "s1_b", 2)).toBe("observing");
+  });
+
+  it("reaction: s1_b는 observing, s1_a는 alert, 결과 화면은 편안히 resting", () => {
+    expect(r4DogPoseName("reaction", 1, "s1_b", 0)).toBe("observing");
+    expect(r4DogPoseName("reaction", 1, "s1_a", 0)).toBe("alert");
+    expect(r4DogPoseName("result", 3, null, 0)).toBe("resting");
+    expect(r4DogPoseName("intro", 1, null, 0)).toBe("resting");
+  });
+
+  it("새싹2에서만 선배가 콩이 뒤에 겹치지 않도록 위치를 조정한다(다른 지점은 null)", () => {
+    expect(r4SeniorOffset("choosing", 2)).toEqual([0.12, 0.22]);
+    expect(r4SeniorOffset("reaction", 2)).toEqual([0.12, 0.22]);
+    expect(r4SeniorOffset("choosing", 1)).toBeNull();
+    expect(r4SeniorOffset("choosing", 3)).toBeNull();
+    expect(r4SeniorOffset("intro", 2)).toBeNull();
+  });
+});

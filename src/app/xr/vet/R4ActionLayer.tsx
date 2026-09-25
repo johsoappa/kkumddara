@@ -100,6 +100,8 @@ function TargetRing({ position, radius = 0.24, visible = true }: { position: Vec
 interface DragProps {
   onComplete: () => void;
   tokenActive: { current: boolean };
+  /** 관찰 링이 지나간 지점 수(1=머리, 2=머리+몸통) — 콩이가 진행 중에도 반응하도록 알린다. */
+  onObserveProgress?: (step: number) => void;
 }
 
 function BubbleAction({ onComplete, tokenActive }: DragProps) {
@@ -186,7 +188,7 @@ function BubbleAction({ onComplete, tokenActive }: DragProps) {
   );
 }
 
-function ObserveAction({ onComplete, tokenActive }: DragProps) {
+function ObserveAction({ onComplete, tokenActive, onObserveProgress }: DragProps) {
   const group = useRef<Group | null>(null);
   const dragging = useRef(false);
   const done = useRef(false);
@@ -212,6 +214,7 @@ function ObserveAction({ onComplete, tokenActive }: DragProps) {
     if (next !== progress.current) {
       progress.current = next;
       setVisited(next);
+      onObserveProgress?.(next.body ? 2 : 1);
       if (isObserveComplete(next)) {
         done.current = true;
         dragging.current = false;
@@ -277,9 +280,16 @@ export interface R4ActionLayerProps {
   orbitTargetRef: { current: number };
   /** 회전이 끝났을 때 처음 시점과 다른지 알린다(핀 숨김·'처음 시점' 버튼 표시용). */
   onOrbited: (orbited: boolean) => void;
+  onObserveProgress?: (step: number) => void;
 }
 
-export default function R4ActionLayer({ actionChoiceId, onActionComplete, orbitTargetRef, onOrbited }: R4ActionLayerProps) {
+export default function R4ActionLayer({
+  actionChoiceId,
+  onActionComplete,
+  orbitTargetRef,
+  onOrbited,
+  onObserveProgress,
+}: R4ActionLayerProps) {
   const gl = useThree((state) => state.gl);
   const tokenActive = useRef(false);
 
@@ -330,6 +340,6 @@ export default function R4ActionLayer({ actionChoiceId, onActionComplete, orbitT
   }, [gl, orbitTargetRef, onOrbited]);
 
   if (actionChoiceId === "s1_a") return <BubbleAction onComplete={onActionComplete} tokenActive={tokenActive} />;
-  if (actionChoiceId === "s1_b") return <ObserveAction onComplete={onActionComplete} tokenActive={tokenActive} />;
+  if (actionChoiceId === "s1_b") return <ObserveAction onComplete={onActionComplete} tokenActive={tokenActive} onObserveProgress={onObserveProgress} />;
   return null;
 }

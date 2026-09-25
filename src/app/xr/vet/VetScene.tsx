@@ -65,7 +65,17 @@ import { createVetLabelSprite } from "./vetLabelSprite";
 import SceneTargetPins from "./SceneTargetPins";
 import R4ActionLayer from "./R4ActionLayer";
 import VetHumanoid from "./VetHumanoid";
-import { orbitPosition, r4ClipboardRows, r4PoseNames, type R4ActionChoiceId, type R4PoseNames } from "./r4Prototype";
+import VetDogR4 from "./VetDogR4";
+import {
+  orbitPosition,
+  r4ClipboardRows,
+  r4DogPoseName,
+  r4PoseNames,
+  r4SeniorOffset,
+  type DogPoseName,
+  type R4ActionChoiceId,
+  type R4PoseNames,
+} from "./r4Prototype";
 import VetSceneHud from "./VetSceneHud";
 import WaitingPair from "./WaitingPair";
 import XrSceneGuard from "../XrSceneGuard";
@@ -685,9 +695,11 @@ interface ExamRoomProps {
   dogResting: boolean;
   /** R4: 있으면 보호자·선배를 관절 리그(VetHumanoid)로 그린다. */
   humanoidPoses?: R4PoseNames;
+  /** R4-A1: 있으면 콩이를 관절형 VetDogR4로 그린다. */
+  dogPoseName?: DogPoseName;
 }
 
-function ExamRoom({ showChart, active, pose, dogResting, humanoidPoses }: ExamRoomProps) {
+function ExamRoom({ showChart, active, pose, dogResting, humanoidPoses, dogPoseName }: ExamRoomProps) {
   return (
     <group>
       {/* 바닥 — 밝은 베이지 */}
@@ -705,14 +717,24 @@ function ExamRoom({ showChart, active, pose, dogResting, humanoidPoses }: ExamRo
       <Door />
       <ExamTable />
       <AidCard kind={pose.card} />
-      <Dog
-        active={!!active.dog}
-        onSelect={active.dog}
-        yaw={pose.dogYaw}
-        headUp={pose.dogHeadUp}
-        low={pose.dogLow}
-        resting={dogResting}
-      />
+      {dogPoseName ? (
+        <VetDogR4
+          position={DOG_ANCHOR}
+          yaw={pose.dogYaw}
+          poseName={dogPoseName}
+          active={!!active.dog}
+          onSelect={active.dog}
+        />
+      ) : (
+        <Dog
+          active={!!active.dog}
+          onSelect={active.dog}
+          yaw={pose.dogYaw}
+          headUp={pose.dogHeadUp}
+          low={pose.dogLow}
+          resting={dogResting}
+        />
+      )}
       {humanoidPoses ? (
         <>
           <VetHumanoid
@@ -805,6 +827,10 @@ export default function VetScene({
   const orbitTargetRef = useRef(0);
   const [orbited, setOrbited] = useState(false);
   const r4ActionActive = !!r4?.actionChoiceId;
+  const [observeStep, setObserveStep] = useState(0);
+  useEffect(() => {
+    if (!r4?.actionChoiceId) setObserveStep(0);
+  }, [r4?.actionChoiceId]);
 
   const resolvedTargets = useMemo(
     () => resolveScenePresentation(mode, phase, point, choices).targets,
@@ -826,6 +852,9 @@ export default function VetScene({
   );
   const r4Enabled = !!r4;
   const r4PoseChoice = r4?.actionChoiceId ?? (phase === "reaction" ? (lastChoiceId ?? null) : null);
+  const dogPoseName = r4Enabled
+    ? r4DogPoseName(phase, point, r4PoseChoice ?? (lastChoiceId ?? null), observeStep)
+    : undefined;
   const humanoidPoses = useMemo(
     () => (r4Enabled ? r4PoseNames(phase, point, r4PoseChoice) : undefined),
     [r4Enabled, phase, point, r4PoseChoice],
@@ -834,8 +863,16 @@ export default function VetScene({
   const stage = useMemo(() => {
     if (!r4Enabled) return baseStage;
     const rows = r4ClipboardRows(phase, point, lastChoiceId ?? null);
-    if (rows === null) return baseStage;
-    return { ...baseStage, pose: { ...baseStage.pose, clipboardRows: rows, clipboardLifted: true } };
+    const seniorOffset = r4SeniorOffset(phase, point);
+    if (rows === null && seniorOffset === null) return baseStage;
+    return {
+      ...baseStage,
+      pose: {
+        ...baseStage.pose,
+        ...(rows !== null ? { clipboardRows: rows, clipboardLifted: true } : {}),
+        ...(seniorOffset ? { seniorOffset } : {}),
+      },
+    };
   }, [r4Enabled, baseStage, phase, point, lastChoiceId]);
 
   // 핀 좌표: mode/point/phase/choices/Canvas 크기가 바뀔 때만 재계산한다
@@ -883,6 +920,7 @@ export default function VetScene({
               pose={stage.pose}
               dogResting={stage.dogResting}
               humanoidPoses={humanoidPoses}
+              dogPoseName={dogPoseName}
             />
           </TapModeContext.Provider>
           {r4 && (
@@ -891,6 +929,7 @@ export default function VetScene({
               onActionComplete={r4.onActionComplete}
               orbitTargetRef={orbitTargetRef}
               onOrbited={setOrbited}
+              onObserveProgress={setObserveStep}
             />
           )}
           {phase === "result" && <CompletionBadge />}

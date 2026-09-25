@@ -158,3 +158,76 @@ export function r4ClipboardRows(phase: string, point: number, choiceId: string |
   if (choiceId === "s1_b") return 2;
   return null;
 }
+
+// ====================================================
+// G2.2-R4-A1 — 콩이(강아지) 자세·관찰 반응 / 새싹2 겹침 보정
+// ====================================================
+
+export type DogPoseName = "resting" | "alert" | "observing";
+
+/** 콩이 관절 값. headPitch: 아래(+)·위(-), headYaw: 카메라 쪽(-)/반대(+), earPerk 0=늘어짐 1=쫑긋,
+ *  tailWag 0=정지 1=크게 흔듦, pawLift: 앞발 들기, legFold 1=엎드려 다리를 접음. */
+export interface DogPose {
+  bodyY: number;
+  bodyScaleY: number;
+  legFold: number;
+  headPitch: number;
+  headYaw: number;
+  earPerk: number;
+  tailWag: number;
+  pawLift: number;
+}
+
+export const DOG_POSES: Record<DogPoseName, DogPose> = {
+  // 평소보다 조용한 자세: 엎드려 다리를 접고 고개를 낮춘다
+  resting: { bodyY: -0.09, bodyScaleY: 0.72, legFold: 1, headPitch: 0.4, headYaw: 0, earPerk: 0, tailWag: 0, pawLift: 0 },
+  // 고개를 들고 카메라 쪽을 본다
+  alert: { bodyY: 0, bodyScaleY: 0.8, legFold: 0, headPitch: -0.12, headYaw: -0.5, earPerk: 0.6, tailWag: 0.25, pawLift: 0 },
+  // 관찰 중: 귀를 쫑긋 세우고 꼬리를 흔들며 앞발을 살짝 든다
+  observing: { bodyY: 0, bodyScaleY: 0.8, legFold: 0, headPitch: -0.2, headYaw: -0.7, earPerk: 1, tailWag: 1, pawLift: 1 },
+};
+
+function lerpN(a: number, b: number, t: number): number {
+  return a + (b - a) * t;
+}
+
+export function lerpDogPose(a: DogPose, b: DogPose, t: number): DogPose {
+  const k = Math.min(1, Math.max(0, t));
+  return {
+    bodyY: lerpN(a.bodyY, b.bodyY, k),
+    bodyScaleY: lerpN(a.bodyScaleY, b.bodyScaleY, k),
+    legFold: lerpN(a.legFold, b.legFold, k),
+    headPitch: lerpN(a.headPitch, b.headPitch, k),
+    headYaw: lerpN(a.headYaw, b.headYaw, k),
+    earPerk: lerpN(a.earPerk, b.earPerk, k),
+    tailWag: lerpN(a.tailWag, b.tailWag, k),
+    pawLift: lerpN(a.pawLift, b.pawLift, k),
+  };
+}
+
+/**
+ * 콩이 자세 선택. observeStep은 s1_b 관찰 링이 지나간 지점 수(0=아직, 1=머리, 2=머리+몸통).
+ * 진행 중에도 링이 머리를 지나면 고개를 들고, 몸통까지 지나면 귀·꼬리·앞발로 반응한다.
+ */
+export function r4DogPoseName(
+  phase: "intro" | "choosing" | "reaction" | "result",
+  point: number,
+  choiceId: string | null,
+  observeStep: number,
+): DogPoseName {
+  if (phase === "result") return "resting";
+  if (point === 1) {
+    if (phase === "reaction") return choiceId === "s1_b" ? "observing" : choiceId === "s1_a" ? "alert" : "resting";
+    if (observeStep >= 2) return "observing";
+    if (observeStep === 1) return "alert";
+    return "resting";
+  }
+  if (point === 2) return "alert";
+  return "resting";
+}
+
+/** 새싹2: 선배가 기록 자세로 몸을 숙일 때 머리가 콩이 뒤에 겹치지 않도록 진찰대에서 조금 떨어져 선다. */
+export function r4SeniorOffset(phase: string, point: number): [number, number] | null {
+  if (point === 2 && (phase === "choosing" || phase === "reaction")) return [0.12, 0.22];
+  return null;
+}
