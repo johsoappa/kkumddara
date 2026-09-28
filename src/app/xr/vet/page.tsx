@@ -10,6 +10,9 @@
 //
 // [모드] ?mode=sprout → 새싹모드, 그 외 전부 나침반(compass) 폴백.
 //   Client에서 window.location 파싱 금지 — 여기서 판정해 props로 내린다.
+//
+// [R4] G2.2-R4-D부터 R4(직접 조작)가 기본값이다. r4=0일 때만 R3로 되돌아가는
+//   숨겨진 긴급 롤백 경로를 유지한다 — 버튼·링크로 노출하지 않는다.
 // ====================================================
 
 import { notFound } from "next/navigation";
@@ -26,7 +29,8 @@ export default function XrVetPage({ searchParams }: XrVetPageProps) {
   }
   // 화이트리스트 판정 — "sprout" 정확 일치 외에는 전부 나침반 폴백 (배열 값 포함)
   const mode: Mode = searchParams?.mode === "sprout" ? "sprout" : "compass";
-  // G2.2-R4-B 로컬 프로토타입: ?r4=1이면 새싹·나침반 양쪽에서 활성(기본 R3 흐름은 그대로)
-  const r4 = searchParams?.r4 === "1";
+  // G2.2-R4-D: R4가 기본값이다 — r4=0일 때만 R3로 긴급 롤백한다(그 외 값·미설정은 전부 R4).
+  // r4=0은 화면에 노출하지 않는 숨겨진 롤백 경로다.
+  const r4 = searchParams?.r4 !== "0";
   return <XrVetClient mode={mode} r4={r4} />;
 }
