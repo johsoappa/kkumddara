@@ -73,9 +73,9 @@ import {
   r4PoseNames,
   r4SeniorOffset,
   type DogPoseName,
-  type R4ActionChoiceId,
   type R4PoseNames,
 } from "./r4Prototype";
+import type { R4ActionChoiceId } from "./r4ActionDefinitions";
 import VetSceneHud from "./VetSceneHud";
 import WaitingPair from "./WaitingPair";
 import XrSceneGuard from "../XrSceneGuard";

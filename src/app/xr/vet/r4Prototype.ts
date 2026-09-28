@@ -197,8 +197,14 @@ export interface R4PoseNames {
 
 /**
  * 단계별 사람 캐릭터 포즈. choiceId는 action 진행 중이거나 reaction 단계에서 방금 고른 choice.
- * intro/기본은 idle, 새싹1은 선택에 따라 보호자 이야기(listening)/선배 관찰(observing),
- * 새싹2·3과 결과는 기록(recording)·안내(explaining)·완료(complete) 포즈를 쓴다.
+ * intro/기본은 idle, 새싹1(과 나침반1의 대응 choice)은 선택에 따라 보호자 이야기(listening)/
+ * 선배 관찰(observing), 새싹2·3(과 나침반2~5)과 결과는 기록(recording)·안내(explaining)·
+ * 완료(complete) 포즈를 쓴다.
+ *
+ * [G2.2-R4-B] 나침반 1~5단계 확장 — point===1의 choiceId 분기를 p1_a/p1_b/p1_c까지
+ * 넓히고(같은 관찰·경청 의미), point 4·5에 나침반 전용 기본 포즈를 추가했다. 새싹
+ * 1~3(point 1의 s1_a/s1_b, point 2·3의 기본 분기)은 기존 분기를 그대로 통과하므로
+ * 동작이 바뀌지 않는다 — r4Prototype.test.ts의 기존 단언이 이를 검증한다.
  */
 export function r4PoseNames(
   phase: "intro" | "choosing" | "reaction" | "result",
@@ -207,10 +213,19 @@ export function r4PoseNames(
 ): R4PoseNames {
   if (phase === "intro") return { guardian: "idle", senior: "idle" };
   if (phase === "result") return { guardian: "complete", senior: "complete" };
+  // 나침반5 p5_c: 선배 확인 → 보호자 전달까지 마친 직후에만 서로 마주보는 완료 포즈로 전환한다.
+  if (choiceId === "p5_c" && phase === "reaction") return { guardian: "complete", senior: "complete" };
+  if (point === 1) {
+    if (choiceId === "s1_a") return { guardian: "listening", senior: "attentive" };
+    if (choiceId === "s1_b" || choiceId === "p1_a") return { guardian: "attentive", senior: "observing" };
+    if (choiceId === "p1_c") return { guardian: "listening", senior: "observing" };
+    if (choiceId === "p1_b") return { guardian: "attentive", senior: "attentive" };
+    return { guardian: "idle", senior: "idle" };
+  }
   if (point === 2) return { guardian: "attentive", senior: "recording" };
   if (point === 3) return { guardian: "attentive", senior: "explaining" };
-  if (choiceId === "s1_a") return { guardian: "listening", senior: "attentive" };
-  if (choiceId === "s1_b") return { guardian: "attentive", senior: "observing" };
+  if (point === 4) return { guardian: "attentive", senior: "recording" };
+  if (point === 5) return { guardian: "attentive", senior: "explaining" };
   return { guardian: "idle", senior: "idle" };
 }
 
@@ -280,12 +295,26 @@ export function r4DogPoseName(
 ): DogPoseName {
   if (phase === "result") return "resting";
   if (point === 1) {
-    if (phase === "reaction") return choiceId === "s1_b" ? "observing" : choiceId === "s1_a" ? "alert" : "resting";
+    if (phase === "reaction") {
+      if (choiceId === "s1_b" || choiceId === "p1_a") return "observing";
+      if (choiceId === "s1_a" || choiceId === "p1_c") return "alert";
+      return "resting";
+    }
     if (observeStep >= 2) return "observing";
     if (observeStep === 1) return "alert";
     return "resting";
   }
   if (point === 2) return "alert";
+  // [G2.2-R4-B] 나침반4 p4_c("기록과 콩이 상태를 함께 다시 살핀다")도 s1_b와 같은
+  // 관찰 링 원리를 쓴다 — 진행 중에도 observeStep에 따라 반응한다.
+  if (point === 4) {
+    if (phase === "reaction") return choiceId === "p4_c" ? "observing" : "resting";
+    if (choiceId === "p4_c") {
+      if (observeStep >= 2) return "observing";
+      if (observeStep === 1) return "alert";
+    }
+    return "resting";
+  }
   return "resting";
 }
 

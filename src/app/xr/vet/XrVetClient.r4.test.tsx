@@ -71,8 +71,13 @@ describe("XrVetClient — R4-A 프로토타입 흐름", () => {
     expect(events("xr_vet_choice_selected")).toHaveLength(1);
   });
 
-  it("r4=1이어도 compass에서는 활성화되지 않는다", async () => {
+  it("G2.2-R4-B: r4=1이면 compass에서도 활성화된다", async () => {
     await startAt("compass", true);
+    expect(screen.getByTestId("fake-scene")).toHaveAttribute("data-r4", "true");
+  });
+
+  it("r4=0(기본)이면 compass에서 R3 그대로 — r4 prop이 씬에 전달되지 않는다", async () => {
+    await startAt("compass", false);
     expect(screen.getByTestId("fake-scene")).toHaveAttribute("data-r4", "false");
   });
 
@@ -138,15 +143,17 @@ describe("XrVetClient — R4-A 프로토타입 흐름", () => {
     expect(events("xr_vet_choice_selected")).toHaveLength(1);
   });
 
-  it("R4에서도 새싹 3지점 완주 시 choice 3회·result 1회, 결과 집계(none)는 변하지 않는다", async () => {
+  it("R4-B에서도 새싹 3지점 완주 시 choice 3회·result 1회, 결과 집계(none)는 변하지 않는다 — 2·3단계도 이제 action이 붙는다", async () => {
     await startAt("sprout", true);
     fireEvent.click(screen.getByRole("button", { name: "scene-choice:s1_a" }));
     fireEvent.click(screen.getByRole("button", { name: "scene-action-complete" }));
     fireEvent.click(await screen.findByRole("button", { name: "계속하기" }));
-    // 2·3단계는 R3와 동일하게 즉시 선택
+    // G2.2-R4-B: 새싹 2·3단계도 이제 action이 붙는다(가짜 씬은 조작 유형과 무관하게 완료 버튼만 노출한다)
     fireEvent.click(await screen.findByRole("button", { name: "scene-choice:s2_a" }));
+    fireEvent.click(screen.getByRole("button", { name: "scene-action-complete" }));
     fireEvent.click(await screen.findByRole("button", { name: "계속하기" }));
     fireEvent.click(await screen.findByRole("button", { name: "scene-choice:s3_a" }));
+    fireEvent.click(screen.getByRole("button", { name: "scene-action-complete" }));
     fireEvent.click(await screen.findByRole("button", { name: "완료 화면 보기" }));
     expect(await screen.findByText("첫 상담 완료!")).toBeInTheDocument();
     expect(events("xr_vet_choice_selected")).toHaveLength(3);

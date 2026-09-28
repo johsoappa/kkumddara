@@ -26,7 +26,7 @@ export default function XrVetPage({ searchParams }: XrVetPageProps) {
   }
   // 화이트리스트 판정 — "sprout" 정확 일치 외에는 전부 나침반 폴백 (배열 값 포함)
   const mode: Mode = searchParams?.mode === "sprout" ? "sprout" : "compass";
-  // R4-A 로컬 프로토타입: ?mode=sprout&r4=1 에서만 활성(기본 R3 흐름은 그대로)
-  const r4 = mode === "sprout" && searchParams?.r4 === "1";
+  // G2.2-R4-B 로컬 프로토타입: ?r4=1이면 새싹·나침반 양쪽에서 활성(기본 R3 흐름은 그대로)
+  const r4 = searchParams?.r4 === "1";
   return <XrVetClient mode={mode} r4={r4} />;
 }

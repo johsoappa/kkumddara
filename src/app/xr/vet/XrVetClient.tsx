@@ -64,7 +64,7 @@ import {
 import { sceneInteractionId } from "./sceneLayout";
 import { CHOICE_FEEDBACK, classifyChoice } from "./vetStoryboard";
 import ChoiceTimeline from "./ChoiceTimeline";
-import { R4_ACTION_COPY, isR4ActionChoice } from "./r4Prototype";
+import { getR4ActionCopy, isR4Action } from "./r4ActionDefinitions";
 
 const VetScene = dynamic(() => import("./VetScene"), {
   ssr: false,
@@ -156,8 +156,9 @@ function ActionCardBadge() {
 }
 
 export default function XrVetClient({ mode, r4 = false }: { mode: Mode; r4?: boolean }) {
-  // R4-A 프로토타입: ?mode=sprout&r4=1 에서만 활성화(로컬 전용, analytics 구조 변경 없음)
-  const r4Enabled = r4 && mode === "sprout";
+  // G2.2-R4-B: ?r4=1은 새싹·나침반 양쪽에서 활성화된다(로컬 프로토타입, analytics 구조 변경 없음).
+  // mode는 항상 "sprout"|"compass" 둘 중 하나이므로 별도 화이트리스트 체크가 필요 없다.
+  const r4Enabled = r4;
   const [state, dispatch] = useReducer(reducer, initialState);
   const [ctaClicked, setCtaClicked] = useState(false);
   // 리렌더 전 연타로 인한 이벤트 중복 전송 방지 잠금
@@ -181,6 +182,8 @@ export default function XrVetClient({ mode, r4 = false }: { mode: Mode; r4?: boo
   const pendingRef = useRef<Choice | null>(null);
   const [announce, setAnnounce] = useState("");
   const r4Active = r4Enabled && useScene;
+  // 여러 단계(altSteps) 대체 조작의 진행 인덱스 — 새 action이 시작되거나 취소되면 0으로 되돌린다.
+  const [altStepIndex, setAltStepIndex] = useState(0);
 
   const points = MODE_POINTS[mode];
   const scenarioVersion = SCENARIO_VERSIONS[mode];
@@ -248,11 +251,12 @@ export default function XrVetClient({ mode, r4 = false }: { mode: Mode; r4?: boo
   };
 
   const handlePick = (choice: Choice) => {
-    if (r4Active && state.phase === "choosing" && isR4ActionChoice(mode, state.currentPoint, choice.id)) {
+    if (r4Active && state.phase === "choosing" && isR4Action(choice.id)) {
       if (pendingRef.current || choiceLockRef.current) return; // action 중 중복 선택 차단
       pendingRef.current = choice;
       setPendingChoice(choice);
-      setAnnounce(`조작 시작: ${R4_ACTION_COPY[choice.id].title}`);
+      setAltStepIndex(0);
+      setAnnounce(`조작 시작: ${getR4ActionCopy(choice.id)?.title ?? ""}`);
       return;
     }
     handleChoice(choice);
@@ -263,15 +267,29 @@ export default function XrVetClient({ mode, r4 = false }: { mode: Mode; r4?: boo
     if (!choice) return; // 더블 완료 방지
     pendingRef.current = null;
     setPendingChoice(null);
-    if (isR4ActionChoice(mode, state.currentPoint, choice.id)) {
-      setAnnounce(R4_ACTION_COPY[choice.id].doneAnnouncement);
+    const copy = getR4ActionCopy(choice.id);
+    if (copy) {
+      setAnnounce(copy.doneAnnouncement);
     }
+    setAltStepIndex(0);
     handleChoice(choice);
+  };
+
+  /** 여러 단계 대체 조작 — 현재 단계 버튼을 누르면 다음 단계로, 마지막 단계면 completeAction. */
+  const advanceAltStep = (steps: string[]) => {
+    const next = altStepIndex + 1;
+    if (next >= steps.length) {
+      completeAction();
+      return;
+    }
+    setAltStepIndex(next);
+    setAnnounce(`${next + 1} / ${steps.length}단계: ${steps[next]}`);
   };
 
   const cancelAction = () => {
     pendingRef.current = null;
     setPendingChoice(null);
+    setAltStepIndex(0);
     setAnnounce("조작을 취소했어요. 다시 선택해 주세요.");
   };
 
@@ -323,10 +341,7 @@ export default function XrVetClient({ mode, r4 = false }: { mode: Mode; r4?: boo
         r4={
           r4Active
             ? {
-                actionChoiceId:
-                  pendingChoice && isR4ActionChoice(mode, state.currentPoint, pendingChoice.id)
-                    ? pendingChoice.id
-                    : null,
+                actionChoiceId: pendingChoice && isR4Action(pendingChoice.id) ? pendingChoice.id : null,
                 onActionComplete: completeAction,
               }
             : undefined
@@ -380,21 +395,44 @@ export default function XrVetClient({ mode, r4 = false }: { mode: Mode; r4?: boo
               aria-hidden이라 버튼의 접근 가능한 이름은 choice.label 그대로다.
               씬을 쓸 수 없을 때(WebGL 미지원·오류·사용자 선택)는 완전한 형태로
               노출한다 — 두 경로 모두 같은 handleChoice를 호출한다. */}
-          {pendingChoice && isR4ActionChoice(mode, state.currentPoint, pendingChoice.id) && (
+          {pendingChoice && isR4Action(pendingChoice.id) && getR4ActionCopy(pendingChoice.id) && (
             <div
               role="group"
               aria-label="직접 조작"
               className="flex flex-col gap-3 rounded-xl border-2 border-teal-300 bg-teal-50 p-4"
             >
-              <p className="text-base font-semibold text-teal-900">{R4_ACTION_COPY[pendingChoice.id].title}</p>
-              <p className="text-sm leading-relaxed text-gray-700">{R4_ACTION_COPY[pendingChoice.id].instruction}</p>
-              <button
-                type="button"
-                onClick={completeAction}
-                className="min-h-[48px] w-full rounded-lg bg-teal-600 px-4 text-base font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
-              >
-                {R4_ACTION_COPY[pendingChoice.id].altLabel}
-              </button>
+              <p className="text-base font-semibold text-teal-900">{getR4ActionCopy(pendingChoice.id)!.title}</p>
+              <p className="text-sm leading-relaxed text-gray-700">{getR4ActionCopy(pendingChoice.id)!.instruction}</p>
+              {getR4ActionCopy(pendingChoice.id)!.altSteps ? (
+                <ol className="flex flex-col gap-2">
+                  {getR4ActionCopy(pendingChoice.id)!.altSteps!.map((step, index) => (
+                    <li key={step}>
+                      <button
+                        type="button"
+                        disabled={index !== altStepIndex}
+                        onClick={() => advanceAltStep(getR4ActionCopy(pendingChoice.id)!.altSteps!)}
+                        aria-current={index === altStepIndex ? "step" : undefined}
+                        className={
+                          index === altStepIndex
+                            ? "min-h-[48px] w-full rounded-lg bg-teal-600 px-4 text-left text-base font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
+                            : "min-h-[48px] w-full rounded-lg bg-white px-4 text-left text-base text-gray-400"
+                        }
+                      >
+                        {index < altStepIndex ? "완료: " : `${index + 1}. `}
+                        {step}
+                      </button>
+                    </li>
+                  ))}
+                </ol>
+              ) : (
+                <button
+                  type="button"
+                  onClick={completeAction}
+                  className="min-h-[48px] w-full rounded-lg bg-teal-600 px-4 text-base font-semibold text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-800"
+                >
+                  {getR4ActionCopy(pendingChoice.id)!.altLabel}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={cancelAction}
