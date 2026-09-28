@@ -96,7 +96,8 @@ interface State {
 type Action =
   | { type: "START" }
   | { type: "CHOOSE"; record: ChoiceRecord; isLast: boolean; resultAxis: AxisId | null }
-  | { type: "CONTINUE" };
+  | { type: "CONTINUE" }
+  | { type: "RESET" };
 
 const initialState: State = {
   phase: "intro",
@@ -123,6 +124,8 @@ function reducer(state: State, action: Action): State {
         return { ...state, phase: "result" };
       }
       return { ...state, phase: "choosing", currentPoint: state.currentPoint + 1 };
+    case "RESET":
+      return initialState;
     default:
       return state;
   }
@@ -184,6 +187,33 @@ export default function XrVetClient({ mode, r4 = false }: { mode: Mode; r4?: boo
   const r4Active = r4Enabled && useScene;
   // 여러 단계(altSteps) 대체 조작의 진행 인덱스 — 새 action이 시작되거나 취소되면 0으로 되돌린다.
   const [altStepIndex, setAltStepIndex] = useState(0);
+  // G2.2-R4-C: 선택지 버튼은 action이 시작돼도 언마운트되지 않고 hidden 처리만 되므로
+  // (아래 choices 목록 div), 키보드로 선택한 직후 포커스가 숨겨진 버튼에 남아 다음 Tab이
+  // 새로 나타난 action 패널을 건너뛰는 결함이 있었다(실제 키보드 회귀 검수로 확인). action
+  // 패널이 나타나는 순간 그 패널로 포커스를 옮긴다 — 패널 자체는 tabIndex=-1이라 Tab
+  // 순서에는 끼지 않고, 포커스만 옮긴 뒤 다음 Tab은 패널 안의 첫 버튼으로 자연스럽게 이동한다.
+  const actionPanelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (pendingChoice) actionPanelRef.current?.focus();
+  }, [pendingChoice]);
+
+  // G2.2-R4-C: mode·r4는 URL(searchParams)에서 내려오는 props다. 같은 컴포넌트
+  // 인스턴스가 언마운트 없이 다른 mode/r4로 재렌더되면(클라이언트 사이드 네비게이션)
+  // useReducer/useState는 기본적으로 이전 값을 그대로 들고 있어 이전 모드의
+  // phase·history·pendingChoice가 새 모드 화면에 섞여 보일 수 있다(실제 회귀
+  // 테스트로 확인됨). mode 또는 r4가 바뀔 때마다 진행 상태를 전부 초기 상태로
+  // 되돌린다 — 마운트 시 1회도 포함되지만 이미 초기값이라 렌더에 영향 없다.
+  useEffect(() => {
+    dispatch({ type: "RESET" });
+    choiceLockRef.current = false;
+    setCtaClicked(false);
+    pendingRef.current = null;
+    setPendingChoice(null);
+    setAltStepIndex(0);
+    setAnnounce("");
+    setUiMode("scene");
+    setSceneUnavailable(false);
+  }, [mode, r4]);
 
   const points = MODE_POINTS[mode];
   const scenarioVersion = SCENARIO_VERSIONS[mode];
@@ -397,9 +427,11 @@ export default function XrVetClient({ mode, r4 = false }: { mode: Mode; r4?: boo
               노출한다 — 두 경로 모두 같은 handleChoice를 호출한다. */}
           {pendingChoice && isR4Action(pendingChoice.id) && getR4ActionCopy(pendingChoice.id) && (
             <div
+              ref={actionPanelRef}
               role="group"
               aria-label="직접 조작"
-              className="flex flex-col gap-3 rounded-xl border-2 border-teal-300 bg-teal-50 p-4"
+              tabIndex={-1}
+              className="flex flex-col gap-3 rounded-xl border-2 border-teal-300 bg-teal-50 p-4 focus:outline-none"
             >
               <p className="text-base font-semibold text-teal-900">{getR4ActionCopy(pendingChoice.id)!.title}</p>
               <p className="text-sm leading-relaxed text-gray-700">{getR4ActionCopy(pendingChoice.id)!.instruction}</p>
