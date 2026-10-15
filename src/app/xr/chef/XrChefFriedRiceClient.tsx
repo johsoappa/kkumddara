@@ -3,7 +3,8 @@
 // ====================================================
 // XR 요리사 — "손님의 채소 볶음밥 한 접시 만들기" 시범 체험 Client (F11, 신규)
 //
-// 진입: /xr/chef?scenario=fried-rice (기존 NEXT_PUBLIC_XR_CHEF_ENABLED 플래그 뒤, 기존 체험은 그대로)
+// 진입: /xr/chef (기본) 또는 /xr/chef?scenario=fried-rice — 기존 NEXT_PUBLIC_XR_CHEF_ENABLED 플래그 뒤.
+//       이전 체험(나침반·새싹)은 /xr/chef?scenario=classic 으로 보존한다(F13).
 // 범위: 1단계 주문 확인 · 2단계 재료 준비까지. 3~5단계(조리 순서·불 조절·플레이팅·전달)는 이어서 붙인다.
 //
 // 구조
@@ -460,7 +461,7 @@ export default function XrChefFriedRiceClient() {
         </div>
         <p className="mt-1 text-sm text-gray-600">
           손님의 주문을 확인하고, 재료 준비부터 전달까지 해 봐요.{" "}
-          <a href="/xr/chef" className="underline">
+          <a href="/xr/chef?scenario=classic" className="underline">
             기존 체험으로 가기
           </a>
         </p>

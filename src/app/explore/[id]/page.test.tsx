@@ -161,10 +161,11 @@ describe("OccupationDetailPage — DB 분기의 수의사 XR 카드", () => {
     expect(screen.getAllByText("요리사 XR 체험")).toHaveLength(1);
     expect(screen.queryByText("수의사 XR 체험")).not.toBeInTheDocument();
 
-    const sproutLink = screen.getByRole("link", { name: /새싹 모드 체험하기/ });
-    expect(sproutLink).toHaveAttribute("href", "/xr/chef?mode=sprout");
-    const compassLink = screen.getByRole("link", { name: /나침반 모드 체험하기/ });
-    expect(compassLink).toHaveAttribute("href", "/xr/chef?mode=compass");
+    // F13: 요리사 XR 카드는 새 볶음밥 체험으로 연결된다(모드 버튼 없음)
+    const xrLink = screen.getByRole("link", { name: /요리사 XR 체험하기/ });
+    expect(xrLink).toHaveAttribute("href", "/xr/chef?scenario=fried-rice");
+    expect(screen.queryByRole("link", { name: /새싹 모드 체험하기/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /나침반 모드 체험하기/ })).not.toBeInTheDocument();
   });
 });
 

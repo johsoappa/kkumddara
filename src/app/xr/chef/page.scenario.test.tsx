@@ -1,7 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { isValidElement } from "react";
 
-// 실험 진입(?scenario=fried-rice)이 기존 체험(나침반·새싹)의 진입을 바꾸지 않는지 확인한다.
+// F13 — /xr/chef 진입 규칙: 기본은 볶음밥 체험, 이전 체험(나침반·새싹)은 ?scenario=classic 으로 명시 보존,
+// scenario 없이 온 기존 ?mode=sprout|compass 링크는 이전 체험 그대로(의미 보존).
 // 클라이언트 컴포넌트는 이름만 비교하도록 가볍게 목킹한다.
 
 vi.mock("next/navigation", () => ({
@@ -37,34 +38,47 @@ describe("/xr/chef 진입 분기", () => {
     else process.env.NEXT_PUBLIC_XR_CHEF_ENABLED = original;
   });
 
-  it("플래그가 꺼져 있으면 시범 진입도 404다(같은 플래그 뒤에 있다)", () => {
+  it("플래그가 꺼져 있으면 모든 진입이 404다(이전 체험 경로 포함, 같은 플래그 뒤에 있다)", () => {
     process.env.NEXT_PUBLIC_XR_CHEF_ENABLED = "false";
     expect(() => render({ scenario: "fried-rice" })).toThrow("NEXT_NOT_FOUND");
+    expect(() => render({ scenario: "classic" })).toThrow("NEXT_NOT_FOUND");
+    expect(() => render({ mode: "sprout" })).toThrow("NEXT_NOT_FOUND");
+    expect(() => render()).toThrow("NEXT_NOT_FOUND");
+    delete process.env.NEXT_PUBLIC_XR_CHEF_ENABLED;
     expect(() => render()).toThrow("NEXT_NOT_FOUND");
   });
 
-  it("기본 진입은 기존 나침반 체험이다", () => {
-    expect(render()).toMatchObject({ name: "XrChefClient", props: { mode: "compass" } });
-    expect(render({})).toMatchObject({ name: "XrChefClient", props: { mode: "compass" } });
+  it("기본 진입(/xr/chef)은 볶음밥 체험이다", () => {
+    expect(render().name).toBe("XrChefFriedRiceClient");
+    expect(render({}).name).toBe("XrChefFriedRiceClient");
   });
 
-  it("?mode=sprout는 기존 새싹 체험이다", () => {
-    expect(render({ mode: "sprout" })).toMatchObject({ name: "XrChefClient", props: { mode: "sprout" } });
-  });
-
-  it("?scenario=fried-rice(정확 일치)만 볶음밥 시범 체험이다", () => {
+  it("?scenario=fried-rice는 볶음밥 체험이다(mode가 같이 와도 — 새 체험에는 모드가 없다)", () => {
     expect(render({ scenario: "fried-rice" }).name).toBe("XrChefFriedRiceClient");
-    // mode가 같이 와도 시범 체험
     expect(render({ scenario: "fried-rice", mode: "sprout" }).name).toBe("XrChefFriedRiceClient");
   });
 
-  it("그 밖의 scenario 값(대소문자·배열·빈 값·다른 이름)은 기존 체험으로 되돌아간다", () => {
-    for (const scenario of ["Fried-Rice", "fried_rice", "", "other", ["fried-rice"], ["fried-rice", "x"]]) {
-      expect(render({ scenario }).name, JSON.stringify(scenario)).toBe("XrChefClient");
+  it("이전 체험은 ?scenario=classic 으로 명시 보존된다 — mode=sprout만 새싹, 나머지는 나침반", () => {
+    expect(render({ scenario: "classic" })).toMatchObject({ name: "XrChefClient", props: { mode: "compass" } });
+    expect(render({ scenario: "classic", mode: "sprout" })).toMatchObject({ name: "XrChefClient", props: { mode: "sprout" } });
+    expect(render({ scenario: "classic", mode: "compass" })).toMatchObject({ name: "XrChefClient", props: { mode: "compass" } });
+    expect(render({ scenario: "classic", mode: "other" })).toMatchObject({ name: "XrChefClient", props: { mode: "compass" } });
+    expect(render({ scenario: "classic", mode: ["sprout"] })).toMatchObject({ name: "XrChefClient", props: { mode: "compass" } });
+  });
+
+  it("scenario 없이 온 기존 모드 링크(?mode=sprout|compass)는 이전 체험 그대로 열린다 — 의미를 조용히 바꾸지 않는다", () => {
+    expect(render({ mode: "sprout" })).toMatchObject({ name: "XrChefClient", props: { mode: "sprout" } });
+    expect(render({ mode: "compass" })).toMatchObject({ name: "XrChefClient", props: { mode: "compass" } });
+  });
+
+  it("알 수 없는 mode·scenario 값(대소문자·배열·빈 값·다른 이름)은 모드가 아니므로 기본(볶음밥)으로 간다", () => {
+    for (const scenario of ["Fried-Rice", "fried_rice", "", "other", ["fried-rice"], ["fried-rice", "x"], "Classic"]) {
+      expect(render({ scenario }).name, JSON.stringify(scenario)).toBe("XrChefFriedRiceClient");
     }
-    expect(render({ scenario: "other", mode: "sprout" })).toMatchObject({
-      name: "XrChefClient",
-      props: { mode: "sprout" },
-    });
+    for (const mode of ["Sprout", "", "other", ["sprout"]]) {
+      expect(render({ mode }).name, JSON.stringify(mode)).toBe("XrChefFriedRiceClient");
+    }
+    // scenario가 알 수 없는 값이어도 유효한 모드 링크는 그 모드의 이전 체험
+    expect(render({ scenario: "other", mode: "sprout" })).toMatchObject({ name: "XrChefClient", props: { mode: "sprout" } });
   });
 });

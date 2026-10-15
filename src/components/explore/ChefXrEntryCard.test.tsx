@@ -7,31 +7,29 @@ afterEach(() => {
 });
 
 describe("ChefXrEntryCard", () => {
-  it("게이트 ON + occupationId=chef면 카드와 두 모드 버튼을 정확한 href로 렌더한다", () => {
+  it("게이트 ON + occupationId=chef면 카드와 새 볶음밥 체험 링크 하나를 렌더한다", () => {
     vi.stubEnv("NEXT_PUBLIC_XR_CHEF_ENABLED", "true");
 
     render(<ChefXrEntryCard occupationId="chef" />);
 
     expect(screen.getByText("요리사 XR 체험")).toBeInTheDocument();
-
-    const sproutLink = screen.getByRole("link", { name: /새싹 모드 체험하기/ });
-    expect(sproutLink).toHaveAttribute("href", "/xr/chef?mode=sprout");
-
-    const compassLink = screen.getByRole("link", { name: /나침반 모드 체험하기/ });
-    expect(compassLink).toHaveAttribute("href", "/xr/chef?mode=compass");
+    const links = screen.getAllByRole("link");
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveAttribute("href", "/xr/chef?scenario=fried-rice");
+    expect(links[0]).toHaveTextContent("요리사 XR 체험하기");
   });
 
-  it("학년별 안내 문구와 모드별 추천 학년이 함께 노출된다", () => {
+  it("새 체험이 지원하지 않는 모드(새싹/나침반)와 학년별 모드 안내를 표시하지 않고, 이전 체험 경로도 노출하지 않는다", () => {
     vi.stubEnv("NEXT_PUBLIC_XR_CHEF_ENABLED", "true");
 
-    render(<ChefXrEntryCard occupationId="chef" />);
+    const { container } = render(<ChefXrEntryCard occupationId="chef" />);
 
-    expect(screen.getByText("우리 아이 학년에 맞는 체험을 선택해 주세요.")).toBeInTheDocument();
-    expect(screen.getByText("초등 3~4학년 추천")).toBeInTheDocument();
-    expect(screen.getByText("초등 5학년~중1 추천")).toBeInTheDocument();
-    // 두 모드 모두 계속 노출된다 — 하나를 숨기거나 기본값으로 강제하지 않는다
-    expect(screen.getByRole("link", { name: /새싹 모드 체험하기/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /나침반 모드 체험하기/ })).toBeInTheDocument();
+    expect(screen.queryByText(/새싹/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/나침반/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/학년/)).not.toBeInTheDocument();
+    expect(container.querySelector('a[href*="mode="]')).toBeNull();
+    expect(container.querySelector('a[href*="classic"]')).toBeNull();
+    expect(screen.getByText(/채소 볶음밥/)).toBeInTheDocument();
   });
 
   it("게이트가 꺼져 있으면(unset) 카드를 렌더하지 않는다", () => {

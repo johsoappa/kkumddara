@@ -312,8 +312,11 @@ describe("XrChefFriedRiceClient — 2단계 재료 준비", () => {
     expect(within(screen.getByTestId("fried-rice-bubble")).getByText("손님")).toBeInTheDocument();
   });
 
-  it("기존 체험으로 돌아가는 링크가 있다", () => {
+  it("이전 체험으로 가는 링크는 명시적 보존 경로(?scenario=classic)를 가리킨다(기본 /xr/chef는 이제 이 체험이다)", () => {
     render(<XrChefFriedRiceClient />);
-    expect(screen.getByRole("link", { name: "기존 체험으로 가기" })).toHaveAttribute("href", "/xr/chef");
+    expect(screen.getByRole("link", { name: "기존 체험으로 가기" })).toHaveAttribute(
+      "href",
+      "/xr/chef?scenario=classic",
+    );
   });
 });
