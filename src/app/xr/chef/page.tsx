@@ -12,10 +12,15 @@
 // [모드] ?mode=sprout → 새싹모드, 그 외 전부 나침반(compass) 폴백.
 //   searchParams를 읽으므로 이 라우트는 정적(○)→동적(ƒ) 렌더링으로 전환됨.
 //   Client에서 window.location 파싱 금지 — 여기서 판정해 props로 내린다.
+//
+// [실험 진입 — F11] ?scenario=fried-rice → "손님의 채소 볶음밥" 시범 체험(1~5단계).
+//   같은 기능 플래그 뒤에 있고, 이 값이 없거나 다르면 기존 체험(나침반/새싹)이 그대로 나온다.
+//   ?mode와는 독립이며, scenario가 정확히 "fried-rice"일 때만 분기한다(배열·대소문자 변형은 기존 체험).
 // ====================================================
 
 import { notFound } from "next/navigation";
 import XrChefClient from "./XrChefClient";
+import XrChefFriedRiceClient from "./XrChefFriedRiceClient";
 import type { Mode } from "./scenario";
 
 interface XrChefPageProps {
@@ -25,6 +30,10 @@ interface XrChefPageProps {
 export default function XrChefPage({ searchParams }: XrChefPageProps) {
   if (process.env.NEXT_PUBLIC_XR_CHEF_ENABLED !== "true") {
     notFound();
+  }
+  // 실험 시나리오 화이트리스트 판정 — 정확 일치 외에는 기존 체험
+  if (searchParams?.scenario === "fried-rice") {
+    return <XrChefFriedRiceClient />;
   }
   // 화이트리스트 판정 — "sprout" 정확 일치 외에는 전부 나침반 폴백 (배열 값 포함)
   const mode: Mode = searchParams?.mode === "sprout" ? "sprout" : "compass";

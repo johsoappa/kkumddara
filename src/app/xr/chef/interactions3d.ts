@@ -15,6 +15,7 @@
 // ====================================================
 
 import type { CameraStage, InteractionKind, Mode } from "./scenario";
+import { MENTOR_FACE_Y, MENTOR_HAT_TOP_Y, MENTOR_HEAD_RADIUS, MENTOR_PLACEMENT } from "./mentorPose";
 
 export type Vec3 = [number, number, number];
 
@@ -249,6 +250,104 @@ export const SCENE_HINTS: Record<InteractionKind, string> = {
   order: "타일을 끌어서 순서를 바꾸고, 확인을 눌러보세요.",
 };
 
+// ---------- 조작 대상 핀 (Canvas 위 DOM 오버레이용 순수 스펙) ----------
+
+/**
+ * 핀은 "실제로 누르거나 끌거나 놓는 대상"에만 붙는다. 장식(냄비·도마 등
+ * Kitchen() 소품)은 SCENE_ANCHORS에 없으므로 핀 대상이 될 수 없다.
+ * 번호는 쓰지 않는다 — 선택지는 순서가 아니라 서로 다른 대안이고, order 지점은
+ * 번호가 곧 "정렬 순서"로 읽혀 오해를 만든다. 대신 행동 동사만 짧게 보여준다.
+ *   - press: 눌러서 고르는 대상(select 구슬, order 확정 버튼)
+ *   - drag:  끌어서 움직이는 대상(place 토큰, order 타일)
+ *   - drop:  끌어다 놓는 자리(place 드롭존)
+ */
+export type TargetPinKind = "press" | "drag" | "drop";
+
+export const TARGET_PIN_TEXT: Record<TargetPinKind, string> = {
+  press: "누르기",
+  drag: "끌기",
+  drop: "놓는 곳",
+};
+
+export interface TargetPinSpec {
+  /** sceneInteractionId 안에서 유일한 키 */
+  id: string;
+  kind: TargetPinKind;
+  /** 핀 기준점(월드 좌표) — 대상의 화면상 "아래"에 오도록 이미 내려 잡은 값 */
+  world: Vec3;
+  /**
+   * 있으면 핀에서 이 점까지 연결선을 긋는다(드롭존: 핀이 조리대 앞면에 있어 원판이 목적지임이
+   * 한눈에 안 보이던 문제). 장식이 아니라 실제 대상 위의 점이어야 한다.
+   */
+  anchor?: Vec3;
+}
+
+/** 대상 중심에서 핀 기준점까지 내리는 world 거리 (대상 mesh 크기에 맞춘 값) */
+export const TARGET_PIN_DROP = {
+  select: 0.27, // 반지름 0.17 구슬
+  token: 0.24, // 0.22 정육면체
+  slot: 0.2, // 0.4 x 0.13 타일
+  confirm: 0.2, // 반지름 0.17 원기둥
+} as const;
+
+/**
+ * 드롭존은 평평한 원판이라 카메라 쪽(+z) 가장자리 앞, 조리대 앞면 높이로 내려 둔다.
+ * 원판 바로 아래에 두면 375px에서 옆 토큰의 "끌기" 핀과 겹쳐(53px 간격) 가려졌다.
+ */
+export const TARGET_PIN_DROP_ZONE_Z_RATIO = 1.15;
+export const TARGET_PIN_DROP_ZONE_DROP = 0.33;
+
+/**
+ * 앵커에서 핀 스펙을 만든다. `choiceCount`는 실제로 렌더되는 선택지 수다 —
+ * SceneInteractions가 선택지마다 구슬·토큰·타일을 만들므로, 선택지가 비어 있으면(ChefScene의
+ * choices 기본값 []) 누를 대상이 없는데 핀만 남지 않도록 같은 수로 자른다. 드롭 원판·확정
+ * 버튼은 선택지와 무관하게 항상 렌더되므로 그 핀은 항상 둔다. 생략하면 앵커 전체.
+ */
+export function targetPinsForAnchor(anchor: SceneAnchor, choiceCount?: number): TargetPinSpec[] {
+  const limit = (list: Vec3[]) => (choiceCount === undefined ? list : list.slice(0, choiceCount));
+  if (anchor.kind === "select") {
+    return limit(anchor.targets).map((t, i) => ({
+      id: `select-${i}`,
+      kind: "press" as const,
+      world: [t[0], t[1] - TARGET_PIN_DROP.select, t[2]] as Vec3,
+    }));
+  }
+  if (anchor.kind === "place") {
+    const tokens = limit(anchor.tokens).map((t, i) => ({
+      id: `token-${i}`,
+      kind: "drag" as const,
+      world: [t[0], t[1] - TARGET_PIN_DROP.token, t[2]] as Vec3,
+    }));
+    const drop: TargetPinSpec = {
+      id: "drop-zone",
+      kind: "drop",
+      world: [
+        anchor.dropZone[0],
+        anchor.dropZone[1] - TARGET_PIN_DROP_ZONE_DROP,
+        anchor.dropZone[2] + anchor.dropRadius * TARGET_PIN_DROP_ZONE_Z_RATIO,
+      ],
+      // 연결선 끝은 실제 드롭 원판의 중심 — 원판 위에서 판정(dropRadius)하는 자리와 같다
+      anchor: [anchor.dropZone[0], anchor.dropZone[1], anchor.dropZone[2]],
+    };
+    return [...tokens, drop];
+  }
+  const slots = limit(anchor.slots).map((t, i) => ({
+    id: `slot-${i}`,
+    kind: "drag" as const,
+    world: [t[0], t[1] - TARGET_PIN_DROP.slot, t[2]] as Vec3,
+  }));
+  const confirm: TargetPinSpec = {
+    id: "confirm",
+    kind: "press",
+    world: [
+      anchor.confirm[0],
+      anchor.confirm[1] - TARGET_PIN_DROP.confirm,
+      anchor.confirm[2],
+    ],
+  };
+  return [...slots, confirm];
+}
+
 // ====================================================
 // G2.1-R1-F1 — 카메라 프레이밍(FOV) 자동 계산
 //
@@ -441,6 +540,24 @@ export function framingPointsForStage(
   if (!sceneInteractionId) return null;
   const anchor = SCENE_ANCHORS[sceneInteractionId];
   return anchor ? framingPointsForAnchor(anchor) : null;
+}
+
+/**
+ * F10 — 선택 직후 "반응" 단계(씬 상호작용 없음)에서 선배 요리사가 프레임 안에 들어오게 하는 점들.
+ * 이 단계는 framingPointsForStage가 null이라 기본 FOV(55)로 stage 카메라를 그대로 쓰는데, 2단계(search)에서는
+ * 선배가 왼쪽 밖으로, 4·5단계(plating)에서는 위쪽 밖으로 잘렸다. 얼굴 좌우·모자 위 여유(씬 위 HUD 막대 아래로
+ * 모자가 오도록)·가리키는 손끝·조리대 가운데를 함께 담는다. 기존 framingPointsForStage 계약은 그대로다.
+ */
+export function framingPointsForMentorReaction(): Vec3[] {
+  const { x, z } = MENTOR_PLACEMENT;
+  const side = MENTOR_HEAD_RADIUS * 1.3;
+  return [
+    [x - side, MENTOR_FACE_Y, z],
+    [x + side, MENTOR_FACE_Y, z],
+    [x, MENTOR_HAT_TOP_Y + 0.55, z],
+    [x + 0.9, 1.3, z + 0.35],
+    [0.4, 1.1, -1.2],
+  ];
 }
 
 export interface FitVerticalFovInput {
